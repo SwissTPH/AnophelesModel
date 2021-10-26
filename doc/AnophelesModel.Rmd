@@ -1,0 +1,666 @@
+---
+title: "AnophelesModel Documentation"
+author: "Monica Golumbeanu, Olivier Briët, Clara Champagne, Jeanne Lemant, Barnabas Zogo, Maximilian Gerhards, Marianne Sinka, Nakul Chitnis, Melissa Penny, Emilie Pothin, Tom Smith"
+date: "`r Sys.Date()`"
+output: 
+    rmarkdown::html_vignette:
+        fig_caption: yes
+        toc: true
+vignette: >
+  %\VignetteIndexEntry{AnophelesModel Documentation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+bibliography: references.bib
+---
+
+<style>
+p.caption {
+  font-size: 0.85em;
+  font-style: italic;
+  color: grey
+}
+</style>
+
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+The `AnophelesModel` package can be used to parameterize a model of the
+mosquito feeding cycle using data about mosquito bionomics 
+(entomological characteristics) and biting 
+patterns, as well as human activity and intervention effects. The different 
+types of data have been extracted from field studies and are included in 
+the package. The model infers the species-specific impact of various
+vector control interventions on the vectorial capacity. The package can be used 
+to compare the impact of interventions for different mosquito species and to 
+generate parameterizations for the entomological and vector control components 
+of more complex models of malaria transmission dynamics.
+
+The `AnophelesModel` package is based on a state transition model 
+of the feeding dynamics of a mosquito population biting a population of 
+hosts defined in [@Chitnis2008]. The model consists of a system of three 
+difference equations
+describing the dynamics in the numbers of not-infected, infected, and infective
+mosquitoes, respectively. The transitions between the individual steps of the 
+cycle for a host *i* are modeled through probabilities and 
+summarized as follows:
+
+```{r, echo=FALSE, results='asis'}
+DiagrammeR::grViz("digraph {
+  graph [layout = dot, rankdir = LR]
+  
+  node [shape = circle, fixedsize=TRUE, fontsize=7]        
+  rec1 [label = <Host<BR/>seeking>]
+  rec2 [label = <Host<BR/>found>]
+  rec3 [label = <Fed>]
+  rec4 [label = <Resting>]
+  rec5 [label = <Ovipositing>]
+  
+  # edge definitions with the node IDs
+  rec1 -> rec2 [label= <P<SUB>Ai</SUB><BR/> >,fontsize=7]
+  rec2 -> rec3 [label= <P<SUB>Bi</SUB><BR/> >,fontsize=7]
+  rec3 -> rec4 [label= <P<SUB>Ci</SUB><BR/> >,fontsize=7]
+  rec4 -> rec5 [label= <P<SUB>Di</SUB><BR/> >,fontsize=7]
+  rec5 -> rec1 [label= <P<SUB>Ei</SUB><BR/> >,fontsize=7]
+  }",
+  width = 700)
+```
+
+These probabilities (represented by the arrows in the diagram above) 
+are in turn affected by mosquito ecology, human behavior 
+and interventions as described in the following sections of this vignette. 
+
+The present document provides information about the various use-cases of the
+package with examples. First, it provides an overview of the general 
+analysis workflow. Next, it presents the contents of the
+package database and its data objects. Finally, it provides more detailed 
+example use cases of the package functions. These examples include how to 
+parameterize the embedded entomological model and evaluate the impact of various
+vector control interventions for different mosquito species and geographical 
+locations. In addition, examples are shown about how to produce formatted 
+inputs for downstream analyses with 
+the [OpenMalaria](https://github.com/SwissTPH/openmalaria/wiki) [@Smith2006]
+individual-based model of malaria transmission dynamics.
+
+## General workflow
+With the main `AnophelesModel()` package function, the user can run in one go 
+the main analysis steps for parameterizing the model of the 
+mosquito feeding cycle [@Chitnis2008]
+and estimate the reduction on the vectorial capacity for various vector control 
+interventions. These steps are summarized in the diagram below, alongside the 
+corresponding functions:
+```{r, echo=FALSE, results='asis'}
+DiagrammeR::grViz("digraph {
+  graph [layout = dot, rankdir = LR]
+  
+  node [shape = rectangle]        
+  rec1 [label = <Define entomological parameters <BR/><B>def_vector_params()</B>>]
+  rec2 [label = <Define mosquito and human activity patterns <BR/><B>def_activity_patterns()</B>>]
+  rec3 [label = <Define human host parameters <BR/><B>def_host_params()</B>>]
+  rec4 [label = <Parameterize entomological model <BR/><B>build_model_obj()</B>>]
+  rec5 [label = <Define interventions effects <BR/><B>def_interventions_effects()</B>>]
+  rec6 [label = <Calculate impact on vectorial capacity <BR/><B>calculate_impact()</B>>]
+  
+  # edge definitions with the node IDs
+  rec1 -> rec4 
+  rec2 -> rec4 
+  rec3 -> rec4
+  rec4 -> rec6
+  rec5 -> rec6
+  }",
+  width = 720)
+```
+
+The user can directly run the `AnophelesModel()` function as an initial test 
+run with a default analysis. By default, the `AnophelesModel()` function 
+performs the above steps considering 
+the parameters for *An. gambiae* in a Kenyan setting and with default activity 
+patterns for mosquitoes and humans. It calibrates the entomological model,
+estimates the impact of indoor residual spraying (IRS), long-lasting 
+insecticide-treated nets (LLINs) and house screening, then plots the average 
+vectorial capacity for a range of intervention coverages:
+```{r, dpi=150, fig.cap="Output figure generated with the standard call of the AnophelesModel() function"}
+# load the AnophelesModel package
+library(AnophelesModel)
+
+# call main function with default values
+results_gambiae = AnophelesModel()
+```
+
+In the section [Estimating the impact of vector control interventions], 
+we describe in detail how the user can access the 
+functionalities of the package to customize the 
+call to this function or set up their own workflow to run the 
+analysis within the settings of interest.
+
+## AnophelesModel database 
+The package includes a comprehensive, curated database describing mosquito,
+human and intervention characteristics extracted after processing publicly
+available field data and organized into multiple data objects.
+Precisely, these objects include entomological (or bionomics) parameters
+characterizing various *Anopheles* species, their transitions in 
+the mosquito feeding cycle,
+activity cycles of humans and mosquitoes, as well as parameters 
+estimated from experimental hut studies describing
+the effects of various interventions.
+These parameters are used together within the entomological model included in
+the package to estimate the impact of interventions on the vectorial capacity.
+All the data objects are directly accessible to the user
+after loading the `AnophelesModel` package. 
+
+### Host-specific entomological parameters
+
+The entomological model in the `AnophelesModel` package considers three classes
+of hosts (denoted with subscript i): humans protected by interventions, 
+non-protected humans,
+and animal hosts. Each type of host determines specific transition probabilities
+between the consecutive stages of the mosquito feeding cycle
+(e.g., interventions such as nets will affect the probability of mosquito
+feeding on protected humans). The object `host_ent_param`
+in the package database contains, in absence of interventions, for human
+and animal hosts, default probabilities that a mosquito
+completes the consecutive stages of the feeding cycle in one night,
+conditional on having reached each stage:
+
+* `PBi`: Probability that a mosquito bites the host
+* `PCi`: Probability that a mosquito finds a resting place after biting
+* `PDi`: Probability that a mosquito survives the resting phase
+* `PEi`: Probability that a mosquito lays eggs and returns to host-seeking
+* `Kvi`: Proportion of susceptible mosquitoes that become infected after biting
+
+The values of the different probabilities in absence of interventions 
+are those proposed by [@Chitnis2008] and [@briet2019]. 
+The `host_ent_param` object can be directly 
+used after loading the `AnophelesModel` package: 
+```{r}
+# Print the object
+host_ent_param
+```
+
+### Mosquito bionomics
+
+The object `vec_ent_param` contains bionomic parameterizations for
+57 _Anopheles_ mosquito species and 17 complexes (families of species). 
+These parameters have been estimated using 
+a Bayesian hierarchical model (Lemant et al, in preparation) accounting for 
+the phylogeny of 
+the _Anopheles_ genus and informed by previously published entomological data 
+[@Massey2016], [@briet2019]. Below, we provide an exhaustive list of these 
+parameters, their names reflecting the notations used in [@Chitnis2008]:
+
+* `species_name`: name of the mosquito species
+* `M`: parous rate (proportion of host seeking mosquitoes that have laid 
+eggs at least once)
+* `M.sd`: standard deviation of the parous rate 
+* `Chi`: human blood index (proportion of mosquito blood meals obtained 
+from humans)
+* `A0`: sac rate (proportion of mosquitoes who laid eggs the same day)
+* `A0.sd`: standard deviation of the sac rate
+* `zeta.3`: relative availability of different non-human hosts
+* `td`: proportion of a day that a mosquito actively seeks a host
+* `tau`: time required for a mosquito that has encountered a host to return to 
+host seeking
+* `ts`: duration of the extrinsic incubation period (time required for 
+sporozoites to develop in mosquitoes)
+* `endophily`: proportion of indoor resting mosquitoes
+* `endophily.sd`: standard deviation of the proportion of indoor 
+resting mosquitoes
+* `endophagy`: proportion of indoor feeding mosquitoes
+* `endophagy.sd`: standard deviation of the proportion of indoor 
+feeding mosquitoes
+
+The `vec_ent_param` object is available upon loading the `AnophelesModel` 
+package and can be directly used:
+```{r}
+# print the first entries of the vec_ent_param object
+head(vec_ent_param)
+```
+For example, to retrieve the parameters for *Anopheles albimanus*:
+```{r}
+vec_ent_param[vec_ent_param$species_name == "Anopheles albimanus", ]
+```
+
+### Human and mosquito activity patterns
+The table `activity_patterns` contains mosquito biting patterns as well as 
+human sleeping activity information extracted from [@Sherrard-Smith15086] and
+[@briet2019]. Each entry has the following attributes:
+
+* `id`: entry ID
+* `species`: can be "Homo sapiens" when the entries reflect human activity, 
+or names of mosquito species (e.g., "Anopheles gambiae") for mosquito 
+biting patterns
+* `sampling`: can be one of the following:
+    + `IND`: for entries representing the proportion of humans indoors
+    + `BED`: for entries representing the proportion of humans in bed
+    + `HBI`: for entries representing the proportion of indoors human 
+    biting
+    + `HBO`: for entries representing the proportion of outdoors human 
+    biting
+    + `ABO`: for entries representing the proportion of outdoors 
+    animal biting
+    + `HB`: for entries corresponding to the proportion of human biting
+* `country`: country where the measurements were taken
+* `site`: name of the geographical site where the measurements were taken
+* `hour`: hour of the day for which the sampling is reported, ranging from 4pm 
+until 8am, format: hh:mm_hh:mm (e.g., 16:00_17:00)
+* `value`: measurement value
+
+The object can be directly examined and its components
+retrieved for various purposes. For example, to retrieve all the human 
+activity patterns collected from Kenya:
+```{r}
+select_idx = activity_patterns$species == "Homo sapiens" &
+                                  activity_patterns$country == "Kenya"
+Kenya_human_rhythms = activity_patterns[select_idx,]
+head(Kenya_human_rhythms)
+```
+A pattern of interest can then be selected and displayed, for example:
+```{r, dpi=150, fig.cap="Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans indoors (labeled IND) out of the total human population is displayed."}
+library(ggplot2)
+Rachuonyo_human_rhythms = Kenya_human_rhythms[which(Kenya_human_rhythms$id == 2),]
+labels = substr(unique(Rachuonyo_human_rhythms$hour), 1, 5)
+Rachuonyo_human_rhythms$hour = factor(labels, levels = labels )
+ggplot(Rachuonyo_human_rhythms, aes(x=hour, y=value, group=site)) +
+    theme_light() + theme_linedraw() + theme_bw(base_size = 5) +
+    theme(legend.position = "bottom") +
+    geom_line(size=0.5) + 
+    scale_x_discrete(name = "Time of the day (hh.mm)")+ 
+    guides(color = guide_legend(nrow = 2,byrow = TRUE)) +
+    labs(title = "Proportion of humans indoors in Rachuonyo, Kenya", fill="",
+         x="Time", y="Activity")
+```
+
+Another example extracting all the available biting behavior for 
+*Anopheles gambiae* in Kenya:
+```{r}
+select_idx = activity_patterns$species == "Anopheles gambiae" &
+                                  activity_patterns$country == "Kenya"
+Kenya_gambiae_biting = activity_patterns[select_idx,]
+head(Kenya_gambiae_biting)
+```
+
+### Intervention parameters 
+The `AnophelesModel` package includes parameterisations for estimating the 
+effects of various vector control interventions. These effects include
+reducing host availability, killing mosquitoes over time since spraying,
+insecticidal and deterrent effects as functions of insecticide content. 
+The interventions modeled in the package consist of different types 
+of long lasting insecticide treated nets (LLINs), 
+indoor residual spraying (IRS), and house screening. All the parameters for 
+calculating these effects are provided within the `interventions_param` 
+object which consists of three components, namely:
+
+* `interventions_param$interventions_summary`: an overview and general 
+information for all available intervention parameterisations; this includes 
+information about the active agent (insecticide) used, the 
+mosquito species for which the effects were assessed in the experimental trials, 
+the duration of the intervention and details about the method and references
+* `interventions_param$LLINs_params`: an object including parameterisations 
+for various types of LLINs
+* `interventions_param$IRS_params`: a table containing estimated insecticide 
+decay for various types of IRS
+
+The effects of LLINs are parameterized in terms of effectiveness in 
+reducing the availability of humans, and both pre- and post-prandial killing 
+of mosquitoes respectively. The effects are based on estimates from 
+experimental hut studies from [@randriamaherijaona2015]. The decay of these 
+effects over time, in terms of attrition, use, physical and chemical integrity 
+is parameterized through a series of logistic models described in [@briet2013], 
+[@briet2019], and [@briet2020] using the data of President Malaria Initiative 
+(PMI) net durability studies (7 countries, 8 net types, 23 combinations in all), 
+and also from [@morgan2015]. The object `interventions_param$LLINs_params` 
+contains all this information and is composed of three tables: 
+
+* `interventions_param$LLINs_params$model_coeff`: values for coefficients of 
+regression models estimating LLINs effects; these models have been defined in 
+[@briet2013], [@briet2019] and [@briet2020]
+* `interventions_param$LLINs_params$insecticide_c`: insecticide content for 
+various types of nets summarized in [@briet2020]
+* `interventions_param$LLINs_params$durability_estim`: information about the 
+durability of LLINs (holed area, survival) across time in different 
+geographical locations also summarized in [@briet2020].
+
+Similarly, for IRS, a table with time series of effects in reducing human 
+availability and killing of mosquitoes as well as parameters describing 
+decay of effects over time is provided in `interventions_param$IRS_params`. 
+
+The parameterization for House screening is based 
+on the estimates from [@kirby2009] and described in [@briet2019], assuming a 
+house entry reduction of 59%.
+
+The data objects for interventions described above are directly accessible upon 
+loading the `AnophelesModel` package. For example, for obtaining an overview
+of all LLINs interventions provided with the `AnophelesModel` package:
+
+```{r}
+print(interventions_param$interventions_summary[which(interventions_param$interventions_summary$Intervention == "LLINs"),])
+```
+
+### Functions querying the package database
+
+The package additionally contains helper functions for listing an overview 
+of the different data objects to help the user populate the input arguments of 
+the key functions in the general workflow (e.g., for the `AnophelesModel()` 
+function). These are:
+
+* `list_all_species()`: prints all the mosquito species for which bionomic 
+parameters are provided in the package database
+* `list_activity()`: prints all the available activity patterns 
+* `list_interventions()`: prints the available vector control interventions 
+* `list_intervention_models()`: prints the available intervention 
+parameterisation IDs
+* `get_net_types()`: prints the available net types and the countries where 
+the studies have been conducted 
+
+Furthermore, the package allows extracting more specific information about the 
+durability of different types of LLINs such as holed area, survival and decay. 
+These parameteres were estimated in the PMI net durability studies.
+
+For example, to retrieve the decay characteristics 
+for the DuraNet LLIN in Kenya:
+```{r}
+# load the necesary packages
+library(reshape)
+
+DuraNet = get_net_decay(net_type = "DuraNet", country = "Kenya", insecticide_type = "DuraNet", n_ips = 100, duration = 3)
+```
+Then, to plot these characteristics :
+```{r, fig.show='hold'}
+library(ggpubr)
+# Plot the survival
+ggplot(DuraNet, aes(x=time, y=survival)) + geom_point() +
+    theme_light() + theme_linedraw() + theme_bw() + ggtitle("Survival of the net")
+
+# Plot the log of the holed area
+ggplot(DuraNet, aes(x=time, y=logHoles)) + geom_point() +
+    theme_light() + theme_linedraw() + theme_bw() + ggtitle("Log holed area")
+
+# Plot the insecticide content
+ggplot(DuraNet, aes(x=time, y=insecticideContent)) + geom_point() +
+    theme_light() + theme_linedraw() + theme_bw() + ggtitle("Insecticide decay")
+```
+
+## Estimating the impact of vector control interventions
+
+The mosquito bionomics, feeding cycle transitions, 
+activity patterns and intervention effects accessible from 
+the `AnophelesModel` database can be used to parameterise the model of 
+the mosquito feeding cycle
+and estimate the impact of interventions on the vectorial capacity.
+
+### Step 1: Defining entomological parameters
+
+To define the mosquito specific entomological parameters in absence of 
+interventions, the user can either 
+select existing parameterisations from the `AnophelesModel` database, or 
+provide a set of custom values. For example, to choose an existing 
+parameterisation for *Anopheles nili*:
+
+```{r}
+nili_ent_params = def_vector_params(mosquito_species = "Anopheles nili")
+head(nili_ent_params)
+```
+
+To use a different parameterisation, first all the entomological parameter values need 
+to be provided in a data frame with the same column names 
+as the `vec_ent_param` object:
+```{r}
+# Use own parameterisation
+species_name = "Anopheles example"
+M = 0.623
+M.sd = 0
+Chi = 0.939
+A0 = 0.313
+A0.sd = 0
+zeta.3 = 1
+td = 0.33
+tau = 3
+ts = 10
+to = 5
+endophily = 1
+endophily.sd = 0
+endophagy = 1
+endophagy.sd = 0
+custom_ent_params_table = as.data.frame(cbind.data.frame(species_name, M, M.sd, Chi,
+                                A0, A0.sd, zeta.3, td,
+                                tau, ts, to, endophily, endophily.sd, endophagy, endophagy.sd))
+```
+Then, the data frame is provided to the function defining the vector parameters:
+```{r}
+custom_ent_params = def_vector_params(mosquito_species = species_name, vector_table = custom_ent_params_table)
+head(custom_ent_params)
+```
+
+### Step 2: Defining host-specific entomological parameters
+Objects for host-specific entomological parameters (e.g., biting of human 
+versus animal hosts, for details or other parameters see section 
+[Host-specific entomological parameters]) in absence of interventions 
+can be defined in a similar way as 
+for the mosquito bionomics. To choose the default parameterisation 
+from [@Chitnis2008]:
+```{r}
+default_host_params = def_host_params()
+print(default_host_params)
+```
+
+For using a different, custom parameterisation, first we need to build a 
+data frame with the same structure as `host_ent_params`:
+```{r}
+species_name = "Anopheles example" 
+host = c("human", "animal") 
+PBi = c(0.67, 0.44)
+PCi = c(0.33, 0.434)
+PDi = c(0.647, 0.344)
+PEi = c(0.672, 0.214)
+Kvi = c(0.52, 0.314)
+custom_params_tab = cbind.data.frame(species_name, host, PBi, PCi, PDi, PEi, Kvi)
+```
+Afterwards, we can provide this data frame to the relevant function for defining 
+the host parameters:
+```{r}
+custom_host_params = def_host_params(mosquito_species = species_name, host_table = custom_params_tab)
+print(custom_host_params)
+```
+
+### Step 3: Defining mosquito and human activity patterns
+To facilitate definition of human and mosquito activity patterns, the 
+`AnophelesModel` package comes with inbuilt default values for 
+_Anopheles gambiae_ in Kenya and _Anopheles albimanus_ in Haiti. 
+The user can choose other patterns from the package database (344 entries) by 
+using the entry ID of each time series (`id` column of object 
+`activity_patterns`). Furthermore, customized patterns can be defined by 
+directly providing the time series values. Here are some examples for 
+these different use cases:
+
+To use default activity patterns from Kenya (human activity measured in the 
+Rachuonyo and Rarieda districts):
+```{r}
+activity_p = def_activity_patterns(activity = "default_Anopheles_gambiae")
+print(activity_p)
+```
+
+To select activity patterns from the database based on the entry IDs for 
+*Anopheles arabiensis* in Kenya, Ahero disctrict:
+```{r}
+activity_list = NULL
+activity_list$HBI = 34
+activity_list$HBO = 165
+activity_list$humans_indoors = 4
+activity_list$humans_in_bed = 24
+activity_p2 = def_activity_patterns(activity_list)
+print(activity_p2)
+```
+
+To use custom activity patterns by specifying the different time series, for
+example for *An. albimanus* in Haiti available from [@briet2019]:
+```{r}
+# Briet et al 2019, Table S5. Biting rhythm of An. albimanus in Haiti, Dame Marie
+HBI = c(0.22, 0.21, 0.22, 0.10, 0.13, 0.17, 0.08, 0.12, 0.03, 0.12, 0.17, 0.18, 0.25)
+HBO = c(0.25, 0.35, 0.37, 0.33, 0.36, 0.32, 0.13, 0.14, 0.09, 0.15, 0.36, 0.23, 0.25)
+# Human activity in Haiti from Briet et al 2019, Knutson et al. 2014
+humans_in_bed = c(5.628637, 14.084496, 28.558507, 47.761203, 67.502964, 83.202297, 92.736838, 96.734455, 96.637604, 92.983136, 85.264515, 73.021653, 57.079495)/100 
+humans_indoors = c(5.628637, 14.084496, 28.558507, 47.761203, 67.502964, 83.202297, 92.736838, 96.734455, 96.637604, 92.983136, 85.264515, 73.021653, 57.079495)/100 
+custom_params = as.data.frame(cbind(HBI, HBO, humans_indoors,humans_in_bed ))
+custom_activity_obj = def_activity_patterns(custom_params)
+print(custom_activity_obj)
+```
+
+### Step 4: Initializing the entomological model
+Once the vector, host and activity parameters have been defined, the 
+entomological model can be initialized and calibrated accordingly.
+In this step, the death rate and the availability to mosquitoes 
+for each host type are estimated. For a description of how these two 
+parameters are estimated, see [@Chitnis2008].
+
+First, the sizes of the host and mosquito populations need to be defined:
+```{r}
+# Define size of the host and mosquito population 
+host_pop = 2000
+vec_pop = 10000
+```
+
+Then, to initialize the entomological model and build the model object:
+```{r}
+model_params = build_model_obj(custom_ent_params, default_host_params, custom_activity_obj, host_pop)
+# Print the calculated mosquito death rate
+print(model_params$host_params$muvA)
+# Print the estimated availability to mosquitoes for each host type
+print(model_params$host_params$alphai)
+```
+
+### Step 5: Defining interventions effects
+In the `AnophelesModel` package, the interventions and their characteristics 
+are specified through a list of intervention objects. A detailed description of
+how the intervention objects are specified can be obtained by using the command 
+`?def_interventions_effects`. To facilitate definition of these objects, 
+the package contains a list of intervention object examples 
+for each intervention type included in the `intervention_obj_examples` list. 
+
+The `intervention_obj_examples` list contains three examples of interventions :
+LLIN, IRS and House screening, respectively: 
+```{r}
+print(intervention_obj_examples)
+```
+Except for the house screening where only the `id` and `description` attributes 
+are required, to use the IRS and LLIN interventions included in the package, 
+the user needs to 
+provide the parameterisation ID (e.g., LLINs01, IRS01). A list of all package
+intervention parameterisations and their IDs can be obtained with the 
+`list_intervention_models()` command.
+The examples from `intervention_obj_examples` can be adapted to the user's 
+needs to pick other available parameterisations and intervention 
+characteristics available within the package. For example, to select a 
+different IRS parameterisation, we can modify the `parameterisation` attribute 
+of the IRS example:
+```{r}
+new_IRS = intervention_obj_examples$IRS_example
+new_IRS$description = "Permethrin IRS"
+new_IRS$parameterisation = "IRS16"
+```
+then we can concatenate the new intervention object to the list with 
+intervention examples:
+```{r}
+new_intervention_list = c(intervention_obj_examples, list(new_IRS = new_IRS))
+```
+
+Once the intervention parameterisations have been defined, 
+the user needs to specify the intervention deployment coverages and a number of 
+time points. The duration of each intervention will be evenly split across the 
+time points and the intervention effects will be calculated at each time point.
+```{r}
+list_interv = new_intervention_list
+coverages = c(seq(0, 1, by = 0.1))
+n_ip = 100
+# Calculate the intervention effects:
+intervention_vec = def_interventions_effects(list_interv, model_params, n_ip)
+```
+
+The effects of the interventions are adjusted according to indoor and outdoor 
+human exposure to mosquitoes. The user can calculate the human exposure 
+parameters using the following function:
+``` {r}
+in_out_exp = get_in_out_exp(activity_cycles = custom_activity_obj, vec_p = custom_ent_params)
+print(in_out_exp)
+```
+
+### Step 6: Calculating intervention impact on vectorial capacity
+Once all the intervention effects have been defined, their impact on the 
+vectorial capacity can be estimated (using equation 20 from [@Chitnis2008]) :
+```{r, dpi=150, fig.cap="Output figure with the impact on the vectorial capacity for different species"}
+impacts = calculate_impact(intervention_vec, coverages, model_params,
+vec_pop, n_ip)
+```
+The resulting vectorial capacity is calculated and aggregated across the 
+previously-specified time points which are uniformly-distributed across the 
+duration of an 
+intervention. To display the average vectorial capacity for various coverages:
+```{r, dpi=150, fig.cap="Impact of interventions on vectorial capacity."}
+p = plot_impact_species(impacts, "VC_red")
+plot(p)
+```
+
+The variability in the entomological parameters for each mosquito species can 
+be accounted for when calculating the impact of interventions on the vectorial 
+capacity. To do so, the standard deviation values of the entomological 
+parameters (namely parameters `M.sd`, `A0.sd`, `endophily.sd` and `endophagy.sd` 
+in the `vec_ent_param` object) 
+are used to create a confidence interval defined as the mean value 
++/- two standard deviations. Using latin hypercube sampling [@stein1987], 
+a set of samples are uniformly drawn from the 
+multi-dimensional parameter space defined by the confidence intervals. Then, 
+the average vectorial capacity is computed for each of these samples and the 
+resulting confidence interval for the vectorial capacity is represented by the 
+mean value +/- two standard deviations. This sampling-based approach is 
+included in the `calculate_impact_var()` function to 
+estimate the confidence interval for the reported mean vectorial capacity. 
+In the example below, in the interest of execution time, only 10 samples have 
+been used to estimate the confidence intervals of the vectorial capacity:
+```{r, dpi=150, fig.cap="Impact of interventions on vectorial capacity including the variability in the entomological parameters specific to the mosquito species."}
+impact_gambiae = calculate_impact_var(mosquito_species = "Anopheles gambiae",
+                                        activity_patterns = "default_Anopheles_gambiae",
+                                        interventions = intervention_vec,
+                                        n_sample_points = 10,
+                                        plot_result = FALSE)
+plot_impact_var("Anopheles gambiae", impact_gambiae)
+```
+
+## Generating vector parameterisations for OpenMalaria
+The package `AnophelesModel` can be used to create XML snippets containing
+parameterisations for the entomology and generic vector control interventions 
+(GVI) components of OpenMalaria experiments. 
+These snippets can then be incorporated in the base 
+XML files describing the setup for OpenMalaria individual-based simulations.
+There are two main categories of XML snippets that can be generated with the 
+package:
+
+* `<mosq>` and `<nonHumanHosts>` snippets containing entomological parameters
+* `<GVI>` snippets with parameters describing the effects of interventions
+
+For example, to generate the `<mosq>` and `<nonHumanHosts>` snippets 
+for *Anopheles nili*:
+```{r}
+entomology_xml = get_OM_ento_snippet(nili_ent_params, default_host_params)
+print(entomology_xml)
+```
+
+To generate the `<GVI>` snippets with deterrency, pre- and post-prandial effects
+of interventions, a set of 7 decay functions are fitted to the time series with 
+intervention effects calculated previously with `def_interventions_effects()` 
+and the best fit is chosen. The package also produces visualizations of the 
+different decay fits. For a detailed description of the fitted decay functions, 
+check the [description in the OpenMalaria wiki](https://github.com/SwissTPH/openmalaria/wiki/ModelDecayFunctions).
+```{r, dpi=150}
+
+GVI_snippets = get_OM_GVI_snippet("Anopheles example", impacts$interventions_vec$LLINs_example,
+                    100, GVI_file = "", file_append = FALSE, plot_f = TRUE)
+```
+
+## References
+
+

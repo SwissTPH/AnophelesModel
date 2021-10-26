@@ -1,0 +1,10 @@
+{
+    "dialog-state" : {
+        "caseSensitive" : false,
+        "filePatterns" : [
+        ],
+        "path" : "~/Documents/GitRepos/anophelesmodel2/dev_AnophelesModel/AnophelesModel/R",
+        "query" : "adjustment_for_location",
+        "regex" : false
+    }
+}

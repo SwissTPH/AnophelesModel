@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "#########plot_impact_species#########\n#' @title produce various impact figures per species\n#'\n#' @description \\code{plot_impact_species}\n#' @param mosquito_species string corresponding to the name of the mosquito\n#' species that the parameters should be loaded. Argument is case sensitive and\n#' Must be one of the species provided with the package: Gambiae, Albimanus, ...\n#'\n#' @return plot object\n#'\n#' @author Monica Golumbeanu, \\email{monica.golumbeanu@swisstph.ch}\n#' @author Olivier Briët, \\email{olivier.briet@swisstph.ch}\n#' @author Nakul Chitnis, \\email{nakul.chitnis@swisstph.ch}\n#' @author Tom Smith, \\email{thomas.smith@swisstph.ch}\n#'\n#' @references TO DO\n#'\n#' @import ggplot2\n#'\n#' @examples\n#'\n#' @export\n#'\nplot_impact_species = function(impacts_obj, plot_type) {\n    # Plot reduction in vectorial capacity for all interventions and behaviors\n    if (plot_type == \"VC_red\") {\n        to_plot_df = NULL\n        for(interv_imp in impacts_obj$interventions_vec) {\n            intervention_name = interv_imp$description\n            intervention_coverage = interv_imp$coverages\n            intervention_impact = round(interv_imp$effects$avg_impact,\n                                        digits = 3)\n            plot_tab = cbind.data.frame(intervention_name,\n                                        intervention_coverage,\n                                        intervention_impact)\n            to_plot_df = rbind.data.frame(to_plot_df, plot_tab)\n        }\n        p = plot_VC_red(to_plot_df, impacts_obj$vec_p$species_name)\n    }\n    return(p)\n}\n\n\n#########plot_impact_var#########\n#' @title produce various impact figures per species\n#'\n#' @description \\code{plot_impact_var}\n#' @param species_name name of the mosquito species\n#' @param plot_df plot data frame\n#'\n#' @return plot object\n#'\n#' @author Monica Golumbeanu, \\email{monica.golumbeanu@swisstph.ch}\n#'\n#' @import ggplot2\n#'\n#' @examples\n#'\n#' @export\n#'\nplot_impact_var = function(species_name, plot_df) {\n    intervention_colors = intervention_colors_fill =\n        c(\"#3182bd\", \"#31a354\", \"#de2d26\", \"#c51b8a\",\n          \"#74c476\", \"#bdbdbd\", \"#d7b5d8\")\n    plot_df$intervention_impact = plot_df$intervention_impact*100\n    p = ggplot(plot_df, aes(x=intervention_coverage, y=intervention_impact,\n                            group = factor(intervention_name),\n                            col = factor(intervention_name),\n                            fill = factor(intervention_name))) +\n        theme_light() + theme_linedraw() + theme_bw(base_size=9) +\n        ylim(c(0, 100)) + theme(legend.position = \"bottom\") +\n        stat_summary(fun.data = mean_sdl, fun.args = list(mult = 2),\n                     geom = \"ribbon\", alpha = 0.5, colour = NA) +\n        stat_summary(fun = mean, geom = \"line\", lwd = 0.5) +\n        scale_color_manual(values = intervention_colors) +\n        scale_fill_manual(values = intervention_colors) +\n        guides(col=\"none\") +\n        guides(fill = guide_legend(nrow = 3, byrow = TRUE)) +\n        labs(title = paste(species_name),\n             x=\"Coverage\", y=\"Mean reduction in\\nvectorial capacity\",\n             fill=\"\")\n    return(p)\n}\n",
+    "created" : 1634825812790.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2750072378",
+    "id" : "79892707",
+    "lastKnownWriteTime" : 1634646466,
+    "last_content_update" : 1634646466,
+    "path" : "~/Documents/GitRepos/anophelesmodel2/dev_AnophelesModel/AnophelesModel/R/AnophelesModel_plot.R",
+    "project_path" : "R/AnophelesModel_plot.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 12,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

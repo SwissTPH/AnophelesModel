@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "library(AnophelesModel)\nlibrary(ggplot2)\n\nactivity_Tanzania = activity_patterns[which(activity_patterns$country == \"Tanzania\"),]\nplot_df = activity_Tanzania[which(activity_Tanzania$site == \"Ilala & Temeke Municipalities\"),]\nlabels = substr(unique(plot_df$hour), 1, 5)\nplot_df$hour = factor(labels, levels = labels )\np = ggplot(plot_df, aes(x = hour, y = value, \n                        group = factor(id), col = factor(sampling))) +\n    geom_line() + theme_light() + theme_linedraw() + theme_bw(base_size=9) +\n    # scale_color_manual(labels = sampling)\n    labs(title = \"Activity patterns for Ilala & Temeke Municipalities, Tanzania\",\n         x=\"Hour\", y=\"Activity\",\n         fill=\"\")\n    \n        \n    ",
+    "created" : 1634825085991.000,
+    "dirty" : true,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "474170816",
+    "id" : "4E3CA3EB",
+    "lastKnownWriteTime" : 4324112008,
+    "last_content_update" : 1634825968325,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 13,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

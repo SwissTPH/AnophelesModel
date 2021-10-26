@@ -1,0 +1,10 @@
+Meta
+tmp
+.Rhistory
+.Rbuildignore
+tex
+pdf
+synctex.gz
+toc
+bbl
+/Meta/

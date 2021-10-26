@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "# # tanzania profiles for Emilie\n# \n# \n# s1 = read.csv(\"data/seasonality_par.csv\", stringsAsFactors = FALSE)\n# \n# params = read.csv(\"data/site_parameters_pop_names.csv\", stringsAsFactors = FALSE)\n# Encoding(params$admin1) <- \"UTF-8\"\n# Encoding(params$country) <- \"UTF-8\"\n# \n# params$country = gsub(\"Cote\", \"Côte\", params$country)\n# \n# \n# \n# df = params[, c(\"DIDE_CODE\", \"country\", \"admin1\", \"seasonal_a0\", \"seasonal_a1\",\n#                 \"seasonal_b1\", \"seasonal_a2\", \"seasonal_b2\", \"seasonal_a3\", \"seasonal_b3\")]\n# \n# \n# df$NAME = paste0(df$country, \"_\", df$admin1)\n# \n# s1$NAME =  paste0(s1$NAME_0, \"_\", s1$NAME_1)\n# names(s1)[4:10] = paste0(\"new_\",names(s1)[4:10] )\n# \n# df = plyr::join(df, s1, by=\"NAME\")\n# \n# df$NAME[is.na(df$new_seasonal_a0)]\n# \n# TIME = seq(0, 1, l=366)\n# TIME2 = seq.Date(as.Date(\"2020/01/01\"), as.Date(\"2020/12/31\"), by=\"day\")\n# \n# head(df)\n# \n# \n# write.csv(df[df$country == \"Tanzania\", c(2,3,15:21)], \"data/seasonality_tanzania.csv\")\n\ndf = read.csv(\"data/seasonality_tanzania.csv\", stringsAsFactors = FALSE)\n\ntiff(paste0(\"plots new seasonality curves/tanzania_seasonality_for_emilie.tiff\"),\n       width=340,height=220,units=\"mm\",res=300, compression=\"lzw\")\npar(mar = c(0,0,0,0), mfrow =c(5, 6))\n\nfor(i in 1:nrow(df)) { \n\n    new_a0 = df$new_seasonal_a0[i]\n    new_a1 = df$new_seasonal_a1[i]\n    new_a2 = df$new_seasonal_a2[i]\n    new_a3 = df$new_seasonal_a3[i]\n    new_b1 = df$new_seasonal_b1[i]\n    new_b2 = df$new_seasonal_b2[i]\n    new_b3 = df$new_seasonal_b3[i]\n    \n    TIME = seq(0, 1, l=366)\n    TIME2 = seq.Date(as.Date(\"2020/01/01\"), as.Date(\"2020/12/31\"), by=\"day\")\n    \n    \n    new_yy = new_a0+new_a1*cos(2*pi*TIME)+new_a2*cos(2*2*pi*TIME)+new_a3*cos(3*2*pi*TIME)+new_b1*sin(2*pi*TIME)+new_b2*sin(2*2*pi*TIME)+new_b3*sin(3*2*pi*TIME)\n    new_yy[new_yy<0] = 0\n    new_yy = new_yy/mean(new_yy)\n\n    plot(TIME2, new_yy, type=\"l\", xlab=\"\", ylab=\"\", xaxt=\"n\", yaxt=\"n\", ylim = c(0,5), col=\"deepskyblue\", lwd=2)\n\n    abline(v = seq.Date(as.Date(\"2020/01/01\"), as.Date(\"2021/01/01\"), by=\"month\"), col=\"grey80\", lty=3)\n    lines(TIME2, new_yy, col=\"deepskyblue\", lwd=3)\n        \n    mtext(paste0(df$country[i], \",\\n\", df$admin1[i]), side=3, line=-3, cex=0.8)\n    \n  }\n  dev.off()\n  \n\n",
+    "created" : 1634799427966.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2747107589",
+    "id" : "B020761",
+    "lastKnownWriteTime" : 1604502793,
+    "last_content_update" : 1604502793,
+    "path" : "~/Box/Swiss TPH country modelling/5. Collaborations/External/Peter Winksill - Hannah Slater/tanzania_seasonality.R",
+    "project_path" : null,
+    "properties" : {
+    },
+    "relative_order" : 10,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
