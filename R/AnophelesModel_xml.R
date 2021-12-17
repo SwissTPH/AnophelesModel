@@ -114,7 +114,7 @@ get_OM_ento_snippet = function(vec_params, hosts_params) {
 #' element with parameters specific to animal hosts.
 #' @param intervention_impact object created by the AnophelesModel main function
 #'
-#' @return xml snippet is written to the provided file
+#' @return TO DO
 #'
 #' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
 #' @author Olivier Briët, \email{olivier.briet@swisstph.ch}
@@ -128,7 +128,6 @@ get_OM_ento_snippet = function(vec_params, hosts_params) {
 #' @export
 #'
 get_OM_GVI_snippet = function(species, intervention_impact, num_points,
-                              GVI_file = "", file_append = FALSE,
                               plot_f = TRUE) {
     id = intervention_impact$id
     # Retrieve the intervention duration
@@ -143,8 +142,7 @@ get_OM_GVI_snippet = function(species, intervention_impact, num_points,
                                     intervention_impact$effects$alphai_decay,
                                     duration, "deterrency", plot_f)
     deterrency_snippet = prepare_GVI_snippet(species, best_deterrency_fit,
-                                                "deterrency", id,
-                                                GVI_file, file_append)
+                                                "deterrency", id)
 
     # Preprandial killing: 1-PBi
     print("Creating snippet for preprandial killing")
@@ -153,7 +151,7 @@ get_OM_GVI_snippet = function(species, intervention_impact, num_points,
                                         duration,
                                         "preprandial killing", plot_f)
     preprandial_snippet = prepare_GVI_snippet(species, best_preprandial_fit,
-                                            "preprandial", id, GVI_file, TRUE)
+                                            "preprandial", id)
 
     # Postprandial killing: 1-PDi , 1-PCi
     print("Creating snippet for postprandial killing")
@@ -168,7 +166,7 @@ get_OM_GVI_snippet = function(species, intervention_impact, num_points,
     }
 
     postprandial_snippet = prepare_GVI_snippet(species, best_postprandial_fit,
-                                            "postprandial", id, GVI_file, TRUE)
+                                            "postprandial", id)
     return(list(deterrency_snippet = deterrency_snippet,
                 preprandial_snippet = preprandial_snippet,
                 postprandial_snippet = postprandial_snippet))

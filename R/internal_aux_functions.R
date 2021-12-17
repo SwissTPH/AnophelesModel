@@ -314,32 +314,66 @@ get_best_decay_fit = function(values, duration, param_name, plot_flag) {
 }
 
 # Prepare snippet for GVI intervention in the base xml file
-prepare_GVI_snippet = function(species, best_fit, param_name, id,
-                               GVI_file, f_append) {
-    func = paste(best_fit$decay)
+prepare_GVI_snippet = function(species, best_fit, param_name, id) {
+    func = tolower(paste(best_fit$decay))
     init_effect = best_fit$params[1]
     L = best_fit$params[2]
-    if(best_fit$decay %in% c("weibull", "hill", "smoothcompact")) {
+    if(func %in% c("weibull", "hill", "smoothcompact")) {
         k = paste(' k="',  best_fit$params[3], '"', sep="")
+        decay_attrs = list(L = as.numeric(L), `function` = func,
+                           k = as.numeric(best_fit$params[3]))
     } else {
         k = ''
+        decay_attrs = list(L = as.numeric(L), `function` = func)
     }
-    init_effect_d = init_effect * (param_name == "deterrency")
-    init_effect_pre = init_effect * (param_name == "preprandial")
-    init_effect_post = init_effect * (param_name == "postprandial")
+    init_effect_d = as.numeric(init_effect * (param_name == "deterrency"))
+    init_effect_pre = as.numeric(init_effect * (param_name == "preprandial"))
+    init_effect_post = as.numeric(init_effect * (param_name == "postprandial"))
 
     # Construct the snippet
-    GVI_snippet = paste0('<GVI name="GVI ', id, '" id="GVI_', id ,'_1">
-    <decay L="', L, '" function="', func, '"', k, '/>
-    <anophelesParams mosquito="', species, '" propActive="1">
-    <deterrency value="', init_effect_d, '"/>
-    <preprandialKillingEffect value="', init_effect_pre, '"/>
-    <postprandialKillingEffect value="', init_effect_post, '"/>
-    </anophelesParams>
-    </GVI>\n')
 
-    # Write the snippet to the output file
-    cat(GVI_snippet, sep= "", file = GVI_file, append = f_append)
-    return(GVI_snippet)
+    nonHumanHosts_snippet = newXMLNode("nonHumanHosts",
+                                       attrs = list(name = "unprotectedAnimals"))
+    invisible(newXMLNode("mosqRelativeEntoAvailability",
+                         parent = nonHumanHosts_snippet,
+                         attrs = list(value = 1)))
+
+    GVI_snippet = newXMLNode("GVI", attrs = list(name = paste0("GVI_", id),
+                                                id = paste0("GVI_", id, "_1")))
+    invisible(newXMLNode("anophelesParams",
+                         parent = GVI_snippet,
+                         attrs = list(mosquito = species, propActive=1)))
+    invisible(newXMLNode("decay", parent = GVI_snippet, attrs = decay_attrs))
+    invisible(newXMLNode("deterrency", parent = GVI_snippet,
+                         attrs = list(value = init_effect_d)))
+    invisible(newXMLNode("preprandialKillingEffect", parent = GVI_snippet,
+                         attrs = list(value = init_effect_pre)))
+    invisible(newXMLNode("postprandialKillingEffect", parent = GVI_snippet,
+                         attrs = list(value = init_effect_post)))
+
+    # GVI_snippet = paste0('<GVI name="GVI ', id, '" id="GVI_', id ,'_1">
+    # <decay L="', L, '" function="', func, '"', k, '/>
+    # <anophelesParams mosquito="', species, '" propActive="1">
+    # <deterrency value="', init_effect_d, '"/>
+    # <preprandialKillingEffect value="', init_effect_pre, '"/>
+    # <postprandialKillingEffect value="', init_effect_post, '"/>
+    # </anophelesParams>
+    # </GVI>\n')
+
+    GVI_attributes = list(decay_funcion = func,
+                          mosquito_species = species,
+                          init_effect_d = init_effect_d,
+                          init_effect_pre = init_effect_pre,
+                          init_effect_post = init_effect_post,
+                          decay_L = L)
+    if(func %in% c("weibull", "hill", "smoothcompact")) {
+        GVI_attributes$k = best_fit$params[3]
+    }
+
+    # Create the result list containing the GVI snippet and its attributes
+    GVI_result = list(GVI_xml_snippet = GVI_snippet,
+                      GVI_attributes = GVI_attributes)
+
+    return(GVI_result)
 }
 
