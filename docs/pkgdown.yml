@@ -1,0 +1,7 @@
+pandoc: 1.17.2
+pkgdown: 2.0.1
+pkgdown_sha: ~
+articles:
+  AnophelesModel: AnophelesModel.html
+last_built: 2022-01-03T13:40Z
+
