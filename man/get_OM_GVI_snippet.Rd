@@ -5,20 +5,13 @@
 \title{creates an xml snippet to be included in an OpenMalaria scenario
 for the GVI intervention}
 \usage{
-get_OM_GVI_snippet(
-  species,
-  intervention_impact,
-  num_points,
-  GVI_file = "",
-  file_append = FALSE,
-  plot_f = TRUE
-)
+get_OM_GVI_snippet(species, intervention_impact, num_points, plot_f = TRUE)
 }
 \arguments{
 \item{intervention_impact}{object created by the AnophelesModel main function}
 }
 \value{
-xml snippet is written to the provided file
+TO DO
 }
 \description{
 \code{get_OM_GVI_snippet} This function can be used to

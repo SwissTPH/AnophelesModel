@@ -33,6 +33,7 @@ only relevant for mosquito species.
 outdoors; only relevant for mosquito species.
 #' \item \code{HB}: proportion of mosquito biting of humans
 (indoors and outdoors); only relevant for mosquito species.
+The default value is "HBI".
 }}
 
 \item{country}{name of the country. Default value is NULL. If the country is
@@ -65,7 +66,7 @@ provided criteria.
 }
 \examples{
 # List the proportion of human biting indoors in the Rachuonyo region, Kenya.
-humans_indoors = list_rhythms(species = "Homo sapiens", sampling = "IND",
+humans_indoors = list_activity(species = "Homo sapiens", sampling = "IND",
 site="Rachuonyo")
 print(humans_indoors)
 
