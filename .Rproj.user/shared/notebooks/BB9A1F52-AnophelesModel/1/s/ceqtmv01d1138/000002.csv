@@ -1,8 +1,0 @@
-"0","impact_albimanus = calculate_impact_var(mosquito_species = ""Anopheles albimanus"","
-"0","                                        activity_patterns = custom_params,"
-"0","                                        interventions = intervention_vec,"
-"0","                                        n_sample_points = 10,"
-"0","                                        plot_result = FALSE)"
-"2","Error in define_activity(activity$HBI) : 
-  Assertion on 'input_pattern' failed: Must be of type 'vector', not 'NULL'.
-"

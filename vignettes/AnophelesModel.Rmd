@@ -658,7 +658,7 @@ check the [description in the OpenMalaria wiki](https://github.com/SwissTPH/open
 ```{r, dpi=150}
 
 GVI_snippets = get_OM_GVI_snippet("Anopheles example", impacts$interventions_vec$LLINs_example,
-                    100, GVI_file = "", file_append = FALSE, plot_f = TRUE)
+                    100, plot_f = TRUE)
 ```
 
 ## References

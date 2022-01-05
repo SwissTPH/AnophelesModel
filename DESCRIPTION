@@ -1,9 +1,20 @@
 Package: AnophelesModel
 Type: Package
-Title: Entomological model of Malaria in adult mosquitoes 
+Title: An R package to quantify the effect of vector bionomics on the impact of vector control interventions against malaria transmitted by Anopheles mosquitoes
 Version: 0.1.0
-Author: Monica Golumbeanu, Olivier Briet, Nakul Chitnis, Thomas Smith
-Maintainer: Monica Golumbeanu <monica.golumbeanu@swisstph.ch>
+Authors@R: as.person(c(
+    "Monica Golumbeanu <monica.golumbeanu@swisstph.ch> [aut, cre]", 
+    "Olivier Briet [aut]",
+    "Clara Champagne [aut]",
+    "Jeanne Lemant [aut]",
+    "Barnabas Zogo [aut]",
+    "Maximilian Gerhards [aut]",
+    "Marianne Sinka [aut]",
+    "Nakul Chitnis [aut]",
+    "Melissa Penny [aut]",
+    "Emilie Pothin [aut]",
+    "Thomas Smith [aut]"
+  ))
 Description: Parameterisation and prediction for models of the oviposition cycle of Anopheles 
 Imports:
     magrittr,
