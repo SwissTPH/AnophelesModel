@@ -10,7 +10,7 @@ To install the package:
 ```{r}
 devtools::install_github("SwissTPH/AnophelesModel", build_vignettes = TRUE)
 ```
-A documentation describing the package use cases and functions is available [here](https://swisstph.github.io/AnophelesModel/) and can also be accessed using the following R command:
+A documentation describing the package use cases and functions is available [here](https://swisstph.github.io/AnophelesModel/articles/AnophelesModel.html) and can also be accessed using the following R command:
 ```{r}
 browseVignettes(AnophelesModel)
 ```
