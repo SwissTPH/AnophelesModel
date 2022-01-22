@@ -1,6 +1,36 @@
 {
     "debugBreakpointsState" : {
         "breakpoints" : [
+            {
+                "editor_line_number" : 92,
+                "editor_state" : 1,
+                "function_name" : "toplevel",
+                "function_steps" : "",
+                "id" : 1,
+                "is_package_breakpoint" : false,
+                "is_pending_debug_completion" : false,
+                "line_number" : 92,
+                "needs_updated_steps" : true,
+                "package_name" : "",
+                "path" : "~/Documents/GitRepos/microstratification/uncertainity_debug.R",
+                "state" : 1,
+                "type" : 1
+            },
+            {
+                "editor_line_number" : 50,
+                "editor_state" : 1,
+                "function_name" : "run_microstrat",
+                "function_steps" : "12",
+                "id" : 8,
+                "is_package_breakpoint" : false,
+                "is_pending_debug_completion" : false,
+                "line_number" : 50,
+                "needs_updated_steps" : false,
+                "package_name" : "",
+                "path" : "~/Documents/GitRepos/microstratification/uncertainity_debug_mg.R",
+                "state" : 1,
+                "type" : 0
+            }
         ]
     }
 }
