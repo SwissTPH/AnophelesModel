@@ -45,8 +45,7 @@ get_OM_ento_snippet = function(vec_params, hosts_params) {
                          attrs = list(value = vec_params$tau)))
     invisible(newXMLNode("mosqSurvivalFeedingCycleProbability", parent = mosq_snippet,
                          attrs = list(value = vec_params$M)))
-    invisible(newXMLNode("availabilityVariance", parent = mosq_snippet,
-                         attrs = list(value = 0)))
+    invisible(newXMLNode("availability", parent = mosq_snippet))
     invisible(newXMLNode("mosqProbBiting", parent = mosq_snippet,
                          attrs = list(mean = hosts_params$PBi[1],
                                       variance = 0)))
