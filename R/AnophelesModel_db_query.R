@@ -190,6 +190,28 @@ get_net_types = function() {
     return(net_types)
 }
 
+#' @title Get net insecticide types
+#'
+#' @description This function displays a table of the
+#' available LLIN insecticide types
+#' available within the \code{AnophelesModel} database.
+#' @return The function returns a name list of net insecticide types.
+#'
+#' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
+#'
+#'
+#' @examples
+#' net_insecticide_types = get_net_insecticide_types()
+#' print(net_insecticide_types)
+#'
+#' @export
+#'
+get_net_insecticides = function() {
+    insecticide_data = interventions_param$LLINs_params$insecticide_c
+    insecticide_types = colnames(insecticide_data)
+    return(insecticide_types)
+}
+
 #' @title Get LLIN survival and holed area
 #'
 #' @description This function can be
@@ -219,78 +241,14 @@ get_net_types = function() {
 #'
 #' @examples
 #' net_surv = get_net_decay(net_type = "DuraNet",
-#' country = "Kenya", n_ips = 100, duration = 3)
+#' country = "Kenya", insecticide_type = "Default", n_ips = 100, duration = 3)
 #' print(net_surv)
 #'
 #' @export
 #'
 get_net_decay = function(net_type, country, insecticide_type, n_ips, duration){
-    if(net_type == "Default"){
-        # Calculate default attrition and holed area
-        # Data from Briet et al (2019)
-        # attrition and insecticide decay are from Briet & Penny (2013)
-        # holed area is from  Morgan J et al Am J Trop Med Hyg. 2015.
-        s_decay_p = list(initialEffect = 1, L = 20.7725,
-                         k = 18, duration = duration)
-        survival = interp_decay("smoothcompact_function", s_decay_p, n_ips)
-        #<holeRate mean="1.80" sigma="0.80"/>
-        #<ripRate mean="1.80" sigma="0.80"/><ripFactor value="0.3"/>
-        #This approximates the central scenario hole index
-        h_decay_p = list(initialEffect = 1, a = 0,
-                         b = 58.5949, duration = duration)
-        holed.surface.area = interp_decay("parabolic_growth_function",
-                                          h_decay_p, n_ips)
-    } else {
-        # Country-specific attrition and holed area by LLIN type from PMI study
-        # Attrition
-        survival_data = with(interventions_param$LLINs_params$durability_estim,
-                             Value[which(Country == country &
-                                        Net_Type == net_type &
-                                        Parameter == 'Survival')])
-        semester = with(interventions_param$LLINs_params$durability_estim,
-                            Semester[which(Country == country &
-                                            Net_Type == net_type &
-                                            Parameter == 'Survival')])
-        # assign midpoint of each semester as net age in years
-        net_age = (semester-0.5)*0.5
-        tr_survival = log((100 - (survival_data-0.1))/100)
-        ip_tr_survival = spline_interpolation(tr_survival, semester,
-                                              n_ips, duration)
-        survival = ifelse(ip_tr_survival > 0, 1, 1-exp(ip_tr_survival))
-        # Holed area
-        semester = with(interventions_param$LLINs_params$durability_estim,
-                        Semester[which(Country == country &
-                            Net_Type == net_type &
-                            Parameter == 'Mean of log transformed holed area')])
-        holed_area_data = with(
-                            interventions_param$LLINs_params$durability_estim,
-                        Value[which(Country == country &
-                            Net_Type == net_type &
-                            Parameter == 'Mean of log transformed holed area')])
-        holed.surface.area = exp(spline_interpolation(holed_area_data, semester,
-                                                      n_ips, duration))
-    }
 
-    # Cap the holed surface area at the total surface area of the net
-    total_LLIN_surface = 192000
-    holed.surface.area.cap = ifelse(holed.surface.area > total_LLIN_surface,
-                                    total_LLIN_surface, holed.surface.area)
-    logHoles = log(holed.surface.area.cap + 1)
-
-    # Select the relevant insecticide decay parameters
-    LLINs_insecticide = interventions_param$LLINs_params$insecticide_c
-    insecticide_p = as.list(LLINs_insecticide[, insecticide_type])
-
-    # Obtain the vector of interpolation points for insecticide decay
-    insecticide.content = interp_decay("exponential_function",
-                        list(initialEffect = insecticide_p$initialInsecticide,
-                             L = 1.5, duration = duration), n_ips)
-    ips = seq(1:n_ips)
-    t = duration*(ips - 1)/n_ips
-    net_decay = data.frame(time = t, logHoles = logHoles,
-                           insecticideContent = insecticide.content,
-                           survival = survival)
-    return(as.data.frame(net_decay))
+    return(calc_net_decay(net_type, country, insecticide_type, n_ips, duration))
 }
 
 #' @title Calculate human exposure to biting

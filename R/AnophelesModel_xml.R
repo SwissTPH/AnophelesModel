@@ -63,7 +63,7 @@ get_OM_ento_snippet = function(vec_params, hosts_params) {
 
     # Define the non-human host snippet
     nonHumanHosts_snippet = newXMLNode("nonHumanHosts",
-                                     attrs = list(name = "unprotectedAnimals"))
+                                       attrs = list(name = "unprotectedAnimals"))
     invisible(newXMLNode("mosqRelativeEntoAvailability",
                          parent = nonHumanHosts_snippet,
                          attrs = list(value = 1)))
@@ -133,32 +133,53 @@ get_OM_GVI_snippet = function(species, intervention_impact, num_points,
     # Retrieve the intervention duration
     duration = interventions_param$interventions_summary[which(
         interventions_param$interventions_summary$Intervention ==
-                                                        intervention_impact$id &
+            intervention_impact$id &
             interventions_param$interventions_summary$Parameterisation ==
-                            intervention_impact$parameterisation), "Duration"]
+            intervention_impact$parameterisation), "Duration"]
     # Deterrency: 1-alphai
     print("Creating snippet for deterrency")
-    best_deterrency_fit = get_best_decay_fit(
-                                    intervention_impact$effects$alphai_decay,
-                                    duration, "deterrency", plot_f)
+    if (!is.null(intervention_impact$effects$alphai_decay)){
+        best_deterrency_fit = get_best_decay_fit(
+            intervention_impact$effects$alphai_decay,
+            duration, "deterrency", plot_f)
+    } else {
+        print("No deterrency effect, decay on alphai is empty.")
+        best_deterrency_fit = NULL
+    }
+
     deterrency_snippet = prepare_GVI_snippet(species, best_deterrency_fit,
-                                                "deterrency", id)
+                                             "deterrency", id)
 
     # Preprandial killing: 1-PBi
     print("Creating snippet for preprandial killing")
-    best_preprandial_fit = get_best_decay_fit(
-                                        intervention_impact$effects$PBi_decay,
-                                        duration,
-                                        "preprandial killing", plot_f)
+    if (!is.null(intervention_impact$effects$PBi_decay)){
+        best_preprandial_fit = get_best_decay_fit(
+            intervention_impact$effects$PBi_decay,
+            duration,
+            "preprandial killing", plot_f)
+    } else {
+        print("No preprandial effect, decay on PBi is empty.")
+        best_preprandial_fit = NULL
+    }
     preprandial_snippet = prepare_GVI_snippet(species, best_preprandial_fit,
-                                            "preprandial", id)
+                                              "preprandial", id)
 
-    # Postprandial killing: 1-PDi , 1-PCi
+    # Postprandial killing: decay can be on PDi or on PCi
     print("Creating snippet for postprandial killing")
     if (id == "IRS") {
-        best_postprandial_fit = get_best_decay_fit(
-            intervention_impact$effects$PDi_decay,
-            duration, "postprandial killing", plot_f)
+        if (!is.null(intervention_impact$effects$PDi_decay)) {
+            best_postprandial_fit = get_best_decay_fit(
+                intervention_impact$effects$PDi_decay,
+                duration, "postprandial killing", plot_f)
+        } else if (!is.null(intervention_impact$effects$PCi_decay)) {
+            best_postprandial_fit = get_best_decay_fit(
+                intervention_impact$effects$PCi_decay,
+                duration, "postprandial killing", plot_f)
+        } else {
+            print("No postprandial effect, decays on PCi or PDi are empty.")
+            best_postprandial_fit = NULL
+        }
+
     } else if (id == "LLINs") {
         best_postprandial_fit = get_best_decay_fit(
             intervention_impact$effects$PCi_decay,
@@ -166,7 +187,7 @@ get_OM_GVI_snippet = function(species, intervention_impact, num_points,
     }
 
     postprandial_snippet = prepare_GVI_snippet(species, best_postprandial_fit,
-                                            "postprandial", id)
+                                               "postprandial", id)
     return(list(deterrency_snippet = deterrency_snippet,
                 preprandial_snippet = preprandial_snippet,
                 postprandial_snippet = postprandial_snippet))

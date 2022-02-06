@@ -77,6 +77,104 @@ calc_IRS_p = function(int_obj, vec_params, int_host, activity_cycles, nips) {
 # Includes vectorization of Olivier's code for interpolation points
 #####################################################################
 
+# Calculate attrition and holed area based on PMI data
+calc_net_decay = function(net_type, country, insecticide_type, n_ips, duration){
+
+    # Check that there are available entries in the database for the net type
+    # and country if the net type is not the default one
+    if (net_type != "Default") {
+        PMI_entries = with(interventions_param$LLINs_params$durability_estim,
+                           Semester[which(Country == country &
+                                              Net_Type == net_type)])
+        if(length(PMI_entries) == 0) {
+            err_msg = paste("Attrition and holed area data are not available",
+                            "for the specified net type and country.",
+                            "To retrieve the list of available",
+                            "data use get_net_insecticides().")
+            stop(err_msg)
+        }
+    }
+
+    # Check that there are available entries in the database for the insecticide
+    LLINs_insecticide = interventions_param$LLINs_params$insecticide_c
+    insecticide_p = as.list(LLINs_insecticide[, insecticide_type])
+
+    if(length(insecticide_p) == 0) {
+        err_msg = paste("Decay values are not available",
+                        "for the specified insecticide.",
+                        "To retrieve the list of available",
+                        "insecticides use get_net_types().")
+        stop(err_msg)
+    }
+
+    if(net_type == "Default"){
+        # Calculate default attrition and holed area
+        # Data from Briet et al (2019)
+        # attrition and insecticide decay are from Briet & Penny (2013)
+        # holed area is from  Morgan J et al Am J Trop Med Hyg. 2015.
+        s_decay_p = list(initialEffect = 1, L = 20.7725,
+                         k = 18, duration = duration)
+        survival = interp_decay("smoothcompact_function", s_decay_p, n_ips)
+        #<holeRate mean="1.80" sigma="0.80"/>
+        #<ripRate mean="1.80" sigma="0.80"/><ripFactor value="0.3"/>
+        #This approximates the central scenario hole index
+        h_decay_p = list(initialEffect = 1, a = 0,
+                         b = 58.5949, duration = duration)
+        holed.surface.area = interp_decay("parabolic_growth_function",
+                                          h_decay_p, n_ips)
+    } else {
+        # Country-specific attrition and holed area by LLIN type from PMI study
+        # Attrition
+        survival_data = with(interventions_param$LLINs_params$durability_estim,
+                             Value[which(Country == country &
+                                             Net_Type == net_type &
+                                             Parameter == 'Survival')])
+        semester = with(interventions_param$LLINs_params$durability_estim,
+                        Semester[which(Country == country &
+                                           Net_Type == net_type &
+                                           Parameter == 'Survival')])
+        # assign midpoint of each semester as net age in years
+        net_age = (semester-0.5)*0.5
+        tr_survival = log((100 - (survival_data-0.1))/100)
+        ip_tr_survival = spline_interpolation(tr_survival, semester,
+                                              n_ips, duration)
+        survival = ifelse(ip_tr_survival > 0, 1, 1-exp(ip_tr_survival))
+        # Holed area
+        semester = with(interventions_param$LLINs_params$durability_estim,
+                        Semester[which(Country == country &
+                                           Net_Type == net_type &
+                                           Parameter == 'Mean of log transformed holed area')])
+        holed_area_data = with(
+            interventions_param$LLINs_params$durability_estim,
+            Value[which(Country == country &
+                            Net_Type == net_type &
+                            Parameter == 'Mean of log transformed holed area')])
+        holed.surface.area = exp(spline_interpolation(holed_area_data, semester,
+                                                      n_ips, duration))
+    }
+
+    # Cap the holed surface area at the total surface area of the net
+    total_LLIN_surface = 192000
+    holed.surface.area.cap = ifelse(holed.surface.area > total_LLIN_surface,
+                                    total_LLIN_surface, holed.surface.area)
+    logHoles = log(holed.surface.area.cap + 1)
+
+    # Select the relevant insecticide decay parameters
+    LLINs_insecticide = interventions_param$LLINs_params$insecticide_c
+    insecticide_p = as.list(LLINs_insecticide[, insecticide_type])
+
+    # Obtain the vector of interpolation points for insecticide decay
+    insecticide.content = interp_decay("exponential_function",
+                                       list(initialEffect = insecticide_p$initialInsecticide,
+                                            L = 1.5, duration = duration), n_ips)
+    ips = seq(1:n_ips)
+    t = duration*(ips - 1)/n_ips
+    net_decay = data.frame(time = t, logHoles = logHoles,
+                           insecticideContent = insecticide.content,
+                           survival = survival)
+    return(as.data.frame(net_decay))
+}
+
 #LLIN parameters assembled by combining point estimates from different studies
 # Core vector operations
 calc_prob_vectors = function(PEnt, PEnt.u, PAtt, PAtt.u, PBmu, PBi.u, PBmu.u,
@@ -124,8 +222,8 @@ calc_LLINs_p = function(int_obj, vec_params, activity_cycles, nips) {
     PCmu.u = ilogit(net_p$beta0.PCmu + net_p$beta1.PCmu*logHolesMax)
 
     # Obtain the vectors of interpolation points for attrition and holed area
-    net_demog = get_net_decay(net_type = int_obj$LLIN_type,
-                              country = int_obj$LLN_country,
+    net_demog = calc_net_decay(net_type = int_obj$LLIN_type,
+                              country = int_obj$LLIN_country,
                               insecticide_type = int_obj$LLIN_insecticide,
                               n_ips = nips, duration = duration)
     logHoles = net_demog$logHoles

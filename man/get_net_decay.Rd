@@ -35,7 +35,7 @@ use the function get_net_types().
 }
 \examples{
 net_surv = get_net_decay(net_type = "DuraNet",
-country = "Kenya", n_ips = 100, duration = 3)
+country = "Kenya", insecticide_type = "Default", n_ips = 100, duration = 3)
 print(net_surv)
 
 }

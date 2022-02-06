@@ -316,6 +316,15 @@ get_best_decay_fit = function(values, duration, param_name, plot_flag) {
 # Prepare snippet for GVI intervention in the base xml file
 prepare_GVI_snippet = function(species, best_fit, param_name, id) {
     func = tolower(paste(best_fit$decay))
+
+    # If there is no specified decay, return null
+    if(is.null(best_fit)) {
+        GVI_result = list(GVI_xml_snippet = NULL,
+                          GVI_attributes = NULL)
+
+        return(GVI_result)
+    }
+
     init_effect = best_fit$params[1]
     L = best_fit$params[2]
     if(func %in% c("weibull", "hill", "smoothcompact")) {
@@ -351,16 +360,7 @@ prepare_GVI_snippet = function(species, best_fit, param_name, id) {
     invisible(newXMLNode("postprandialKillingEffect", parent = GVI_snippet,
                          attrs = list(value = init_effect_post)))
 
-    # GVI_snippet = paste0('<GVI name="GVI ', id, '" id="GVI_', id ,'_1">
-    # <decay L="', L, '" function="', func, '"', k, '/>
-    # <anophelesParams mosquito="', species, '" propActive="1">
-    # <deterrency value="', init_effect_d, '"/>
-    # <preprandialKillingEffect value="', init_effect_pre, '"/>
-    # <postprandialKillingEffect value="', init_effect_post, '"/>
-    # </anophelesParams>
-    # </GVI>\n')
-
-    GVI_attributes = list(decay_funcion = func,
+    GVI_attributes = list(decay_function = func,
                           mosquito_species = species,
                           init_effect_d = init_effect_d,
                           init_effect_pre = init_effect_pre,
