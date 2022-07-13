@@ -214,25 +214,70 @@ get_best_decay_fit = function(values, duration, param_name, plot_flag) {
     best_fit$RSS = 100000
     best_fit$params = NULL
 
+    exponential_fit = weibull_fit = hill_fit =
+        linear_fit = smoothcompact_fit = NULL
+
+    nls_control = list(maxiter = 100)
+
     # Fit the different decay types and find the best fit:
     tryCatch(
         expr = {
             nls_control = list(maxiter = 100)
             exponential_fit = nlsLM(values ~ a*exp(-time/L*log(2)),
                                     data = tab, start = list(a = tab$values[1],
-                                                             L = duration))
+                                                             L = duration),
+                                    control = nls_control)
             exponential_fit$name = "exponential"
+            print("Exponential decay fitted successfully.")
+        },
+        error = function(e){
+            message("An exponential decay could not be fitted.")
+        }
+    )
+
+    tryCatch(
+        expr = {
             weibull_fit = nlsLM(values ~ a*exp(-(time/L)^k * log(2)),
                                 data = tab, start = list(a = tab$values[1],
-                                                         L = duration, k = 1))
+                                                         L = duration, k = 1),
+                                control = nls_control)
             weibull_fit$name = "Weibull"
+            print("Weibull decay fitted successfully.")
+        },
+        error = function(e){
+            message("A Weibull decay could not be fitted.")
+        }
+    )
+
+    tryCatch(
+        expr = {
             hill_fit = nlsLM(values ~ a/(1+(time/L)^k),
                              data = tab, start = list(a = tab$values[1],
-                                                      L = duration, k = 1))
+                                                      L = duration, k = 1),
+                             control = nls_control)
             hill_fit$name = "Hill"
+            print("Hill decay fitted successfully.")
+        },
+        error = function(e){
+            message("A Hill decay could not be fitted.")
+        }
+    )
+
+    tryCatch(
+        expr = {
             linear_fit = nlsLM(values ~ a*(1-time/L), data = tab,
-                               start = list(a = tab$values[1], L = duration))
+                               start = list(a = tab$values[1], L = duration),
+                               control = nls_control)
             linear_fit$name = "linear"
+            print("Linear decay fitted successfully.")
+        },
+        error = function(e){
+            message("A linear decay could not be fitted.")
+        }
+    )
+
+    tryCatch(
+        expr = {
             smoothcompact_fit = nlsLM(values ~ a*(c(1)-(time>=L))*
                                           exp((c(1)-(time>=L))*k*
                                                   (c(1)-1/(1-(time/L)^2))),
@@ -241,17 +286,19 @@ get_best_decay_fit = function(values, duration, param_name, plot_flag) {
                                                    k = 1, L = duration),
                                       control = nls_control)
             smoothcompact_fit$name = "smooth-compact"
-            # Concatenate all the fits so far
-            fit_list = list(exponential_fit = exponential_fit,
-                            weibull_fit = weibull_fit,
-                            hill_fit = hill_fit, linear_f = linear_fit,
-                            smoothcompact_fit = smoothcompact_fit)
+            print("Smooth-compact decay fitted successfully.")
         },
         error = function(e){
-            message("The following error occurred during fitting:")
-            print(e)
+            message("A smooth-compact decay could not be fitted.")
         }
     )
+
+
+    # Concatenate all the successfully found fits so far
+    fit_list = list(exponential_fit = exponential_fit,
+                    weibull_fit = weibull_fit,
+                    hill_fit = hill_fit, linear_f = linear_fit,
+                    smoothcompact_fit = smoothcompact_fit)
 
     # Find the best fit so far and obtain all the fitted curves
     for (fit_obj in fit_list) {
@@ -281,7 +328,13 @@ get_best_decay_fit = function(values, duration, param_name, plot_flag) {
                                       p = 1:nrow(tab), nrow(tab)))
 
     RSS = sum((pred - tab$values)^2)
-    # construct the data table with all the fits resuts (for plotting)
+    # Check if best than previous fits
+    if (RSS < best_fit$RSS) {
+        best_fit$RSS = RSS
+        best_fit$decay = "step"
+        best_fit$params = c(init_effect = tab$values[1], L = L_step)
+    }
+    # Construct the data table with all the fits resuts (for plotting)
     values_decay = cbind.data.frame("step", 1:nrow(tab), pred,
                                     tab$values, RSS)
     colnames(values_decay) = c("decay_function", "time", "value",
@@ -291,7 +344,14 @@ get_best_decay_fit = function(values, duration, param_name, plot_flag) {
     # For the constant decay:
     pred = rep(mean(tab$values), nrow(tab))
     RSS = sum((pred - tab$values)^2)
-    # construct the data table with all the fits resuts (for plotting)
+    # Check if best than previous fits
+    if (RSS <= best_fit$RSS) {
+        best_fit$RSS = RSS
+        best_fit$decay = "constant"
+        # In OpenMalaria we need to specify L even for the constant decay
+        best_fit$params = c(init_effect = tab$values[1], L = 1)
+    }
+    # Construct the data table with all the fits resuts (for plotting)
     values_decay = cbind.data.frame("constant", 1:nrow(tab), pred,
                                     tab$values, RSS)
     colnames(values_decay) = c("decay_function", "time", "value",
