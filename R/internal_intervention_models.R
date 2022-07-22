@@ -178,20 +178,20 @@ calc_net_decay = function(net_type, country, insecticide_type, n_ips, duration){
 #LLIN parameters assembled by combining point estimates from different studies
 # Core vector operations
 calc_prob_vectors = function(PEnt, PEnt.u, PAtt, PAtt.u, PBmu, PBi.u, PBmu.u,
-                             PCmu, PCi.u, PCmu.u, alphai, indoor_outdoor){
+                             PCmu, PCi.u, PCmu.u, alphai, indoor_outdoor, intervention_type){
     PEnt.pred = PEnt/PEnt.u
     PAtt.pred = PAtt/PAtt.u
     alphai.reduction = 1 - PEnt.pred*PAtt.pred
     PBmu.pred = 1 - (1 - PBmu)/(1 - PBmu.u)
     PCmu.pred = 1 - (1 - PCmu)/(1 - PCmu.u)
     alphai_decay = adjustment_for_location("alphai",
-                        indoor_outdoor, "LLINs")*alphai.reduction
+                        indoor_outdoor, intervention_type)*alphai.reduction
     alphai_int = alphai[2]*(1 - alphai_decay)
     PBi_decay = adjustment_for_location("PBi",
-                        indoor_outdoor, "LLINs")*PBmu.pred
+                        indoor_outdoor, intervention_type)*PBmu.pred
     PBi_int = PBi.u*(1 - PBi_decay)
     PCi_decay = adjustment_for_location("PCi",
-                        indoor_outdoor, "LLINs")*PCmu.pred
+                        indoor_outdoor, intervention_type)*PCmu.pred
     PCi_int = PCi.u*(1 - PCi_decay)
     ip_vecs = data.frame(alphai_int, PBi_int, PCi_int,
                          alphai_decay, PBi_decay, PCi_decay)
@@ -263,10 +263,18 @@ calc_LLINs_p = function(int_obj, vec_params, activity_cycles, nips) {
     PBi = int_obj$effects$PBi[1,2]
     PCi = int_obj$effects$PCi[1,2]
     alphai = int_obj$effects$alphai[1,]
+
+    # Check if it is an indoor or outdoor LLIN
+    interv_type = "LLINs"
+    if (!is.null(int_obj$LLIN_outside) && int_obj$LLIN_outside == TRUE){
+        print("here")
+        interv_type = "LLINs_o"
+    }
     ip_vecs = calc_prob_vectors(PEnt = PEnt, PEnt.u = PEnt.u, PAtt = PAtt,
                                 PAtt.u = PAtt.u, PBmu = PBmu, PBi.u = PBi,
                                 PBmu.u = PBmu.u, PCmu = PCmu, PCi.u = PCi,
-                                PCmu.u = PCmu.u, alphai = alphai, in_out_exp)
+                                PCmu.u = PCmu.u, alphai = alphai, in_out_exp,
+                                interv_type)
 
     # Extract the parameters needed by the entomological model
     int_obj$effects$alphai[, 1] = ip_vecs$alphai_int

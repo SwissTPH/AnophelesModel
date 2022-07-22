@@ -164,7 +164,7 @@ adjustment_for_location = function(param, indoor_outdoor, intervention){
                         'LLINs'= f1(indoor_outdoor),
                         'IRS'= f2(indoor_outdoor),
                         # ITN outdoors (e.g. on the roof)
-                        'LLINsO'= f3(indoor_outdoor),
+                        'LLINs_o'= f3(indoor_outdoor),
                         # House screening affects all indoor biting (like IRS)
                         'House_screening' = f2(indoor_outdoor),
                         'Stay_indoors'= f4(indoor_outdoor),
