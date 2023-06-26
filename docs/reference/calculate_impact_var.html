@@ -54,19 +54,19 @@ interventions when deployed to a cohort of humans</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">calculate_impact_var</span><span class="op">(</span>
-  mosquito_species <span class="op">=</span> <span class="st">"Anopheles gambiae"</span>,
-  vec_ent_table <span class="op">=</span> <span class="cn">NULL</span>,
-  host_table <span class="op">=</span> <span class="cn">NULL</span>,
-  activity_patterns <span class="op">=</span> <span class="st">"default_Anopheles_gambiae"</span>,
-  interventions <span class="op">=</span> <span class="va">intervention_obj_examples</span>,
-  coverage_vec <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.9</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span>, <span class="fl">0.95</span>, <span class="fl">0.99</span><span class="op">)</span>,
-  total_pop <span class="op">=</span> <span class="fl">2000</span>,
-  n_vec <span class="op">=</span> <span class="fl">10000</span>,
-  n_time_points <span class="op">=</span> <span class="fl">100</span>,
-  n_sample_points <span class="op">=</span> <span class="fl">100</span>,
-  plot_result <span class="op">=</span> <span class="cn">TRUE</span>
-<span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">calculate_impact_var</span><span class="op">(</span></span>
+<span>  mosquito_species <span class="op">=</span> <span class="st">"Anopheles gambiae"</span>,</span>
+<span>  vec_ent_table <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  host_table <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  activity_patterns <span class="op">=</span> <span class="st">"default_Anopheles_gambiae"</span>,</span>
+<span>  interventions <span class="op">=</span> <span class="va">intervention_obj_examples</span>,</span>
+<span>  coverage_vec <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.9</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span>, <span class="fl">0.95</span>, <span class="fl">0.99</span><span class="op">)</span>,</span>
+<span>  total_pop <span class="op">=</span> <span class="fl">2000</span>,</span>
+<span>  n_vec <span class="op">=</span> <span class="fl">10000</span>,</span>
+<span>  n_time_points <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>  n_sample_points <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>  plot_result <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -79,6 +79,8 @@ sensitive and must be one of the species provided with the package:
 To see the available mosquito species in th package,
 you can use the function <code><a href="list_all_species.html">list_all_species()</a></code>.
 Default value is Anopheles gambiae.</p></dd>
+
+
 <dt>vec_ent_table</dt>
 <dd><p>data frame with custom vector entomological values.
 Must be provided if custom parameter values should be used instead of
@@ -86,28 +88,46 @@ the ones in the package database corresponding to the
 provided moquito species.
 The data frame should have the same structure (column names) as the database
 object <code>vec_ent_param</code> (see Data documentation). Default value is NULL.</p></dd>
+
+
 <dt>host_table</dt>
 <dd><p>data frame with custom host-specific values.
 Must be provided if custom parameter values should be used instead of
 the ones in the package database.
 The provided data frame should have the same structure as the database
 object <code>host_ent_param</code> (see Data documentation). Default value is NULL.</p></dd>
+
+
 <dt>interventions</dt>
 <dd><p>vector of intervention names</p></dd>
+
+
 <dt>coverage_vec</dt>
 <dd><p>vector of coverages to consider for each intervention</p></dd>
+
+
 <dt>total_pop</dt>
 <dd><p>total population size of human and animal hosts</p></dd>
+
+
 <dt>n_vec</dt>
 <dd><p>number of mosquitoes born and entering the host-seeking state
 per day</p></dd>
+
+
 <dt>n_time_points</dt>
 <dd><p>number of time points to be considered</p></dd>
+
+
 <dt>n_sample_points</dt>
 <dd><p>number of samples to select for assessing variance</p></dd>
+
+
 <dt>plot_result</dt>
 <dd><p>if TRUE, the function plots the reduction of the vectorial
 capacity for each intervention in the <code>interventions</code> list</p></dd>
+
+
 <dt>activity</dt>
 <dd><p>can be either a string corresponding to default entries:
 "default_Anopheles_gambiae", "default_Anopheles_albimanus"
@@ -119,10 +139,13 @@ or a list object with the following attributes:</p><ul><li><p><code>HBI</code>: 
 each time point, or characters indicating an entry ID in the package
 database. The function list_rhythms() can be used to retrieve the
 available entries for all geographical locations.</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    <p>list object with the following attributes:</p><ul><li><p><code>vec_p</code>: list of vector-specific entomological parameters (see
+    
+
+<p>list object with the following attributes:</p><ul><li><p><code>vec_p</code>: list of vector-specific entomological parameters (see
 description of output from function <code>get_vector_params</code>)</p></li>
 <li><p><code>host_p</code>: list of host-specific entomological parameters (see
 description of output from function <code>get_host_params</code>)</p></li>
@@ -136,7 +159,7 @@ parameters and impact (vectorial capacity) values</p></li>
 
     <div id="ref-examples">
     <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span></span></span>
 <span class="r-in"></span>
 </code></pre></div>
     </div>
@@ -152,7 +175,7 @@ parameters and impact (vectorial capacity) values</p></li>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>

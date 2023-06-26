@@ -18,15 +18,15 @@ calculate_impact_vec = function(tab_activity, mosquito_model_params, host_params
     humans_in_bed = tab_activity$humans_in_bed
     patterns_vec = list(HBI_vec = HBI_vec, HBO_vec = HBO_vec, humans_indoors = humans_indoors, humans_in_bed = humans_in_bed)
     activity_vec = def_activity_patterns(patterns_vec)
-    
+
     model_params_vec = build_model_obj(mosquito_model_params, host_params, activity_vec, total_pop = 2000)
-    
-    intervention_vec = def_interventions_effects(intervention_list = intervention_obj_examples, 
+
+    intervention_vec = def_interventions_effects(intervention_list = intervention_obj_examples,
                                                          model_p = model_params_vec, num_ip_points= 100)
-    
-    impacts_vec = calculate_impact(intervention_vec, coverage_vec=c(seq(0, 1, by = 0.01)), 
+
+    impacts_vec = calculate_impact(intervention_vec, coverage_vec=c(seq(0, 1, by = 0.01)),
                                        model_params_vec, Nv0= 10000, num_ip_points= 100)
-    
+
     return(impacts_vec)
 }
 
@@ -35,7 +35,7 @@ gambiae_ent_params = def_vector_params(mosquito_species = "Anopheles gambiae")
 farauti_ent_params = def_vector_params(mosquito_species = "Anopheles farauti")
 default_host_params = def_host_params()
 
-# Define size of the host and mosquito population 
+# Define size of the host and mosquito population
 host_pop = 2000
 vec_pop = 10000
 
@@ -96,15 +96,15 @@ entomology_xml_farauti = get_OM_ento_snippet(farauti_ent_params, default_host_pa
 print(entomology_xml_farauti)
 
 # GVI
-impacts_gambiae = calculate_impact(interventions_vec = intervention_effects_gambiae, 
-                                   coverage_vec = c(seq(0, 0.9, by = 0.1), 0.95, 0.99), 
+impacts_gambiae = calculate_impact(interventions_vec = intervention_effects_gambiae,
+                                   coverage_vec = c(seq(0, 0.9, by = 0.1), 0.95, 0.99),
                                    model_p = model_params_gambiae, Nv0 = vec_pop, num_ip_points = 100)
-                        
+
 GVI_snippets_gambiae = get_OM_GVI_snippet("Anopheles gambiae", impacts_gambiae$interventions_vec$LLIN_intervention,
                                   100, plot_f = TRUE)
 
-impacts_farauti = calculate_impact(interventions_vec = intervention_effects_farauti, 
-                                   coverage_vec = c(seq(0, 0.9, by = 0.1), 0.95, 0.99), 
+impacts_farauti = calculate_impact(interventions_vec = intervention_effects_farauti,
+                                   coverage_vec = c(seq(0, 0.9, by = 0.1), 0.95, 0.99),
                                    model_p = model_params_gambiae, Nv0 = vec_pop, num_ip_points = 100)
 
 GVI_snippets_farauti = get_OM_GVI_snippet("Anopheles farauti", impacts_farauti$interventions_vec$LLIN_intervention,
@@ -116,27 +116,31 @@ plot_df_effects_gambiae = cbind.data.frame(intervention_effects_gambiae$LLIN_int
                                            intervention_effects_gambiae$LLIN_intervention$effects$PBi_decay,
                                            intervention_effects_gambiae$LLIN_intervention$effects$PCi_decay,
                                            "Anopheles gambiae", c(1:length(intervention_effects_gambiae$LLIN_intervention$effects$alphai_decay)))
-colnames(plot_df_effects_gambiae) = c("Deterrency", "Pre-prandial \neffect", "Post-prandial \neffect", "Mosquito species", "Time point")
+colnames(plot_df_effects_gambiae) = c("Deterrency", "Pre-prandial \nkilling effect", "Post-prandial \nkilling effect", "Mosquito species", "Time point")
 plot_df_effects_gambiae_melted = melt(plot_df_effects_gambiae, id.vars = c("Time point", "Mosquito species"))
 
 plot_df_effects_farauti = cbind.data.frame(intervention_effects_farauti$LLIN_intervention$effects$alphai_decay,
                                            intervention_effects_farauti$LLIN_intervention$effects$PBi_decay,
                                            intervention_effects_farauti$LLIN_intervention$effects$PCi_decay,
                                            "Anopheles farauti", c(1:length(intervention_effects_farauti$LLIN_intervention$effects$alphai_decay)))
-colnames(plot_df_effects_farauti) = c("Deterrency", "Pre-prandial \neffect", "Post-prandial \neffect", "Mosquito species", "Time point")
+colnames(plot_df_effects_farauti) = c("Deterrency", "Pre-prandial \nkilling effect", "Post-prandial \nkilling effect", "Mosquito species", "Time point")
 plot_df_effects_farauti_melted = melt(plot_df_effects_farauti, id.vars = c("Time point", "Mosquito species"))
 plot_df_effects = rbind.data.frame(plot_df_effects_gambiae_melted, plot_df_effects_farauti_melted)
 plot_df_effects$`Mosquito species` = factor(plot_df_effects$`Mosquito species`, levels = c("Anopheles gambiae", "Anopheles farauti"))
-    
+
 p_effects = ggplot(plot_df_effects) +
             geom_line(aes(x = `Time point`, y = value*100, col = `Mosquito species`)) +
             facet_wrap(~ variable) +
-            theme_light() + 
+            theme_light() +
             theme_bw(base_size = 16) +
             theme(legend.position = "top") +
             ylim(c(0, 100)) +
             theme(strip.background = element_rect(colour="white", fill="white")) +
-            labs(x = "Time point", y = "Decay of effect (%)")
+            scale_color_manual("Mosquito species",
+                         labels = c(expression(italic("An. gambiae")),
+                                    expression(italic("An. farauti"))),
+                         values = c("#00BFC4", "#F8766D")) +
+            labs(x = "Time point", y = "Effect (%)")
 
 # Plot the vectorial capacity reduction by species
 p_vc = ggplot(impact_df, aes(x = intervention_coverage, y = intervention_impact*100,
@@ -148,6 +152,14 @@ p_vc = ggplot(impact_df, aes(x = intervention_coverage, y = intervention_impact*
                 stat_summary(fun.data = mean_sdl, fun.args = list(mult = 2),
                              geom = "ribbon", alpha = 0.5, colour = NA) +
                 stat_summary(fun = mean, geom = "line", lwd = 0.5) +
+                scale_fill_manual("Mosquito species",
+                         labels = c(expression(italic("An. gambiae")),
+                                    expression(italic("An. farauti"))),
+                         values = c("#00BFC4", "#F8766D")) +
+                scale_color_manual("Mosquito species",
+                        labels = c(expression(italic("An. gambiae")),
+                                   expression(italic("An. farauti"))),
+                        values = c("#00BFC4", "#F8766D")) +
                 labs(x = "Coverage", y="Mean reduction in\nvectorial capacity (%)")
 
 p_fig3 = ggarrange(plotlist = list(p_effects, p_vc), ncol = 1, nrow = 2, labels = c("A", "B"))

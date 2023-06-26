@@ -51,12 +51,12 @@ provided criteria.</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">list_activity</span><span class="op">(</span>
-  species <span class="op">=</span> <span class="st">"Anopheles gambiae"</span>,
-  sampling <span class="op">=</span> <span class="st">"HBI"</span>,
-  country <span class="op">=</span> <span class="cn">NULL</span>,
-  site <span class="op">=</span> <span class="cn">NULL</span>
-<span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">list_activity</span><span class="op">(</span></span>
+<span>  species <span class="op">=</span> <span class="st">"Anopheles gambiae"</span>,</span>
+<span>  sampling <span class="op">=</span> <span class="st">"HBI"</span>,</span>
+<span>  country <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  site <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -68,6 +68,8 @@ activity patterns for. For human activity patterns, this parameters should be
 the Anopheles species provided in the package.
 The default value is "Anopheles gambiae".
 To see all available Anopheles species, use the function list_all_species().</p></dd>
+
+
 <dt>sampling</dt>
 <dd><p>can only be one of the following strings:</p><ul><li><p><code>IND</code>: proportion of humans indoors; only relevant for humans
 (species parameter is "Homo Sapiens").</p></li>
@@ -85,20 +87,27 @@ outdoors; only relevant for mosquito species.
 (indoors and outdoors); only relevant for mosquito species.
 The default value is "HBI".</p></li>
 </ul></dd>
+
+
 <dt>country</dt>
 <dd><p>name of the country. Default value is NULL. If the country is
 not provided for the provided species and
 sampling code, then data for all available countries will be displayed.</p></dd>
+
+
 <dt>site</dt>
 <dd><p>name of the geographical location within the country.
 Default value is NULL. If this parameter is
 not provided for the provided species and
 sampling code, then data for all available sites and countries will
 be displayed).</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    <p>data frame with the following columns:</p><ul><li><p><code>ID</code>: id of the database entry</p></li>
+    
+
+<p>data frame with the following columns:</p><ul><li><p><code>ID</code>: id of the database entry</p></li>
 <li><p><code>species</code>: name of the considered species</p></li>
 <li><p><code>sampling</code>: sampling type</p></li>
 <li><p><code>country</code>: country where measurements were taken</p></li>
@@ -114,10 +123,10 @@ output data frame</p></li>
 
     <div id="ref-examples">
     <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span class="co"># List the proportion of human biting indoors in the Rachuonyo region, Kenya.</span></span>
-<span class="r-in"><span class="va">humans_indoors</span> <span class="op">=</span> <span class="fu">list_activity</span><span class="op">(</span>species <span class="op">=</span> <span class="st">"Homo sapiens"</span>, sampling <span class="op">=</span> <span class="st">"IND"</span>,</span>
-<span class="r-in">site<span class="op">=</span><span class="st">"Rachuonyo"</span><span class="op">)</span></span>
-<span class="r-in"><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">humans_indoors</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># List the proportion of human biting indoors in the Rachuonyo region, Kenya.</span></span></span>
+<span class="r-in"><span><span class="va">humans_indoors</span> <span class="op">=</span> <span class="fu">list_activity</span><span class="op">(</span>species <span class="op">=</span> <span class="st">"Homo sapiens"</span>, sampling <span class="op">=</span> <span class="st">"IND"</span>,</span></span>
+<span class="r-in"><span>site<span class="op">=</span><span class="st">"Rachuonyo"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">humans_indoors</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    id      species sampling country      site        hour      value</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 17  2 Homo sapiens      IND   Kenya Rachuonyo 16.00_17.00 0.00000000</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 18  2 Homo sapiens      IND   Kenya Rachuonyo 17.00_18.00 0.15566667</span>
@@ -135,7 +144,7 @@ output data frame</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 30  2 Homo sapiens      IND   Kenya Rachuonyo 05.00_06.00 0.53900000</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 31  2 Homo sapiens      IND   Kenya Rachuonyo 06.00_07.00 0.03533333</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 32  2 Homo sapiens      IND   Kenya Rachuonyo 07.00_08.00 0.00000000</span>
-<span class="r-in"></span>
+<span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
   </div>
@@ -150,7 +159,7 @@ output data frame</p></li>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>

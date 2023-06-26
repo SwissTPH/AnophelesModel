@@ -51,7 +51,7 @@ deployed to a cohort of humans at a given time point</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">calculate_impact_ip</span><span class="op">(</span><span class="va">intervention_obj</span>, <span class="va">model_obj</span>, <span class="va">n_vec</span>, <span class="va">Ni</span><span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">calculate_impact_ip</span><span class="op">(</span><span class="va">intervention_obj</span>, <span class="va">model_obj</span>, <span class="va">n_vec</span>, <span class="va">Ni</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -69,18 +69,27 @@ after biting any host of type i</p></li>
 <li><p><code>muvA</code>: mosquito death rate</p></li>
 <li><p><code>alphai</code>: availability to mosquitoes for host of type i</p></li>
 </ul></dd>
+
+
 <dt>model_obj</dt>
 <dd><p>list of vector- and host-specific entomological parameters
 (see description of output from function <code>calc_model_params</code>)</p></dd>
+
+
 <dt>Ni</dt>
 <dd><p>data frame with the number of protected and unprotected hosts for
 various intervention coverages</p></dd>
+
+
 <dt>N_vec</dt>
 <dd><p>number of daily emerging mosquitoes</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    <p>object with the following attributes (columns = different coverages):
+    
+
+<p>object with the following attributes (columns = different coverages):
 #'</p><ul><li><p><code>Pf_all</code>: probability that mosquitoes survive the feeding cycle
 #'</p></li>
 <li><p><code>or_all</code>: delayed oocyst rate
@@ -109,7 +118,7 @@ various intervention coverages</p></dd>
 
     <div id="ref-examples">
     <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span></span></span>
 <span class="r-in"></span>
 </code></pre></div>
     </div>
@@ -125,7 +134,7 @@ various intervention coverages</p></dd>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>

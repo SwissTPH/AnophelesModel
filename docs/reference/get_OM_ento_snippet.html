@@ -59,7 +59,7 @@ element with parameters for non-human hosts.</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">get_OM_ento_snippet</span><span class="op">(</span><span class="va">vec_params</span>, <span class="va">hosts_params</span><span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">get_OM_ento_snippet</span><span class="op">(</span><span class="va">vec_params</span>, <span class="va">hosts_params</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -67,13 +67,18 @@ element with parameters for non-human hosts.</p>
     <dl><dt>vec_p</dt>
 <dd><p>list of vector-specific entomological parameteres (see
 <code>def_vector_params</code> for creating this object)</p></dd>
+
+
 <dt>hosts_p</dt>
 <dd><p>list of host-specific entomological parameters (see
 <code>def_host_params</code> for creating this object)</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    <p>list with two xml snippets:</p><ul><li><p><code>&lt;mosq&gt;</code>: mosquito species parameters describing the
+    
+
+<p>list with two xml snippets:</p><ul><li><p><code>&lt;mosq&gt;</code>: mosquito species parameters describing the
 lifecycle and behaviour</p></li>
 <li><p><code>&lt;nonHumanHosts&gt;</code>: non-human parameters to allow for zoophily</p></li>
 </ul></div>
@@ -84,10 +89,10 @@ lifecycle and behaviour</p></li>
 
     <div id="ref-examples">
     <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span class="va">vec_params</span> <span class="op">=</span> <span class="fu"><a href="def_vector_params.html">def_vector_params</a></span><span class="op">(</span><span class="op">)</span></span>
-<span class="r-in"><span class="va">hosts_params</span> <span class="op">=</span> <span class="fu"><a href="def_host_params.html">def_host_params</a></span><span class="op">(</span><span class="op">)</span></span>
-<span class="r-in"><span class="va">xml_snippets</span> <span class="op">=</span> <span class="fu">get_OM_ento_snippet</span><span class="op">(</span><span class="va">vec_params</span>, <span class="va">hosts_params</span><span class="op">)</span></span>
-<span class="r-in"><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">xml_snippets</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">vec_params</span> <span class="op">=</span> <span class="fu"><a href="def_vector_params.html">def_vector_params</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">hosts_params</span> <span class="op">=</span> <span class="fu"><a href="def_host_params.html">def_host_params</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">xml_snippets</span> <span class="op">=</span> <span class="fu">get_OM_ento_snippet</span><span class="op">(</span><span class="va">vec_params</span>, <span class="va">hosts_params</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">xml_snippets</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $mosq_snippet</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;mosq minInfectedThreshold="0.01"&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;mosqRestDuration value="2"/&gt;</span>
@@ -95,7 +100,7 @@ lifecycle and behaviour</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;mosqLaidEggsSameDayProportion value="0.641932826304081"/&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;mosqSeekingDuration value="3"/&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;mosqSurvivalFeedingCycleProbability value="0.613449878545352"/&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;availabilityVariance value="0"/&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;availability/&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;mosqProbBiting mean="0.95" variance="0"/&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;mosqProbFindRestSite mean="0.95" variance="0"/&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;mosqProbResting mean="0.99" variance="0"/&gt;</span>
@@ -111,7 +116,7 @@ lifecycle and behaviour</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;mosqProbResting value="0.99"/&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;/nonHumanHosts&gt; </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-in"></span>
+<span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
   </div>
@@ -126,7 +131,7 @@ lifecycle and behaviour</p></li>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>

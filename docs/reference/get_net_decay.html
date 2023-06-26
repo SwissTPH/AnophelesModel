@@ -55,25 +55,36 @@ use the function get_net_types().</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">get_net_decay</span><span class="op">(</span><span class="va">net_type</span>, <span class="va">country</span>, <span class="va">insecticide_type</span>, <span class="va">n_ips</span>, <span class="va">duration</span><span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">get_net_decay</span><span class="op">(</span><span class="va">net_type</span>, <span class="va">country</span>, <span class="va">insecticide_type</span>, <span class="va">n_ips</span>, <span class="va">duration</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
     <h2>Arguments</h2>
     <dl><dt>net_type</dt>
 <dd><p>type of the LLIN</p></dd>
+
+
 <dt>country</dt>
 <dd><p>selected country of interest for which the net_type exists</p></dd>
+
+
 <dt>insecticide_type</dt>
 <dd><p>type of insecticide</p></dd>
+
+
 <dt>n_ips</dt>
 <dd><p>number of time points to consider throughout the duration</p></dd>
+
+
 <dt>duration</dt>
 <dd><p>considered time of the intervention, default is 3 years</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    <p>The function returns an object with the following attributes:</p><ul><li><p><code>time</code>: time point</p></li>
+    
+
+<p>The function returns an object with the following attributes:</p><ul><li><p><code>time</code>: time point</p></li>
 <li><p><code>insecticideContent</code>: insecticide content of the net</p></li>
 <li><p><code>logHoles</code>: log holed area of the net</p></li>
 <li><p><code>survival</code>: survival of the net</p></li>
@@ -88,14 +99,113 @@ use the function get_net_types().</p>
 
     <div id="ref-examples">
     <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span class="va">net_surv</span> <span class="op">=</span> <span class="fu">get_net_decay</span><span class="op">(</span>net_type <span class="op">=</span> <span class="st">"DuraNet"</span>,</span>
-<span class="r-in">country <span class="op">=</span> <span class="st">"Kenya"</span>, n_ips <span class="op">=</span> <span class="fl">100</span>, duration <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">net_surv</span> <span class="op">=</span> <span class="fu">get_net_decay</span><span class="op">(</span>net_type <span class="op">=</span> <span class="st">"DuraNet"</span>,</span></span>
+<span class="r-in"><span>country <span class="op">=</span> <span class="st">"Kenya"</span>, insecticide_type <span class="op">=</span> <span class="st">"Default"</span>, n_ips <span class="op">=</span> <span class="fl">100</span>, duration <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>some 'x' values beyond boundary knots may cause ill-conditioned bases</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>some 'x' values beyond boundary knots may cause ill-conditioned bases</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in data.frame(time = t, logHoles = logHoles, insecticideContent = insecticide.content,     survival = survival):</span> arguments imply differing number of rows: 100, 0</span>
-<span class="r-in"><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">net_surv</span><span class="op">)</span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in print(net_surv):</span> object 'net_surv' not found</span>
-<span class="r-in"></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">net_surv</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     time  logHoles insecticideContent  survival</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1   0.00 0.6400439           54.62009 0.9994975</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2   0.03 0.6679434           53.86812 0.9994426</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3   0.06 0.6960037           53.12650 0.9993829</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4   0.09 0.7241789           52.39509 0.9993180</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5   0.12 0.7524244           51.67375 0.9992476</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6   0.15 0.7806971           50.96234 0.9991715</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7   0.18 0.8089559           50.26073 0.9990892</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8   0.21 0.8371613           49.56878 0.9990006</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9   0.24 0.8652759           48.88635 0.9989052</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10  0.27 0.8932645           48.21331 0.9988027</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11  0.30 0.9210939           47.54955 0.9986928</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12  0.33 0.9487331           46.89492 0.9985751</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13  0.36 0.9761534           46.24930 0.9984495</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14  0.39 1.0033282           45.61258 0.9983154</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15  0.42 1.0302331           44.98461 0.9981727</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16  0.45 1.0568459           44.36530 0.9980209</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17  0.48 1.0831465           43.75451 0.9978599</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18  0.51 1.1091168           43.15213 0.9976894</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19  0.54 1.1347407           42.55804 0.9975090</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20  0.57 1.1600043           41.97213 0.9973185</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 21  0.60 1.1848951           41.39429 0.9971176</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 22  0.63 1.2094029           40.82440 0.9969062</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 23  0.66 1.2335189           40.26236 0.9966840</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 24  0.69 1.2572360           39.70805 0.9964508</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 25  0.72 1.2805489           39.16138 0.9962064</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 26  0.75 1.3034534           38.62223 0.9959507</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 27  0.78 1.3259472           38.09051 0.9956836</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 28  0.81 1.3480290           37.56611 0.9954049</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 29  0.84 1.3696990           37.04892 0.9951146</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 30  0.87 1.3909584           36.53886 0.9948125</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 31  0.90 1.4118098           36.03582 0.9944987</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 32  0.93 1.4322566           35.53970 0.9941730</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 33  0.96 1.4523036           35.05042 0.9938356</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 34  0.99 1.4719562           34.56787 0.9934864</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 35  1.02 1.4912209           34.09196 0.9931254</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 36  1.05 1.5101050           33.62261 0.9927529</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 37  1.08 1.5286167           33.15972 0.9923687</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 38  1.11 1.5467648           32.70320 0.9919730</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 39  1.14 1.5645589           32.25296 0.9915660</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 40  1.17 1.5820093           31.80893 0.9911479</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 41  1.20 1.5991268           31.37100 0.9907187</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 42  1.23 1.6159230           30.93911 0.9902786</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 43  1.26 1.6324098           30.51316 0.9898279</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 44  1.29 1.6485998           30.09308 0.9893667</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 45  1.32 1.6645060           29.67878 0.9888953</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 46  1.35 1.6801420           29.27018 0.9884139</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 47  1.38 1.6955216           28.86721 0.9879227</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 48  1.41 1.7106592           28.46979 0.9874220</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 49  1.44 1.7255694           28.07783 0.9869120</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 50  1.47 1.7402674           27.69128 0.9863930</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 51  1.50 1.7547685           27.31004 0.9858652</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 52  1.53 1.7690886           26.93406 0.9853289</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 53  1.56 1.7832435           26.56325 0.9847843</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 54  1.59 1.7972497           26.19754 0.9842317</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 55  1.62 1.8111236           25.83688 0.9836713</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 56  1.65 1.8248822           25.48117 0.9831033</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 57  1.68 1.8385426           25.13036 0.9825279</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 58  1.71 1.8521220           24.78439 0.9819454</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 59  1.74 1.8656379           24.44317 0.9813559</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 60  1.77 1.8791083           24.10666 0.9807596</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 61  1.80 1.8925509           23.77477 0.9801567</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 62  1.83 1.9059840           23.44746 0.9795472</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 63  1.86 1.9194258           23.12465 0.9789312</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 64  1.89 1.9328950           22.80629 0.9783089</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 65  1.92 1.9464102           22.49231 0.9776804</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 66  1.95 1.9599903           22.18265 0.9770455</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 67  1.98 1.9736544           21.87725 0.9764044</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 68  2.01 1.9874216           21.57606 0.9757570</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 69  2.04 2.0013114           21.27902 0.9751032</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 70  2.07 2.0153433           20.98606 0.9744430</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 71  2.10 2.0295369           20.69714 0.9737761</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 72  2.13 2.0439122           20.41220 0.9731024</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 73  2.16 2.0584892           20.13118 0.9724217</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 74  2.19 2.0732879           19.85403 0.9717338</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 75  2.22 2.0883288           19.58069 0.9710383</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 76  2.25 2.1036323           19.31112 0.9703349</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 77  2.28 2.1192191           19.04526 0.9696233</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 78  2.31 2.1351098           18.78305 0.9689029</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 79  2.34 2.1513256           18.52446 0.9681733</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 80  2.37 2.1678874           18.26943 0.9674340</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 81  2.40 2.1848166           18.01791 0.9666843</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 82  2.43 2.2021344           17.76985 0.9659237</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 83  2.46 2.2198626           17.52521 0.9651515</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 84  2.49 2.2380227           17.28393 0.9643668</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 85  2.52 2.2566368           17.04598 0.9635689</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 86  2.55 2.2757267           16.81130 0.9627569</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 87  2.58 2.2953148           16.57986 0.9619298</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 88  2.61 2.3154232           16.35160 0.9610866</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 89  2.64 2.3360746           16.12648 0.9602263</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 90  2.67 2.3572915           15.90446 0.9593476</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 91  2.70 2.3790968           15.68550 0.9584494</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 92  2.73 2.4015133           15.46955 0.9575302</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 93  2.76 2.4245642           15.25658 0.9565887</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 94  2.79 2.4482726           15.04654 0.9556234</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 95  2.82 2.4726619           14.83939 0.9546326</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 96  2.85 2.4977556           14.63509 0.9536146</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 97  2.88 2.5235772           14.43360 0.9525677</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 98  2.91 2.5501506           14.23489 0.9514897</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 99  2.94 2.5774995           14.03892 0.9503788</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 100 2.97 2.6056479           13.84564 0.9492326</span>
+<span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
   </div>
@@ -110,7 +220,7 @@ use the function get_net_types().</p>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>

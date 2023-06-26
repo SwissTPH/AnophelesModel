@@ -66,7 +66,7 @@ Functionality using other customized objects is not guaranteed.</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">build_model_obj</span><span class="op">(</span><span class="va">vec_p</span>, <span class="va">hosts_p</span>, <span class="va">activity</span>, <span class="va">total_pop</span><span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">build_model_obj</span><span class="op">(</span><span class="va">vec_p</span>, <span class="va">hosts_p</span>, <span class="va">activity</span>, <span class="va">total_pop</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -74,15 +74,22 @@ Functionality using other customized objects is not guaranteed.</p>
     <dl><dt>vec_p</dt>
 <dd><p>object containing vector-specific entomological parameteres
 created with the function <code>def_vector_params</code></p></dd>
+
+
 <dt>hosts_p</dt>
 <dd><p>object containing host-specific entomological parameters
 created with the function <code>def_host_params</code></p></dd>
+
+
 <dt>total_pop</dt>
 <dd><p>total population of humans and animals</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    <p>list object containing the following component:</p><ul><li><p><code>vec_params</code>: object with mosquito-specific entomological
+    
+
+<p>list object containing the following component:</p><ul><li><p><code>vec_params</code>: object with mosquito-specific entomological
 parameters (use function <code>def_vector_params</code> to generate object)</p></li>
 <li><p><code>host_params</code>: object with host-specific entomological parameters
 (use function <code>def_hosts_params</code> to generate object).
@@ -100,16 +107,16 @@ In addition to previously-defined parameters, it contains:</p><ul><li><p><code>m
 
     <div id="ref-examples">
     <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span class="co"># Retrieve the species-specific entomological parameters for An. gambiae</span></span>
-<span class="r-in"><span class="va">gambiae_vec_p</span> <span class="op">=</span> <span class="fu"><a href="def_vector_params.html">def_vector_params</a></span><span class="op">(</span><span class="st">"Anopheles gambiae"</span><span class="op">)</span></span>
-<span class="r-in"><span class="co"># Retrieve the host-specific entomological parameters for An. gambiae</span></span>
-<span class="r-in"><span class="va">gambiae_hosts_p</span> <span class="op">=</span> <span class="fu"><a href="def_host_params.html">def_host_params</a></span><span class="op">(</span><span class="st">"Anopheles gambiae"</span><span class="op">)</span></span>
-<span class="r-in"><span class="co"># Retrieve default activity patterns for humans and mosquitoes</span></span>
-<span class="r-in"><span class="va">default_rhythms</span> <span class="op">=</span> <span class="fu"><a href="def_activity_patterns.html">def_activity_patterns</a></span><span class="op">(</span><span class="st">"default_Anopheles_gambiae"</span><span class="op">)</span></span>
-<span class="r-in"><span class="co"># Build model object for a population of 2000 hosts</span></span>
-<span class="r-in"><span class="va">model_p</span> <span class="op">=</span> <span class="fu">build_model_obj</span><span class="op">(</span><span class="va">gambiae_vec_p</span>, <span class="va">gambiae_hosts_p</span>,</span>
-<span class="r-in"><span class="va">default_rhythms</span>, <span class="fl">2000</span><span class="op">)</span></span>
-<span class="r-in"><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">model_p</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Retrieve the species-specific entomological parameters for An. gambiae</span></span></span>
+<span class="r-in"><span><span class="va">gambiae_vec_p</span> <span class="op">=</span> <span class="fu"><a href="def_vector_params.html">def_vector_params</a></span><span class="op">(</span><span class="st">"Anopheles gambiae"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># Retrieve the host-specific entomological parameters for An. gambiae</span></span></span>
+<span class="r-in"><span><span class="va">gambiae_hosts_p</span> <span class="op">=</span> <span class="fu"><a href="def_host_params.html">def_host_params</a></span><span class="op">(</span><span class="st">"Anopheles gambiae"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># Retrieve default activity patterns for humans and mosquitoes</span></span></span>
+<span class="r-in"><span><span class="va">default_rhythms</span> <span class="op">=</span> <span class="fu"><a href="def_activity_patterns.html">def_activity_patterns</a></span><span class="op">(</span><span class="st">"default_Anopheles_gambiae"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># Build model object for a population of 2000 hosts</span></span></span>
+<span class="r-in"><span><span class="va">model_p</span> <span class="op">=</span> <span class="fu">build_model_obj</span><span class="op">(</span><span class="va">gambiae_vec_p</span>, <span class="va">gambiae_hosts_p</span>,</span></span>
+<span class="r-in"><span><span class="va">default_rhythms</span>, <span class="fl">2000</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">model_p</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $vec_params</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $vec_params$species_name</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] Anopheles gambiae</span>
@@ -226,7 +233,7 @@ In addition to previously-defined parameters, it contains:</p><ul><li><p><code>m
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>

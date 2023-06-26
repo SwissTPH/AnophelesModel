@@ -51,7 +51,7 @@ depending on the human location importance for intervention impact</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">get_exposure_multiplier</span><span class="op">(</span><span class="va">param_name</span>, <span class="va">model_obj</span>, <span class="va">intervention_type</span><span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">get_exposure_multiplier</span><span class="op">(</span><span class="va">param_name</span>, <span class="va">model_obj</span>, <span class="va">intervention_type</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -59,16 +59,23 @@ depending on the human location importance for intervention impact</p>
     <dl><dt>param_name</dt>
 <dd><p>parameter name to adjust exposure for. Can only be one of:
 "<code>alphai</code>", "<code>PBi</code>", "<code>PCi</code>", "<code>PDi</code>"</p></dd>
+
+
 <dt>model_obj</dt>
 <dd><p>list of vector- and host-specific entomological parameters
 (see description of output from function <code>calc_model_params</code>)</p></dd>
+
+
 <dt>intervention_type</dt>
 <dd><p>name of the type of intervention, can be only one
 of: "LLINs", "IRS", "LLINsO", "Screening", "Larviciding".</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    <p>exposure multiplier value to be used for adjusting averted exposure</p>
+    
+
+<p>exposure multiplier value to be used for adjusting averted exposure</p>
     </div>
     <div id="references">
     <h2>References</h2>
@@ -84,7 +91,7 @@ of: "LLINs", "IRS", "LLINsO", "Screening", "Larviciding".</p></dd>
 
     <div id="ref-examples">
     <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span></span></span>
 <span class="r-in"></span>
 </code></pre></div>
     </div>
@@ -100,7 +107,7 @@ of: "LLINs", "IRS", "LLINsO", "Screening", "Larviciding".</p></dd>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>

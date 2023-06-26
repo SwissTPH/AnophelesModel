@@ -51,30 +51,43 @@ when deployed to a cohort of humans</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">calculate_impact</span><span class="op">(</span><span class="va">interventions_vec</span>, <span class="va">coverage_vec</span>, <span class="va">model_p</span>, <span class="va">Nv0</span>, <span class="va">num_ip_points</span><span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">calculate_impact</span><span class="op">(</span><span class="va">interventions_vec</span>, <span class="va">coverage_vec</span>, <span class="va">model_p</span>, <span class="va">Nv0</span>, <span class="va">num_ip_points</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
     <h2>Arguments</h2>
     <dl><dt>interventions_vec</dt>
 <dd><p>vector of intervention names</p></dd>
+
+
 <dt>coverage_vec</dt>
 <dd><p>vector of coverages to consider for each intervention</p></dd>
+
+
 <dt>model_p</dt>
 <dd><p>list of vector- and host-specific entomological parameters
 (see description of output from function <code>calc_model_params</code>)</p></dd>
+
+
 <dt>Nv0</dt>
 <dd><p>number of mosquitoes born and entering the host-seeking state
 per day</p></dd>
+
+
 <dt>num_ip_points</dt>
 <dd><p>number of time points to be considered</p></dd>
+
+
 <dt>human_behavior</dt>
 <dd><p>vector of human behavior before biting starts to
 consider for each intervention. Can be "inside" or "outside".</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    <p>list object with the following attributes:</p><ul><li><p><code>vec_p</code>: list of vector-specific entomological parameters (see
+    
+
+<p>list object with the following attributes:</p><ul><li><p><code>vec_p</code>: list of vector-specific entomological parameters (see
 description of output from function <code>get_vector_params</code>)</p></li>
 <li><p><code>host_p</code>: list of host-specific entomological parameters (see
 description of output from function <code>get_host_params</code>)</p></li>
@@ -95,7 +108,7 @@ parameters and impact (vectorial capacity) values</p></li>
 
     <div id="ref-examples">
     <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span></span></span>
 <span class="r-in"></span>
 </code></pre></div>
     </div>
@@ -111,7 +124,7 @@ parameters and impact (vectorial capacity) values</p></li>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>

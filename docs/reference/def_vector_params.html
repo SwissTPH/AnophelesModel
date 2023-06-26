@@ -53,11 +53,11 @@ provided by the user.</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">def_vector_params</span><span class="op">(</span>
-  mosquito_species <span class="op">=</span> <span class="st">"Anopheles gambiae"</span>,
-  vector_table <span class="op">=</span> <span class="cn">NULL</span>,
-  verbose <span class="op">=</span> <span class="cn">TRUE</span>
-<span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">def_vector_params</span><span class="op">(</span></span>
+<span>  mosquito_species <span class="op">=</span> <span class="st">"Anopheles gambiae"</span>,</span>
+<span>  vector_table <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -69,19 +69,26 @@ To be able to use the parameters from the package database, this name must
 match one of the Anopheles species provided in the package.
 To see all available Anopheles species, use the function
 <code><a href="list_all_species.html">list_all_species()</a></code>.</p></dd>
+
+
 <dt>vector_table</dt>
 <dd><p>data frame with custom vector entomological values.
 Must be provided if custom parameter values should be used instead of
 the ones in the package database.
 The data frame should have the same structure (column names) as the database
 object <code>vec_ent_param</code>. Default value is NULL.</p></dd>
+
+
 <dt>verbose</dt>
 <dd><p>boolean specifying whether any messages should be displayed
 during the execution of the function. Default value is TRUE.</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    <p>list object with the following attributes
+    
+
+<p>list object with the following attributes
 (same as <code>vec_ent_param</code>):</p><ul><li><p><code>species_name</code>: name of the mosquito species</p></li>
 <li><p><code>M</code>: parous rate (proportion of host seeking mosquitoes that have
 laid eggs at least once)
@@ -109,11 +116,11 @@ for sporozoites to develop in mosquitoes)</p></li>
 
     <div id="ref-examples">
     <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span class="co"># Retrieve the vector entomological parameters for An. gambiae</span></span>
-<span class="r-in"><span class="va">gambiae_vec_p</span> <span class="op">=</span> <span class="fu">def_vector_params</span><span class="op">(</span><span class="op">)</span></span>
-<span class="r-in"></span>
-<span class="r-in"><span class="co"># Print all the parameters</span></span>
-<span class="r-in"><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">gambiae_vec_p</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Retrieve the vector entomological parameters for An. gambiae</span></span></span>
+<span class="r-in"><span><span class="va">gambiae_vec_p</span> <span class="op">=</span> <span class="fu">def_vector_params</span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Print all the parameters</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">gambiae_vec_p</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $species_name</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] Anopheles gambiae</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 75 Levels: Albitarsis Annularis Anopheles aconitus ... Sundaicus</span>
@@ -160,7 +167,7 @@ for sporozoites to develop in mosquitoes)</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $endophagy.sd</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.00505659</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-in"></span>
+<span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
   </div>
@@ -175,7 +182,7 @@ for sporozoites to develop in mosquitoes)</p></li>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>

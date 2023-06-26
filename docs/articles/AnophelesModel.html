@@ -57,13 +57,13 @@
       
 
       </header><script src="AnophelesModel_files/htmlwidgets-1.5.4/htmlwidgets.js"></script><script src="AnophelesModel_files/viz-1.8.2/viz.js"></script><link href="AnophelesModel_files/DiagrammeR-styles-0.2/styles.css" rel="stylesheet">
-<script src="AnophelesModel_files/grViz-binding-1.0.6.1/grViz.js"></script><div class="row">
+<script src="AnophelesModel_files/grViz-binding-1.0.9/grViz.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>AnophelesModel Documentation</h1>
                         <h4 data-toc-skip class="author">Monica Golumbeanu, Olivier Briët, Clara Champagne, Jeanne Lemant, Barnabas Zogo, Maximilian Gerhards, Marianne Sinka, Nakul Chitnis, Melissa Penny, Emilie Pothin, Tom Smith</h4>
             
-            <h4 data-toc-skip class="date">2022-01-05</h4>
+            <h4 data-toc-skip class="date">2023-06-26</h4>
       
       
       <div class="hidden name"><code>AnophelesModel.Rmd</code></div>
@@ -84,46 +84,46 @@ p.caption {
 </h2>
 <p>The <code>AnophelesModel</code> package can be used to parameterize a model of the mosquito feeding cycle using data about mosquito bionomics (entomological characteristics) and biting patterns, as well as human activity and intervention effects. The different types of data have been extracted from field studies and are included in the package. The model infers the species-specific impact of various vector control interventions on the vectorial capacity. The package can be used to compare the impact of interventions for different mosquito species and to generate parameterizations for the entomological and vector control components of more complex models of malaria transmission dynamics.</p>
 <p>The <code>AnophelesModel</code> package is based on a state transition model of the feeding dynamics of a mosquito population biting a population of hosts defined in <span class="citation">(Chitnis, Smith, and Steketee 2008)</span>. The model consists of a system of three difference equations describing the dynamics in the numbers of not-infected, infected, and infective mosquitoes, respectively. The transitions between the individual steps of the cycle for a host <em>i</em> are modeled through probabilities and summarized as follows:</p>
-<div id="htmlwidget-8c656feb57ad61fc9a2d" style="width:700px;height:432.632880098888px;" class="grViz html-widget"></div>
-<script type="application/json" data-for="htmlwidget-8c656feb57ad61fc9a2d">{"x":{"diagram":"digraph {\n  graph [layout = dot, rankdir = LR]\n  \n  node [shape = circle, fixedsize=TRUE, fontsize=7]        \n  rec1 [label = <Host<BR/>seeking>]\n  rec2 [label = <Host<BR/>found>]\n  rec3 [label = <Fed>]\n  rec4 [label = <Resting>]\n  rec5 [label = <Ovipositing>]\n  \n  # edge definitions with the node IDs\n  rec1 -> rec2 [label= <P<SUB>Ai<\/SUB><BR/> >,fontsize=7]\n  rec2 -> rec3 [label= <P<SUB>Bi<\/SUB><BR/> >,fontsize=7]\n  rec3 -> rec4 [label= <P<SUB>Ci<\/SUB><BR/> >,fontsize=7]\n  rec4 -> rec5 [label= <P<SUB>Di<\/SUB><BR/> >,fontsize=7]\n  rec5 -> rec1 [label= <P<SUB>Ei<\/SUB><BR/> >,fontsize=7]\n  }","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script><p>These probabilities (represented by the arrows in the diagram above) are in turn affected by mosquito ecology, human behavior and interventions as described in the following sections of this vignette.</p>
-<p>The present document provides information about the various use-cases of the package with examples. First, it provides an overview of the general analysis workflow. Next, it presents the contents of the package database and its data objects. Finally, it provides more detailed example use cases of the package functions. These examples include how to parameterize the embedded entomological model and evaluate the impact of various vector control interventions for different mosquito species and geographical locations. In addition, examples are shown about how to produce formatted inputs for downstream analyses with the <a href="https://github.com/SwissTPH/openmalaria/wiki" class="external-link">OpenMalaria</a> <span class="citation">(Smith et al. 2006)</span> individual-based model of malaria transmission dynamics.</p>
+<div id="htmlwidget-0c5b3ca2836f8a503c02" style="width:700px;height:432.632880098888px;" class="grViz html-widget"></div>
+<script type="application/json" data-for="htmlwidget-0c5b3ca2836f8a503c02">{"x":{"diagram":"digraph {\n  graph [layout = dot, rankdir = LR]\n  \n  node [shape = circle, fixedsize=TRUE, fontsize=7]        \n  rec1 [label = <Host<BR/>seeking>]\n  rec2 [label = <Host<BR/>found>]\n  rec3 [label = <Fed>]\n  rec4 [label = <Resting>]\n  rec5 [label = <Ovipositing>]\n  \n  # edge definitions with the node IDs\n  rec1 -> rec2 [label= <P<SUB>Ai<\/SUB><BR/> >,fontsize=7]\n  rec2 -> rec3 [label= <P<SUB>Bi<\/SUB><BR/> >,fontsize=7]\n  rec3 -> rec4 [label= <P<SUB>Ci<\/SUB><BR/> >,fontsize=7]\n  rec4 -> rec5 [label= <P<SUB>Di<\/SUB><BR/> >,fontsize=7]\n  rec5 -> rec1 [label= <P<SUB>Ei<\/SUB><BR/> >,fontsize=7]\n  }","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script><p>These probabilities (represented by the arrows in the diagram above) are in turn affected by mosquito ecology, human behavior and interventions as described in the following sections of this vignette.</p>
+<p>This documentation provides information about the various use-cases of the package with examples. First, it gives an overview of the general analysis workflow. Next, it presents the contents of the package database and its data objects. Finally, it provides more detailed example use cases of the package functions. These examples include how to parameterize the embedded entomological model and evaluate the impact of various vector control interventions for different mosquito species and geographical locations. In addition, examples are shown about how to produce formatted inputs for downstream analyses with the <a href="https://github.com/SwissTPH/openmalaria/wiki" class="external-link">OpenMalaria</a> <span class="citation">(Smith et al. 2006)</span> individual-based model of malaria transmission dynamics.</p>
 </div>
 <div class="section level2">
 <h2 id="general-workflow">General workflow<a class="anchor" aria-label="anchor" href="#general-workflow"></a>
 </h2>
 <p>With the main <code><a href="../reference/AnophelesModel.html">AnophelesModel()</a></code> package function, the user can run in one go the main analysis steps for parameterizing the model of the mosquito feeding cycle <span class="citation">(Chitnis, Smith, and Steketee 2008)</span> and estimate the reduction on the vectorial capacity for various vector control interventions. These steps are summarized in the diagram below, alongside the corresponding functions:</p>
-<div id="htmlwidget-dd692ee9c00be9de5bc1" style="width:720px;height:432.632880098888px;" class="grViz html-widget"></div>
-<script type="application/json" data-for="htmlwidget-dd692ee9c00be9de5bc1">{"x":{"diagram":"digraph {\n  graph [layout = dot, rankdir = LR]\n  \n  node [shape = rectangle]        \n  rec1 [label = <Define entomological parameters <BR/><B>def_vector_params()<\/B>>]\n  rec2 [label = <Define mosquito and human activity patterns <BR/><B>def_activity_patterns()<\/B>>]\n  rec3 [label = <Define human host parameters <BR/><B>def_host_params()<\/B>>]\n  rec4 [label = <Parameterize entomological model <BR/><B>build_model_obj()<\/B>>]\n  rec5 [label = <Define interventions effects <BR/><B>def_interventions_effects()<\/B>>]\n  rec6 [label = <Calculate impact on vectorial capacity <BR/><B>calculate_impact()<\/B>>]\n  \n  # edge definitions with the node IDs\n  rec1 -> rec4 \n  rec2 -> rec4 \n  rec3 -> rec4\n  rec4 -> rec6\n  rec5 -> rec6\n  }","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script><p>The user can directly run the <code><a href="../reference/AnophelesModel.html">AnophelesModel()</a></code> function as an initial test run with a default analysis. By default, the <code><a href="../reference/AnophelesModel.html">AnophelesModel()</a></code> function performs the above steps considering the parameters for <em>An. gambiae</em> in a Kenyan setting and with default activity patterns for mosquitoes and humans. It calibrates the entomological model, estimates the impact of indoor residual spraying (IRS), long-lasting insecticide-treated nets (LLINs) and house screening, then plots the average vectorial capacity for a range of intervention coverages:</p>
+<div id="htmlwidget-61189a83056f466dc4f4" style="width:720px;height:432.632880098888px;" class="grViz html-widget"></div>
+<script type="application/json" data-for="htmlwidget-61189a83056f466dc4f4">{"x":{"diagram":"digraph {\n  graph [layout = dot, rankdir = LR]\n  \n  node [shape = rectangle]        \n  rec1 [label = <Define entomological parameters <BR/><B>def_vector_params()<\/B>>]\n  rec2 [label = <Define mosquito and human activity patterns <BR/><B>def_activity_patterns()<\/B>>]\n  rec3 [label = <Define human host parameters <BR/><B>def_host_params()<\/B>>]\n  rec4 [label = <Parameterize entomological model <BR/><B>build_model_obj()<\/B>>]\n  rec5 [label = <Define interventions effects <BR/><B>def_interventions_effects()<\/B>>]\n  rec6 [label = <Calculate impact on vectorial capacity <BR/><B>calculate_impact()<\/B>>]\n  \n  # edge definitions with the node IDs\n  rec1 -> rec4 \n  rec2 -> rec4 \n  rec3 -> rec4\n  rec4 -> rec6\n  rec5 -> rec6\n  }","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script><p>The user can directly run the <code><a href="../reference/AnophelesModel.html">AnophelesModel()</a></code> function as an initial test run with a default analysis. By default, the <code><a href="../reference/AnophelesModel.html">AnophelesModel()</a></code> function performs the above steps considering the parameters for <em>An. gambiae</em> in a Kenyan setting and with default activity patterns for mosquitoes and humans. It calibrates the entomological model, estimates the impact of indoor residual spraying (IRS), long-lasting insecticide-treated nets (LLINs) and house screening, then plots the average vectorial capacity for a range of intervention coverages:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># load the AnophelesModel package</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">AnophelesModel</span><span class="op">)</span>
-
-<span class="co"># call main function with default values</span>
-<span class="va">results_gambiae</span> <span class="op">=</span> <span class="fu"><a href="../reference/AnophelesModel.html">AnophelesModel</a></span><span class="op">(</span><span class="op">)</span>
-<span class="co">#&gt; [1] "Setting vector parameterization ..."</span>
-<span class="co">#&gt; [1] "Setting activity patterns ..."</span>
-<span class="co">#&gt; [1] "Setting host-specific parameterization ..."</span>
-<span class="co">#&gt; [1] "Initializing entomological model ..."</span>
-<span class="co">#&gt; [1] "Defining interventions effects ..."</span>
-<span class="co">#&gt; [1] "Defining intervention effects for LLINs"</span>
-<span class="co">#&gt; [1] "Using intervention effects available for model LLINs01"</span>
-<span class="co">#&gt; [1] "Defining intervention effects for IRS"</span>
-<span class="co">#&gt; [1] "Using intervention effects available for model IRS12"</span>
-<span class="co">#&gt; [1] "IRS"</span>
-<span class="co">#&gt; Warning in bs(input_times, degree = 3L, knots = numeric(0), Boundary.knots =</span>
-<span class="co">#&gt; c(0.041666667, : some 'x' values beyond boundary knots may cause ill-conditioned</span>
-<span class="co">#&gt; bases</span>
-
-<span class="co">#&gt; Warning in bs(input_times, degree = 3L, knots = numeric(0), Boundary.knots =</span>
-<span class="co">#&gt; c(0.041666667, : some 'x' values beyond boundary knots may cause ill-conditioned</span>
-<span class="co">#&gt; bases</span>
-
-<span class="co">#&gt; Warning in bs(input_times, degree = 3L, knots = numeric(0), Boundary.knots =</span>
-<span class="co">#&gt; c(0.041666667, : some 'x' values beyond boundary knots may cause ill-conditioned</span>
-<span class="co">#&gt; bases</span>
-<span class="co">#&gt; [1] "Defining intervention effects for House_screening"</span>
-<span class="co">#&gt; [1] "Using intervention effects available for model Screening01"</span>
-<span class="co">#&gt; [1] "Calculating interventions impact ..."</span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># load the AnophelesModel package</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">AnophelesModel</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># call main function with default values</span></span>
+<span><span class="va">results_gambiae</span> <span class="op">=</span> <span class="fu"><a href="../reference/AnophelesModel.html">AnophelesModel</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "Setting vector parameterization ..."</span></span>
+<span><span class="co">#&gt; [1] "Setting activity patterns ..."</span></span>
+<span><span class="co">#&gt; [1] "Setting host-specific parameterization ..."</span></span>
+<span><span class="co">#&gt; [1] "Initializing entomological model ..."</span></span>
+<span><span class="co">#&gt; [1] "Defining interventions effects ..."</span></span>
+<span><span class="co">#&gt; [1] "Defining intervention effects for LLINs"</span></span>
+<span><span class="co">#&gt; [1] "Using intervention effects available for model LLINs01"</span></span>
+<span><span class="co">#&gt; [1] "Defining intervention effects for IRS"</span></span>
+<span><span class="co">#&gt; [1] "Using intervention effects available for model IRS12"</span></span>
+<span><span class="co">#&gt; [1] "IRS"</span></span>
+<span><span class="co">#&gt; Warning in bs(input_times, degree = 3L, knots = numeric(0), Boundary.knots =</span></span>
+<span><span class="co">#&gt; c(0.041666667, : some 'x' values beyond boundary knots may cause ill-conditioned</span></span>
+<span><span class="co">#&gt; bases</span></span>
+<span></span>
+<span><span class="co">#&gt; Warning in bs(input_times, degree = 3L, knots = numeric(0), Boundary.knots =</span></span>
+<span><span class="co">#&gt; c(0.041666667, : some 'x' values beyond boundary knots may cause ill-conditioned</span></span>
+<span><span class="co">#&gt; bases</span></span>
+<span></span>
+<span><span class="co">#&gt; Warning in bs(input_times, degree = 3L, knots = numeric(0), Boundary.knots =</span></span>
+<span><span class="co">#&gt; c(0.041666667, : some 'x' values beyond boundary knots may cause ill-conditioned</span></span>
+<span><span class="co">#&gt; bases</span></span>
+<span><span class="co">#&gt; [1] "Defining intervention effects for House_screening"</span></span>
+<span><span class="co">#&gt; [1] "Using intervention effects available for model Screening01"</span></span>
+<span><span class="co">#&gt; [1] "Calculating interventions impact ..."</span></span></code></pre></div>
 <div class="figure">
 <img src="AnophelesModel_files/figure-html/unnamed-chunk-3-1.png" alt="Output figure generated with the standard call of the AnophelesModel() function" width="1093.75"><p class="caption">
 Output figure generated with the standard call of the AnophelesModel() function
@@ -153,11 +153,11 @@ Output figure generated with the standard call of the AnophelesModel() function
 </ul>
 <p>The values of the different probabilities in absence of interventions are those proposed by <span class="citation">(Chitnis, Smith, and Steketee 2008)</span> and <span class="citation">(Briët et al. 2019)</span>. The <code>host_ent_param</code> object can be directly used after loading the <code>AnophelesModel</code> package:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># Print the object</span>
-<span class="va">host_ent_param</span>
-<span class="co">#&gt;        species_name   host  PBi  PCi  PDi  PEi  Kvi</span>
-<span class="co">#&gt; 1 Anopheles gambiae  human 0.95 0.95 0.99 0.88 0.03</span>
-<span class="co">#&gt; 2 Anopheles gambiae animal 0.95 0.95 0.99 0.88 0.00</span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># Print the object</span></span>
+<span><span class="va">host_ent_param</span></span>
+<span><span class="co">#&gt;        species_name   host  PBi  PCi  PDi  PEi  Kvi</span></span>
+<span><span class="co">#&gt; 1 Anopheles gambiae  human 0.95 0.95 0.99 0.88 0.03</span></span>
+<span><span class="co">#&gt; 2 Anopheles gambiae animal 0.95 0.95 0.99 0.88 0.00</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="mosquito-bionomics">Mosquito bionomics<a class="anchor" aria-label="anchor" href="#mosquito-bionomics"></a>
@@ -195,29 +195,29 @@ Output figure generated with the standard call of the AnophelesModel() function
 </ul>
 <p>The <code>vec_ent_param</code> object is available upon loading the <code>AnophelesModel</code> package and can be directly used:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># print the first entries of the vec_ent_param object</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">vec_ent_param</span><span class="op">)</span>
-<span class="co">#&gt;           species_name         M        M.sd       Chi        A0      A0.sd</span>
-<span class="co">#&gt; 1 Anopheles arabiensis 0.5384622 0.003500333 0.4749833 0.5744970 0.01416144</span>
-<span class="co">#&gt; 2    Anopheles gambiae 0.6134499 0.003819127 0.7947577 0.6419328 0.07280429</span>
-<span class="co">#&gt; 3   Anopheles funestus 0.7565665 0.008446507 0.6243968 0.5899116 0.02053846</span>
-<span class="co">#&gt; 4       Anopheles nili 0.6593646 0.006636148 0.6707206 0.4951913 0.05195866</span>
-<span class="co">#&gt; 5   Anopheles moucheti 0.7268564 0.007056198 0.5828408 0.4951913 0.05195866</span>
-<span class="co">#&gt; 6      Anopheles melas 0.6559240 0.001829826 0.5064544 0.5744970 0.01416144</span>
-<span class="co">#&gt;   zeta.3   td tau ts to endophily endophily.sd endophagy endophagy.sd</span>
-<span class="co">#&gt; 1      1 0.33   3 10  5 0.7743085   0.01233146 0.6578578  0.004550147</span>
-<span class="co">#&gt; 2      1 0.33   3 10  5 0.7743085   0.01233146 0.5604133  0.005056590</span>
-<span class="co">#&gt; 3      1 0.33   3 10  5 0.7424881   0.08777241 0.5343858  0.005546232</span>
-<span class="co">#&gt; 4      1 0.33   3 10  5 0.6944887   0.13455023 0.3439954  0.024569634</span>
-<span class="co">#&gt; 5      1 0.33   3 10  5 0.6944887   0.13455023 0.3996990  0.042303792</span>
-<span class="co">#&gt; 6      1 0.33   3 10  5 0.7743085   0.01233146 0.4920965  0.002755030</span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># print the first entries of the vec_ent_param object</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">vec_ent_param</span><span class="op">)</span></span>
+<span><span class="co">#&gt;           species_name         M        M.sd       Chi        A0      A0.sd</span></span>
+<span><span class="co">#&gt; 1 Anopheles arabiensis 0.5384622 0.003500333 0.4749833 0.5744970 0.01416144</span></span>
+<span><span class="co">#&gt; 2    Anopheles gambiae 0.6134499 0.003819127 0.7947577 0.6419328 0.07280429</span></span>
+<span><span class="co">#&gt; 3   Anopheles funestus 0.7565665 0.008446507 0.6243968 0.5899116 0.02053846</span></span>
+<span><span class="co">#&gt; 4       Anopheles nili 0.6593646 0.006636148 0.6707206 0.4951913 0.05195866</span></span>
+<span><span class="co">#&gt; 5   Anopheles moucheti 0.7268564 0.007056198 0.5828408 0.4951913 0.05195866</span></span>
+<span><span class="co">#&gt; 6      Anopheles melas 0.6559240 0.001829826 0.5064544 0.5744970 0.01416144</span></span>
+<span><span class="co">#&gt;   zeta.3   td tau ts to endophily endophily.sd endophagy endophagy.sd</span></span>
+<span><span class="co">#&gt; 1      1 0.33   3 10  5 0.7743085   0.01233146 0.6578578  0.004550147</span></span>
+<span><span class="co">#&gt; 2      1 0.33   3 10  5 0.7743085   0.01233146 0.5604133  0.005056590</span></span>
+<span><span class="co">#&gt; 3      1 0.33   3 10  5 0.7424881   0.08777241 0.5343858  0.005546232</span></span>
+<span><span class="co">#&gt; 4      1 0.33   3 10  5 0.6944887   0.13455023 0.3439954  0.024569634</span></span>
+<span><span class="co">#&gt; 5      1 0.33   3 10  5 0.6944887   0.13455023 0.3996990  0.042303792</span></span>
+<span><span class="co">#&gt; 6      1 0.33   3 10  5 0.7743085   0.01233146 0.4920965  0.002755030</span></span></code></pre></div>
 <p>For example, to retrieve the parameters for <em>Anopheles albimanus</em>:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">vec_ent_param</span><span class="op">[</span><span class="va">vec_ent_param</span><span class="op">$</span><span class="va">species_name</span> <span class="op">==</span> <span class="st">"Anopheles albimanus"</span>, <span class="op">]</span>
-<span class="co">#&gt;           species_name         M      M.sd       Chi        A0      A0.sd</span>
-<span class="co">#&gt; 10 Anopheles albimanus 0.5577161 0.0322432 0.4223199 0.4951913 0.05195866</span>
-<span class="co">#&gt;    zeta.3   td tau ts to endophily endophily.sd endophagy endophagy.sd</span>
-<span class="co">#&gt; 10      1 0.33   3 10  5 0.6944887    0.1345502 0.2293868   0.01502506</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">vec_ent_param</span><span class="op">[</span><span class="va">vec_ent_param</span><span class="op">$</span><span class="va">species_name</span> <span class="op">==</span> <span class="st">"Anopheles albimanus"</span>, <span class="op">]</span></span>
+<span><span class="co">#&gt;           species_name         M      M.sd       Chi        A0      A0.sd</span></span>
+<span><span class="co">#&gt; 10 Anopheles albimanus 0.5577161 0.0322432 0.4223199 0.4951913 0.05195866</span></span>
+<span><span class="co">#&gt;    zeta.3   td tau ts to endophily endophily.sd endophagy endophagy.sd</span></span>
+<span><span class="co">#&gt; 10      1 0.33   3 10  5 0.6944887    0.1345502 0.2293868   0.01502506</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="human-and-mosquito-activity-patterns">Human and mosquito activity patterns<a class="anchor" aria-label="anchor" href="#human-and-mosquito-activity-patterns"></a>
@@ -256,31 +256,31 @@ Output figure generated with the standard call of the AnophelesModel() function
 </ul>
 <p>The object can be directly examined and its components retrieved for various purposes. For example, to retrieve all the human activity patterns collected from Kenya:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">select_idx</span> <span class="op">=</span> <span class="va">activity_patterns</span><span class="op">$</span><span class="va">species</span> <span class="op">==</span> <span class="st">"Homo sapiens"</span> <span class="op">&amp;</span>
-                                  <span class="va">activity_patterns</span><span class="op">$</span><span class="va">country</span> <span class="op">==</span> <span class="st">"Kenya"</span>
-<span class="va">Kenya_human_rhythms</span> <span class="op">=</span> <span class="va">activity_patterns</span><span class="op">[</span><span class="va">select_idx</span>,<span class="op">]</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">Kenya_human_rhythms</span><span class="op">)</span>
-<span class="co">#&gt;    id      species sampling country      site        hour     value</span>
-<span class="co">#&gt; 17  2 Homo sapiens      IND   Kenya Rachuonyo 16.00_17.00 0.0000000</span>
-<span class="co">#&gt; 18  2 Homo sapiens      IND   Kenya Rachuonyo 17.00_18.00 0.1556667</span>
-<span class="co">#&gt; 19  2 Homo sapiens      IND   Kenya Rachuonyo 18.00_19.00 0.3951833</span>
-<span class="co">#&gt; 20  2 Homo sapiens      IND   Kenya Rachuonyo 19.00_20.00 1.0000000</span>
-<span class="co">#&gt; 21  2 Homo sapiens      IND   Kenya Rachuonyo 20.00_21.00 1.0000000</span>
-<span class="co">#&gt; 22  2 Homo sapiens      IND   Kenya Rachuonyo 21.00_22.00 1.0000000</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">select_idx</span> <span class="op">=</span> <span class="va">activity_patterns</span><span class="op">$</span><span class="va">species</span> <span class="op">==</span> <span class="st">"Homo sapiens"</span> <span class="op">&amp;</span></span>
+<span>                                  <span class="va">activity_patterns</span><span class="op">$</span><span class="va">country</span> <span class="op">==</span> <span class="st">"Kenya"</span></span>
+<span><span class="va">Kenya_human_rhythms</span> <span class="op">=</span> <span class="va">activity_patterns</span><span class="op">[</span><span class="va">select_idx</span>,<span class="op">]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">Kenya_human_rhythms</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    id      species sampling country      site        hour     value</span></span>
+<span><span class="co">#&gt; 17  2 Homo sapiens      IND   Kenya Rachuonyo 16.00_17.00 0.0000000</span></span>
+<span><span class="co">#&gt; 18  2 Homo sapiens      IND   Kenya Rachuonyo 17.00_18.00 0.1556667</span></span>
+<span><span class="co">#&gt; 19  2 Homo sapiens      IND   Kenya Rachuonyo 18.00_19.00 0.3951833</span></span>
+<span><span class="co">#&gt; 20  2 Homo sapiens      IND   Kenya Rachuonyo 19.00_20.00 1.0000000</span></span>
+<span><span class="co">#&gt; 21  2 Homo sapiens      IND   Kenya Rachuonyo 20.00_21.00 1.0000000</span></span>
+<span><span class="co">#&gt; 22  2 Homo sapiens      IND   Kenya Rachuonyo 21.00_22.00 1.0000000</span></span></code></pre></div>
 <p>A pattern of interest can then be selected and displayed, for example:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span>
-<span class="va">Rachuonyo_human_rhythms</span> <span class="op">=</span> <span class="va">Kenya_human_rhythms</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">Kenya_human_rhythms</span><span class="op">$</span><span class="va">id</span> <span class="op">==</span> <span class="fl">2</span><span class="op">)</span>,<span class="op">]</span>
-<span class="va">labels</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">Rachuonyo_human_rhythms</span><span class="op">$</span><span class="va">hour</span><span class="op">)</span>, <span class="fl">1</span>, <span class="fl">5</span><span class="op">)</span>
-<span class="va">Rachuonyo_human_rhythms</span><span class="op">$</span><span class="va">hour</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">labels</span>, levels <span class="op">=</span> <span class="va">labels</span> <span class="op">)</span>
-<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">Rachuonyo_human_rhythms</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">hour</span>, y<span class="op">=</span><span class="va">value</span>, group<span class="op">=</span><span class="va">site</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_linedraw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">5</span><span class="op">)</span> <span class="op">+</span>
-    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"bottom"</span><span class="op">)</span> <span class="op">+</span>
-    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>size<span class="op">=</span><span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span> 
-    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_discrete.html" class="external-link">scale_x_discrete</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Time of the day (hh.mm)"</span><span class="op">)</span><span class="op">+</span> 
-    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guides.html" class="external-link">guides</a></span><span class="op">(</span>color <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guide_legend.html" class="external-link">guide_legend</a></span><span class="op">(</span>nrow <span class="op">=</span> <span class="fl">2</span>,byrow <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Proportion of humans indoors in Rachuonyo, Kenya"</span>, fill<span class="op">=</span><span class="st">""</span>,
-         x<span class="op">=</span><span class="st">"Time"</span>, y<span class="op">=</span><span class="st">"Activity"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
+<span><span class="va">Rachuonyo_human_rhythms</span> <span class="op">=</span> <span class="va">Kenya_human_rhythms</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">Kenya_human_rhythms</span><span class="op">$</span><span class="va">id</span> <span class="op">==</span> <span class="fl">2</span><span class="op">)</span>,<span class="op">]</span></span>
+<span><span class="va">labels</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">Rachuonyo_human_rhythms</span><span class="op">$</span><span class="va">hour</span><span class="op">)</span>, <span class="fl">1</span>, <span class="fl">5</span><span class="op">)</span></span>
+<span><span class="va">Rachuonyo_human_rhythms</span><span class="op">$</span><span class="va">hour</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">labels</span>, levels <span class="op">=</span> <span class="va">labels</span> <span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">Rachuonyo_human_rhythms</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">hour</span>, y<span class="op">=</span><span class="va">value</span>, group<span class="op">=</span><span class="va">site</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_linedraw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">5</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"bottom"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>size<span class="op">=</span><span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_discrete.html" class="external-link">scale_x_discrete</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Time of the day (hh.mm)"</span><span class="op">)</span><span class="op">+</span> </span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guides.html" class="external-link">guides</a></span><span class="op">(</span>color <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guide_legend.html" class="external-link">guide_legend</a></span><span class="op">(</span>nrow <span class="op">=</span> <span class="fl">2</span>,byrow <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Proportion of humans indoors in Rachuonyo, Kenya"</span>, fill<span class="op">=</span><span class="st">""</span>,</span>
+<span>         x<span class="op">=</span><span class="st">"Time"</span>, y<span class="op">=</span><span class="st">"Activity"</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <img src="AnophelesModel_files/figure-html/unnamed-chunk-8-1.png" alt="Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans indoors (labeled IND) out of the total human population is displayed." width="1093.75"><p class="caption">
 Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans indoors (labeled IND) out of the total human population is displayed.
@@ -288,17 +288,17 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 </div>
 <p>Another example extracting all the available biting behavior for <em>Anopheles gambiae</em> in Kenya:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">select_idx</span> <span class="op">=</span> <span class="va">activity_patterns</span><span class="op">$</span><span class="va">species</span> <span class="op">==</span> <span class="st">"Anopheles gambiae"</span> <span class="op">&amp;</span>
-                                  <span class="va">activity_patterns</span><span class="op">$</span><span class="va">country</span> <span class="op">==</span> <span class="st">"Kenya"</span>
-<span class="va">Kenya_gambiae_biting</span> <span class="op">=</span> <span class="va">activity_patterns</span><span class="op">[</span><span class="va">select_idx</span>,<span class="op">]</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">Kenya_gambiae_biting</span><span class="op">)</span>
-<span class="co">#&gt;      id           species sampling country    site        hour       value</span>
-<span class="co">#&gt; 1025 65 Anopheles gambiae      HBI   Kenya Rarieda 16.00_17.00 0.000000000</span>
-<span class="co">#&gt; 1026 65 Anopheles gambiae      HBI   Kenya Rarieda 17.00_18.00 0.000000000</span>
-<span class="co">#&gt; 1027 65 Anopheles gambiae      HBI   Kenya Rarieda 18.00_19.00 0.005608974</span>
-<span class="co">#&gt; 1028 65 Anopheles gambiae      HBI   Kenya Rarieda 19.00_20.00 0.061698718</span>
-<span class="co">#&gt; 1029 65 Anopheles gambiae      HBI   Kenya Rarieda 20.00_21.00 0.031250000</span>
-<span class="co">#&gt; 1030 65 Anopheles gambiae      HBI   Kenya Rarieda 21.00_22.00 0.080929487</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">select_idx</span> <span class="op">=</span> <span class="va">activity_patterns</span><span class="op">$</span><span class="va">species</span> <span class="op">==</span> <span class="st">"Anopheles gambiae"</span> <span class="op">&amp;</span></span>
+<span>                                  <span class="va">activity_patterns</span><span class="op">$</span><span class="va">country</span> <span class="op">==</span> <span class="st">"Kenya"</span></span>
+<span><span class="va">Kenya_gambiae_biting</span> <span class="op">=</span> <span class="va">activity_patterns</span><span class="op">[</span><span class="va">select_idx</span>,<span class="op">]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">Kenya_gambiae_biting</span><span class="op">)</span></span>
+<span><span class="co">#&gt;      id           species sampling country    site        hour       value</span></span>
+<span><span class="co">#&gt; 1025 65 Anopheles gambiae      HBI   Kenya Rarieda 16.00_17.00 0.000000000</span></span>
+<span><span class="co">#&gt; 1026 65 Anopheles gambiae      HBI   Kenya Rarieda 17.00_18.00 0.000000000</span></span>
+<span><span class="co">#&gt; 1027 65 Anopheles gambiae      HBI   Kenya Rarieda 18.00_19.00 0.005608974</span></span>
+<span><span class="co">#&gt; 1028 65 Anopheles gambiae      HBI   Kenya Rarieda 19.00_20.00 0.061698718</span></span>
+<span><span class="co">#&gt; 1029 65 Anopheles gambiae      HBI   Kenya Rarieda 20.00_21.00 0.031250000</span></span>
+<span><span class="co">#&gt; 1030 65 Anopheles gambiae      HBI   Kenya Rarieda 21.00_22.00 0.080929487</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="intervention-parameters">Intervention parameters<a class="anchor" aria-label="anchor" href="#intervention-parameters"></a>
@@ -327,17 +327,17 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <p>The parameterization for House screening is based on the estimates from <span class="citation">(Kirby et al. 2009)</span> and described in <span class="citation">(Briët et al. 2019)</span>, assuming a house entry reduction of 59%.</p>
 <p>The data objects for interventions described above are directly accessible upon loading the <code>AnophelesModel</code> package. For example, for obtaining an overview of all LLINs interventions provided with the <code>AnophelesModel</code> package:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">interventions_param</span><span class="op">$</span><span class="va">interventions_summary</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">interventions_param</span><span class="op">$</span><span class="va">interventions_summary</span><span class="op">$</span><span class="va">Intervention</span> <span class="op">==</span> <span class="st">"LLINs"</span><span class="op">)</span>,<span class="op">]</span><span class="op">)</span>
-<span class="co">#&gt;    Parameterisation Intervention       Active_agent             Species</span>
-<span class="co">#&gt; 13          LLINs01        LLINs          PN2 Akron   Anopheles gambiae</span>
-<span class="co">#&gt; 14          LLINs02        LLINs         PN2 Zeneti   Anopheles gambiae</span>
-<span class="co">#&gt; 15          LLINs03        LLINs         Malanville   Anopheles gambiae</span>
-<span class="co">#&gt; 16          LLINs04        LLINs Lambdacyhalothrin  Anopheles albimanus</span>
-<span class="co">#&gt;                         Reference Duration</span>
-<span class="co">#&gt; 13 Randriamaherijaona et al. 2015        3</span>
-<span class="co">#&gt; 14 Randriamaherijaona et al. 2015        3</span>
-<span class="co">#&gt; 15 Randriamaherijaona et al. 2015        3</span>
-<span class="co">#&gt; 16 Randriamaherijaona et al. 2015        3</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">interventions_param</span><span class="op">$</span><span class="va">interventions_summary</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">interventions_param</span><span class="op">$</span><span class="va">interventions_summary</span><span class="op">$</span><span class="va">Intervention</span> <span class="op">==</span> <span class="st">"LLINs"</span><span class="op">)</span>,<span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    Parameterisation Intervention       Active_agent             Species</span></span>
+<span><span class="co">#&gt; 13          LLINs01        LLINs          PN2 Akron   Anopheles gambiae</span></span>
+<span><span class="co">#&gt; 14          LLINs02        LLINs         PN2 Zeneti   Anopheles gambiae</span></span>
+<span><span class="co">#&gt; 15          LLINs03        LLINs         Malanville   Anopheles gambiae</span></span>
+<span><span class="co">#&gt; 16          LLINs04        LLINs Lambdacyhalothrin  Anopheles albimanus</span></span>
+<span><span class="co">#&gt;                         Reference Duration</span></span>
+<span><span class="co">#&gt; 13 Randriamaherijaona et al. 2015        3</span></span>
+<span><span class="co">#&gt; 14 Randriamaherijaona et al. 2015        3</span></span>
+<span><span class="co">#&gt; 15 Randriamaherijaona et al. 2015        3</span></span>
+<span><span class="co">#&gt; 16 Randriamaherijaona et al. 2015        3</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="functions-querying-the-package-database">Functions querying the package database<a class="anchor" aria-label="anchor" href="#functions-querying-the-package-database"></a>
@@ -358,29 +358,29 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <p>Furthermore, the package allows extracting more specific information about the durability of different types of LLINs such as holed area, survival and decay. These parameteres were estimated in the PMI net durability studies.</p>
 <p>For example, to retrieve the decay characteristics for the DuraNet LLIN in Kenya:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># load the necesary packages</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://had.co.nz/reshape" class="external-link">reshape</a></span><span class="op">)</span>
-
-<span class="va">DuraNet</span> <span class="op">=</span> <span class="fu"><a href="../reference/get_net_decay.html">get_net_decay</a></span><span class="op">(</span>net_type <span class="op">=</span> <span class="st">"DuraNet"</span>, country <span class="op">=</span> <span class="st">"Kenya"</span>, insecticide_type <span class="op">=</span> <span class="st">"DuraNet"</span>, n_ips <span class="op">=</span> <span class="fl">100</span>, duration <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>
-<span class="co">#&gt; Warning in bs(net_age, degree = 3L, knots = numeric(0), Boundary.knots =</span>
-<span class="co">#&gt; c(0.25, : some 'x' values beyond boundary knots may cause ill-conditioned bases</span>
-
-<span class="co">#&gt; Warning in bs(net_age, degree = 3L, knots = numeric(0), Boundary.knots =</span>
-<span class="co">#&gt; c(0.25, : some 'x' values beyond boundary knots may cause ill-conditioned bases</span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># load the necesary packages</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://had.co.nz/reshape" class="external-link">reshape</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">DuraNet</span> <span class="op">=</span> <span class="fu"><a href="../reference/get_net_decay.html">get_net_decay</a></span><span class="op">(</span>net_type <span class="op">=</span> <span class="st">"DuraNet"</span>, country <span class="op">=</span> <span class="st">"Kenya"</span>, insecticide_type <span class="op">=</span> <span class="st">"DuraNet"</span>, n_ips <span class="op">=</span> <span class="fl">100</span>, duration <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning in bs(net_age, degree = 3L, knots = numeric(0), Boundary.knots =</span></span>
+<span><span class="co">#&gt; c(0.25, : some 'x' values beyond boundary knots may cause ill-conditioned bases</span></span>
+<span></span>
+<span><span class="co">#&gt; Warning in bs(net_age, degree = 3L, knots = numeric(0), Boundary.knots =</span></span>
+<span><span class="co">#&gt; c(0.25, : some 'x' values beyond boundary knots may cause ill-conditioned bases</span></span></code></pre></div>
 <p>Then, to plot these characteristics :</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rpkgs.datanovia.com/ggpubr/" class="external-link">ggpubr</a></span><span class="op">)</span>
-<span class="co"># Plot the survival</span>
-<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">DuraNet</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">time</span>, y<span class="op">=</span><span class="va">survival</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_linedraw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Survival of the net"</span><span class="op">)</span>
-
-<span class="co"># Plot the log of the holed area</span>
-<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">DuraNet</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">time</span>, y<span class="op">=</span><span class="va">logHoles</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_linedraw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Log holed area"</span><span class="op">)</span>
-
-<span class="co"># Plot the insecticide content</span>
-<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">DuraNet</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">time</span>, y<span class="op">=</span><span class="va">insecticideContent</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_linedraw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Insecticide decay"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rpkgs.datanovia.com/ggpubr/" class="external-link">ggpubr</a></span><span class="op">)</span></span>
+<span><span class="co"># Plot the survival</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">DuraNet</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">time</span>, y<span class="op">=</span><span class="va">survival</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_linedraw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Survival of the net"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Plot the log of the holed area</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">DuraNet</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">time</span>, y<span class="op">=</span><span class="va">logHoles</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_linedraw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Log holed area"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Plot the insecticide content</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">DuraNet</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">time</span>, y<span class="op">=</span><span class="va">insecticideContent</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_light</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_linedraw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Insecticide decay"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="AnophelesModel_files/figure-html/unnamed-chunk-12-1.png" width="700"><img src="AnophelesModel_files/figure-html/unnamed-chunk-12-2.png" width="700"><img src="AnophelesModel_files/figure-html/unnamed-chunk-12-3.png" width="700"></p>
 </div>
 </div>
@@ -393,132 +393,132 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 </h3>
 <p>To define the mosquito specific entomological parameters in absence of interventions, the user can either select existing parameterisations from the <code>AnophelesModel</code> database, or provide a set of custom values. For example, to choose an existing parameterisation for <em>Anopheles nili</em>:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">nili_ent_params</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_vector_params.html">def_vector_params</a></span><span class="op">(</span>mosquito_species <span class="op">=</span> <span class="st">"Anopheles nili"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">nili_ent_params</span><span class="op">)</span>
-<span class="co">#&gt; $species_name</span>
-<span class="co">#&gt; [1] Anopheles nili</span>
-<span class="co">#&gt; 75 Levels: Albitarsis Annularis Anopheles aconitus ... Sundaicus</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $M</span>
-<span class="co">#&gt; [1] 0.6593646</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $M.sd</span>
-<span class="co">#&gt; [1] 0.006636148</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $Chi</span>
-<span class="co">#&gt; [1] 0.6707206</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $A0</span>
-<span class="co">#&gt; [1] 0.4951913</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $A0.sd</span>
-<span class="co">#&gt; [1] 0.05195866</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">nili_ent_params</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_vector_params.html">def_vector_params</a></span><span class="op">(</span>mosquito_species <span class="op">=</span> <span class="st">"Anopheles nili"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">nili_ent_params</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $species_name</span></span>
+<span><span class="co">#&gt; [1] Anopheles nili</span></span>
+<span><span class="co">#&gt; 75 Levels: Albitarsis Annularis Anopheles aconitus ... Sundaicus</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $M</span></span>
+<span><span class="co">#&gt; [1] 0.6593646</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $M.sd</span></span>
+<span><span class="co">#&gt; [1] 0.006636148</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $Chi</span></span>
+<span><span class="co">#&gt; [1] 0.6707206</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $A0</span></span>
+<span><span class="co">#&gt; [1] 0.4951913</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $A0.sd</span></span>
+<span><span class="co">#&gt; [1] 0.05195866</span></span></code></pre></div>
 <p>To use a different parameterisation, first all the entomological parameter values need to be provided in a data frame with the same column names as the <code>vec_ent_param</code> object:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># Use own parameterisation</span>
-<span class="va">species_name</span> <span class="op">=</span> <span class="st">"Anopheles example"</span>
-<span class="va">M</span> <span class="op">=</span> <span class="fl">0.623</span>
-<span class="va">M.sd</span> <span class="op">=</span> <span class="fl">0</span>
-<span class="va">Chi</span> <span class="op">=</span> <span class="fl">0.939</span>
-<span class="va">A0</span> <span class="op">=</span> <span class="fl">0.313</span>
-<span class="va">A0.sd</span> <span class="op">=</span> <span class="fl">0</span>
-<span class="va">zeta.3</span> <span class="op">=</span> <span class="fl">1</span>
-<span class="va">td</span> <span class="op">=</span> <span class="fl">0.33</span>
-<span class="va">tau</span> <span class="op">=</span> <span class="fl">3</span>
-<span class="va">ts</span> <span class="op">=</span> <span class="fl">10</span>
-<span class="va">to</span> <span class="op">=</span> <span class="fl">5</span>
-<span class="va">endophily</span> <span class="op">=</span> <span class="fl">1</span>
-<span class="va">endophily.sd</span> <span class="op">=</span> <span class="fl">0</span>
-<span class="va">endophagy</span> <span class="op">=</span> <span class="fl">1</span>
-<span class="va">endophagy.sd</span> <span class="op">=</span> <span class="fl">0</span>
-<span class="va">custom_ent_params_table</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind.data.frame</a></span><span class="op">(</span><span class="va">species_name</span>, <span class="va">M</span>, <span class="va">M.sd</span>, <span class="va">Chi</span>,
-                                <span class="va">A0</span>, <span class="va">A0.sd</span>, <span class="va">zeta.3</span>, <span class="va">td</span>,
-                                <span class="va">tau</span>, <span class="va">ts</span>, <span class="va">to</span>, <span class="va">endophily</span>, <span class="va">endophily.sd</span>, <span class="va">endophagy</span>, <span class="va">endophagy.sd</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># Use own parameterisation</span></span>
+<span><span class="va">species_name</span> <span class="op">=</span> <span class="st">"Anopheles example"</span></span>
+<span><span class="va">M</span> <span class="op">=</span> <span class="fl">0.623</span></span>
+<span><span class="va">M.sd</span> <span class="op">=</span> <span class="fl">0</span></span>
+<span><span class="va">Chi</span> <span class="op">=</span> <span class="fl">0.939</span></span>
+<span><span class="va">A0</span> <span class="op">=</span> <span class="fl">0.313</span></span>
+<span><span class="va">A0.sd</span> <span class="op">=</span> <span class="fl">0</span></span>
+<span><span class="va">zeta.3</span> <span class="op">=</span> <span class="fl">1</span></span>
+<span><span class="va">td</span> <span class="op">=</span> <span class="fl">0.33</span></span>
+<span><span class="va">tau</span> <span class="op">=</span> <span class="fl">3</span></span>
+<span><span class="va">ts</span> <span class="op">=</span> <span class="fl">10</span></span>
+<span><span class="va">to</span> <span class="op">=</span> <span class="fl">5</span></span>
+<span><span class="va">endophily</span> <span class="op">=</span> <span class="fl">1</span></span>
+<span><span class="va">endophily.sd</span> <span class="op">=</span> <span class="fl">0</span></span>
+<span><span class="va">endophagy</span> <span class="op">=</span> <span class="fl">1</span></span>
+<span><span class="va">endophagy.sd</span> <span class="op">=</span> <span class="fl">0</span></span>
+<span><span class="va">custom_ent_params_table</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind.data.frame</a></span><span class="op">(</span><span class="va">species_name</span>, <span class="va">M</span>, <span class="va">M.sd</span>, <span class="va">Chi</span>,</span>
+<span>                                <span class="va">A0</span>, <span class="va">A0.sd</span>, <span class="va">zeta.3</span>, <span class="va">td</span>,</span>
+<span>                                <span class="va">tau</span>, <span class="va">ts</span>, <span class="va">to</span>, <span class="va">endophily</span>, <span class="va">endophily.sd</span>, <span class="va">endophagy</span>, <span class="va">endophagy.sd</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Then, the data frame is provided to the function defining the vector parameters:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">custom_ent_params</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_vector_params.html">def_vector_params</a></span><span class="op">(</span>mosquito_species <span class="op">=</span> <span class="va">species_name</span>, vector_table <span class="op">=</span> <span class="va">custom_ent_params_table</span><span class="op">)</span>
-<span class="co">#&gt; [1] "Object with vector entomological parameters defined using values provided by the user."</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">custom_ent_params</span><span class="op">)</span>
-<span class="co">#&gt; $species_name</span>
-<span class="co">#&gt; [1] "Anopheles example"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $M</span>
-<span class="co">#&gt; [1] 0.623</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $M.sd</span>
-<span class="co">#&gt; [1] 0</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $Chi</span>
-<span class="co">#&gt; [1] 0.939</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $A0</span>
-<span class="co">#&gt; [1] 0.313</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $A0.sd</span>
-<span class="co">#&gt; [1] 0</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">custom_ent_params</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_vector_params.html">def_vector_params</a></span><span class="op">(</span>mosquito_species <span class="op">=</span> <span class="va">species_name</span>, vector_table <span class="op">=</span> <span class="va">custom_ent_params_table</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "Object with vector entomological parameters defined using values provided by the user."</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">custom_ent_params</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $species_name</span></span>
+<span><span class="co">#&gt; [1] "Anopheles example"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $M</span></span>
+<span><span class="co">#&gt; [1] 0.623</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $M.sd</span></span>
+<span><span class="co">#&gt; [1] 0</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $Chi</span></span>
+<span><span class="co">#&gt; [1] 0.939</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $A0</span></span>
+<span><span class="co">#&gt; [1] 0.313</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $A0.sd</span></span>
+<span><span class="co">#&gt; [1] 0</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="step-2-defining-host-specific-entomological-parameters">Step 2: Defining host-specific entomological parameters<a class="anchor" aria-label="anchor" href="#step-2-defining-host-specific-entomological-parameters"></a>
 </h3>
 <p>Objects for host-specific entomological parameters (e.g., biting of human versus animal hosts, for details or other parameters see section <a href="#host-specific-entomological-parameters">Host-specific entomological parameters</a>) in absence of interventions can be defined in a similar way as for the mosquito bionomics. To choose the default parameterisation from <span class="citation">(Chitnis, Smith, and Steketee 2008)</span>:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">default_host_params</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_host_params.html">def_host_params</a></span><span class="op">(</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">default_host_params</span><span class="op">)</span>
-<span class="co">#&gt; $species_name</span>
-<span class="co">#&gt; [1] "Anopheles gambiae" "Anopheles gambiae"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $host</span>
-<span class="co">#&gt; [1] "human"  "animal"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $PBi</span>
-<span class="co">#&gt; [1] 0.95 0.95</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $PCi</span>
-<span class="co">#&gt; [1] 0.95 0.95</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $PDi</span>
-<span class="co">#&gt; [1] 0.99 0.99</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $PEi</span>
-<span class="co">#&gt; [1] 0.88 0.88</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $Kvi</span>
-<span class="co">#&gt; [1] 0.03 0.00</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">default_host_params</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_host_params.html">def_host_params</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">default_host_params</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $species_name</span></span>
+<span><span class="co">#&gt; [1] "Anopheles gambiae" "Anopheles gambiae"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $host</span></span>
+<span><span class="co">#&gt; [1] "human"  "animal"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $PBi</span></span>
+<span><span class="co">#&gt; [1] 0.95 0.95</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $PCi</span></span>
+<span><span class="co">#&gt; [1] 0.95 0.95</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $PDi</span></span>
+<span><span class="co">#&gt; [1] 0.99 0.99</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $PEi</span></span>
+<span><span class="co">#&gt; [1] 0.88 0.88</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $Kvi</span></span>
+<span><span class="co">#&gt; [1] 0.03 0.00</span></span></code></pre></div>
 <p>For using a different, custom parameterisation, first we need to build a data frame with the same structure as <code>host_ent_params</code>:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">species_name</span> <span class="op">=</span> <span class="st">"Anopheles example"</span> 
-<span class="va">host</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"human"</span>, <span class="st">"animal"</span><span class="op">)</span> 
-<span class="va">PBi</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.67</span>, <span class="fl">0.44</span><span class="op">)</span>
-<span class="va">PCi</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.33</span>, <span class="fl">0.434</span><span class="op">)</span>
-<span class="va">PDi</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.647</span>, <span class="fl">0.344</span><span class="op">)</span>
-<span class="va">PEi</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.672</span>, <span class="fl">0.214</span><span class="op">)</span>
-<span class="va">Kvi</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.52</span>, <span class="fl">0.314</span><span class="op">)</span>
-<span class="va">custom_params_tab</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind.data.frame</a></span><span class="op">(</span><span class="va">species_name</span>, <span class="va">host</span>, <span class="va">PBi</span>, <span class="va">PCi</span>, <span class="va">PDi</span>, <span class="va">PEi</span>, <span class="va">Kvi</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">species_name</span> <span class="op">=</span> <span class="st">"Anopheles example"</span> </span>
+<span><span class="va">host</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"human"</span>, <span class="st">"animal"</span><span class="op">)</span> </span>
+<span><span class="va">PBi</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.67</span>, <span class="fl">0.44</span><span class="op">)</span></span>
+<span><span class="va">PCi</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.33</span>, <span class="fl">0.434</span><span class="op">)</span></span>
+<span><span class="va">PDi</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.647</span>, <span class="fl">0.344</span><span class="op">)</span></span>
+<span><span class="va">PEi</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.672</span>, <span class="fl">0.214</span><span class="op">)</span></span>
+<span><span class="va">Kvi</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.52</span>, <span class="fl">0.314</span><span class="op">)</span></span>
+<span><span class="va">custom_params_tab</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind.data.frame</a></span><span class="op">(</span><span class="va">species_name</span>, <span class="va">host</span>, <span class="va">PBi</span>, <span class="va">PCi</span>, <span class="va">PDi</span>, <span class="va">PEi</span>, <span class="va">Kvi</span><span class="op">)</span></span></code></pre></div>
 <p>Afterwards, we can provide this data frame to the relevant function for defining the host parameters:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">custom_host_params</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_host_params.html">def_host_params</a></span><span class="op">(</span>mosquito_species <span class="op">=</span> <span class="va">species_name</span>, host_table <span class="op">=</span> <span class="va">custom_params_tab</span><span class="op">)</span>
-<span class="co">#&gt; [1] "Using host-specific entomological parameters provided by the user."</span>
-<span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">custom_host_params</span><span class="op">)</span>
-<span class="co">#&gt; $species_name</span>
-<span class="co">#&gt; [1] "Anopheles example" "Anopheles example"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $host</span>
-<span class="co">#&gt; [1] "human"  "animal"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $PBi</span>
-<span class="co">#&gt; [1] 0.67 0.44</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $PCi</span>
-<span class="co">#&gt; [1] 0.330 0.434</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $PDi</span>
-<span class="co">#&gt; [1] 0.647 0.344</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $PEi</span>
-<span class="co">#&gt; [1] 0.672 0.214</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $Kvi</span>
-<span class="co">#&gt; [1] 0.520 0.314</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">custom_host_params</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_host_params.html">def_host_params</a></span><span class="op">(</span>mosquito_species <span class="op">=</span> <span class="va">species_name</span>, host_table <span class="op">=</span> <span class="va">custom_params_tab</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "Using host-specific entomological parameters provided by the user."</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">custom_host_params</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $species_name</span></span>
+<span><span class="co">#&gt; [1] "Anopheles example" "Anopheles example"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $host</span></span>
+<span><span class="co">#&gt; [1] "human"  "animal"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $PBi</span></span>
+<span><span class="co">#&gt; [1] 0.67 0.44</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $PCi</span></span>
+<span><span class="co">#&gt; [1] 0.330 0.434</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $PDi</span></span>
+<span><span class="co">#&gt; [1] 0.647 0.344</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $PEi</span></span>
+<span><span class="co">#&gt; [1] 0.672 0.214</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $Kvi</span></span>
+<span><span class="co">#&gt; [1] 0.520 0.314</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="step-3-defining-mosquito-and-human-activity-patterns">Step 3: Defining mosquito and human activity patterns<a class="anchor" aria-label="anchor" href="#step-3-defining-mosquito-and-human-activity-patterns"></a>
@@ -526,81 +526,81 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <p>To facilitate definition of human and mosquito activity patterns, the <code>AnophelesModel</code> package comes with inbuilt default values for <em>Anopheles gambiae</em> in Kenya and <em>Anopheles albimanus</em> in Haiti. The user can choose other patterns from the package database (344 entries) by using the entry ID of each time series (<code>id</code> column of object <code>activity_patterns</code>). Furthermore, customized patterns can be defined by directly providing the time series values. Here are some examples for these different use cases:</p>
 <p>To use default activity patterns from Kenya (human activity measured in the Rachuonyo and Rarieda districts):</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">activity_p</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_activity_patterns.html">def_activity_patterns</a></span><span class="op">(</span>activity <span class="op">=</span> <span class="st">"default_Anopheles_gambiae"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">activity_p</span><span class="op">)</span>
-<span class="co">#&gt; $HBI</span>
-<span class="co">#&gt;  [1] 0.000000000 0.000000000 0.000491400 0.000491400 0.005896806 0.007862408</span>
-<span class="co">#&gt;  [7] 0.028009828 0.048157248 0.068304668 0.066339066 0.062899263 0.062899263</span>
-<span class="co">#&gt; [13] 0.070270270 0.077641278 0.000000000 0.000000000</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $HBO</span>
-<span class="co">#&gt;  [1] 0.000000000 0.000000000 0.000982801 0.000982801 0.003931204 0.025061425</span>
-<span class="co">#&gt;  [7] 0.042260442 0.056019656 0.073710074 0.077149877 0.077149877 0.073710074</span>
-<span class="co">#&gt; [13] 0.038329238 0.031449631 0.000000000 0.000000000</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $humans_indoors</span>
-<span class="co">#&gt;  [1] 0.00000000 0.28380952 0.61904762 0.84761905 0.96190476 1.00000000</span>
-<span class="co">#&gt;  [7] 1.00000000 1.00000000 1.00000000 1.00000000 1.00000000 1.00000000</span>
-<span class="co">#&gt; [13] 0.96190476 0.00952381 0.00000000 0.00000000</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $humans_in_bed</span>
-<span class="co">#&gt;  [1] 0.0000000 0.0000000 0.0000000 0.2271333 0.6666333 1.0000000 1.0000000</span>
-<span class="co">#&gt;  [8] 1.0000000 1.0000000 1.0000000 1.0000000 1.0000000 0.8833167 0.2006667</span>
-<span class="co">#&gt; [15] 0.0000000 0.0000000</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">activity_p</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_activity_patterns.html">def_activity_patterns</a></span><span class="op">(</span>activity <span class="op">=</span> <span class="st">"default_Anopheles_gambiae"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">activity_p</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $HBI</span></span>
+<span><span class="co">#&gt;  [1] 0.000000000 0.000000000 0.000491400 0.000491400 0.005896806 0.007862408</span></span>
+<span><span class="co">#&gt;  [7] 0.028009828 0.048157248 0.068304668 0.066339066 0.062899263 0.062899263</span></span>
+<span><span class="co">#&gt; [13] 0.070270270 0.077641278 0.000000000 0.000000000</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $HBO</span></span>
+<span><span class="co">#&gt;  [1] 0.000000000 0.000000000 0.000982801 0.000982801 0.003931204 0.025061425</span></span>
+<span><span class="co">#&gt;  [7] 0.042260442 0.056019656 0.073710074 0.077149877 0.077149877 0.073710074</span></span>
+<span><span class="co">#&gt; [13] 0.038329238 0.031449631 0.000000000 0.000000000</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $humans_indoors</span></span>
+<span><span class="co">#&gt;  [1] 0.00000000 0.28380952 0.61904762 0.84761905 0.96190476 1.00000000</span></span>
+<span><span class="co">#&gt;  [7] 1.00000000 1.00000000 1.00000000 1.00000000 1.00000000 1.00000000</span></span>
+<span><span class="co">#&gt; [13] 0.96190476 0.00952381 0.00000000 0.00000000</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $humans_in_bed</span></span>
+<span><span class="co">#&gt;  [1] 0.0000000 0.0000000 0.0000000 0.2271333 0.6666333 1.0000000 1.0000000</span></span>
+<span><span class="co">#&gt;  [8] 1.0000000 1.0000000 1.0000000 1.0000000 1.0000000 0.8833167 0.2006667</span></span>
+<span><span class="co">#&gt; [15] 0.0000000 0.0000000</span></span></code></pre></div>
 <p>To select activity patterns from the database based on the entry IDs for <em>Anopheles arabiensis</em> in Kenya, Ahero disctrict:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">activity_list</span> <span class="op">=</span> <span class="cn">NULL</span>
-<span class="va">activity_list</span><span class="op">$</span><span class="va">HBI</span> <span class="op">=</span> <span class="fl">34</span>
-<span class="va">activity_list</span><span class="op">$</span><span class="va">HBO</span> <span class="op">=</span> <span class="fl">165</span>
-<span class="va">activity_list</span><span class="op">$</span><span class="va">humans_indoors</span> <span class="op">=</span> <span class="fl">4</span>
-<span class="va">activity_list</span><span class="op">$</span><span class="va">humans_in_bed</span> <span class="op">=</span> <span class="fl">24</span>
-<span class="va">activity_p2</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_activity_patterns.html">def_activity_patterns</a></span><span class="op">(</span><span class="va">activity_list</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">activity_p2</span><span class="op">)</span>
-<span class="co">#&gt; $HBI</span>
-<span class="co">#&gt;  [1] 0.00000000 0.00000000 0.00000000 0.00000000 0.01823282 0.02384292</span>
-<span class="co">#&gt;  [7] 0.06591865 0.04908836 0.04067321 0.12201964 0.14866760 0.08695652</span>
-<span class="co">#&gt; [13] 0.10939691 0.08555400 0.00000000 0.00000000</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $HBO</span>
-<span class="co">#&gt;  [1] 0.000000000 0.000000000 0.001402525 0.001402525 0.004207574 0.007012623</span>
-<span class="co">#&gt;  [7] 0.011220196 0.011220196 0.014025245 0.007012623 0.046283310 0.058906031</span>
-<span class="co">#&gt; [13] 0.056100982 0.030855540 0.000000000 0.000000000</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $humans_indoors</span>
-<span class="co">#&gt;  [1] 0.00000000 0.28380952 0.61904762 0.84761905 0.96190476 1.00000000</span>
-<span class="co">#&gt;  [7] 1.00000000 1.00000000 1.00000000 1.00000000 1.00000000 1.00000000</span>
-<span class="co">#&gt; [13] 0.96190476 0.00952381 0.00000000 0.00000000</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $humans_in_bed</span>
-<span class="co">#&gt;  [1] 0.0000000 0.0000000 0.0000000 0.2271333 0.6666333 1.0000000 1.0000000</span>
-<span class="co">#&gt;  [8] 1.0000000 1.0000000 1.0000000 1.0000000 1.0000000 0.8833167 0.2006667</span>
-<span class="co">#&gt; [15] 0.0000000 0.0000000</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">activity_list</span> <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="va">activity_list</span><span class="op">$</span><span class="va">HBI</span> <span class="op">=</span> <span class="fl">34</span></span>
+<span><span class="va">activity_list</span><span class="op">$</span><span class="va">HBO</span> <span class="op">=</span> <span class="fl">165</span></span>
+<span><span class="va">activity_list</span><span class="op">$</span><span class="va">humans_indoors</span> <span class="op">=</span> <span class="fl">4</span></span>
+<span><span class="va">activity_list</span><span class="op">$</span><span class="va">humans_in_bed</span> <span class="op">=</span> <span class="fl">24</span></span>
+<span><span class="va">activity_p2</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_activity_patterns.html">def_activity_patterns</a></span><span class="op">(</span><span class="va">activity_list</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">activity_p2</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $HBI</span></span>
+<span><span class="co">#&gt;  [1] 0.00000000 0.00000000 0.00000000 0.00000000 0.01823282 0.02384292</span></span>
+<span><span class="co">#&gt;  [7] 0.06591865 0.04908836 0.04067321 0.12201964 0.14866760 0.08695652</span></span>
+<span><span class="co">#&gt; [13] 0.10939691 0.08555400 0.00000000 0.00000000</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $HBO</span></span>
+<span><span class="co">#&gt;  [1] 0.000000000 0.000000000 0.001402525 0.001402525 0.004207574 0.007012623</span></span>
+<span><span class="co">#&gt;  [7] 0.011220196 0.011220196 0.014025245 0.007012623 0.046283310 0.058906031</span></span>
+<span><span class="co">#&gt; [13] 0.056100982 0.030855540 0.000000000 0.000000000</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $humans_indoors</span></span>
+<span><span class="co">#&gt;  [1] 0.00000000 0.28380952 0.61904762 0.84761905 0.96190476 1.00000000</span></span>
+<span><span class="co">#&gt;  [7] 1.00000000 1.00000000 1.00000000 1.00000000 1.00000000 1.00000000</span></span>
+<span><span class="co">#&gt; [13] 0.96190476 0.00952381 0.00000000 0.00000000</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $humans_in_bed</span></span>
+<span><span class="co">#&gt;  [1] 0.0000000 0.0000000 0.0000000 0.2271333 0.6666333 1.0000000 1.0000000</span></span>
+<span><span class="co">#&gt;  [8] 1.0000000 1.0000000 1.0000000 1.0000000 1.0000000 0.8833167 0.2006667</span></span>
+<span><span class="co">#&gt; [15] 0.0000000 0.0000000</span></span></code></pre></div>
 <p>To use custom activity patterns by specifying the different time series, for example for <em>An. albimanus</em> in Haiti available from <span class="citation">(Briët et al. 2019)</span>:</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># Briet et al 2019, Table S5. Biting rhythm of An. albimanus in Haiti, Dame Marie</span>
-<span class="va">HBI</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.22</span>, <span class="fl">0.21</span>, <span class="fl">0.22</span>, <span class="fl">0.10</span>, <span class="fl">0.13</span>, <span class="fl">0.17</span>, <span class="fl">0.08</span>, <span class="fl">0.12</span>, <span class="fl">0.03</span>, <span class="fl">0.12</span>, <span class="fl">0.17</span>, <span class="fl">0.18</span>, <span class="fl">0.25</span><span class="op">)</span>
-<span class="va">HBO</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.25</span>, <span class="fl">0.35</span>, <span class="fl">0.37</span>, <span class="fl">0.33</span>, <span class="fl">0.36</span>, <span class="fl">0.32</span>, <span class="fl">0.13</span>, <span class="fl">0.14</span>, <span class="fl">0.09</span>, <span class="fl">0.15</span>, <span class="fl">0.36</span>, <span class="fl">0.23</span>, <span class="fl">0.25</span><span class="op">)</span>
-<span class="co"># Human activity in Haiti from Briet et al 2019, Knutson et al. 2014</span>
-<span class="va">humans_in_bed</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5.628637</span>, <span class="fl">14.084496</span>, <span class="fl">28.558507</span>, <span class="fl">47.761203</span>, <span class="fl">67.502964</span>, <span class="fl">83.202297</span>, <span class="fl">92.736838</span>, <span class="fl">96.734455</span>, <span class="fl">96.637604</span>, <span class="fl">92.983136</span>, <span class="fl">85.264515</span>, <span class="fl">73.021653</span>, <span class="fl">57.079495</span><span class="op">)</span><span class="op">/</span><span class="fl">100</span> 
-<span class="va">humans_indoors</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5.628637</span>, <span class="fl">14.084496</span>, <span class="fl">28.558507</span>, <span class="fl">47.761203</span>, <span class="fl">67.502964</span>, <span class="fl">83.202297</span>, <span class="fl">92.736838</span>, <span class="fl">96.734455</span>, <span class="fl">96.637604</span>, <span class="fl">92.983136</span>, <span class="fl">85.264515</span>, <span class="fl">73.021653</span>, <span class="fl">57.079495</span><span class="op">)</span><span class="op">/</span><span class="fl">100</span> 
-<span class="va">custom_params</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">HBI</span>, <span class="va">HBO</span>, <span class="va">humans_indoors</span>,<span class="va">humans_in_bed</span> <span class="op">)</span><span class="op">)</span>
-<span class="va">custom_activity_obj</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_activity_patterns.html">def_activity_patterns</a></span><span class="op">(</span><span class="va">custom_params</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">custom_activity_obj</span><span class="op">)</span>
-<span class="co">#&gt; $HBI</span>
-<span class="co">#&gt;  [1] 0.22 0.21 0.22 0.10 0.13 0.17 0.08 0.12 0.03 0.12 0.17 0.18 0.25</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $HBO</span>
-<span class="co">#&gt;  [1] 0.25 0.35 0.37 0.33 0.36 0.32 0.13 0.14 0.09 0.15 0.36 0.23 0.25</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $humans_indoors</span>
-<span class="co">#&gt;  [1] 0.05628637 0.14084496 0.28558507 0.47761203 0.67502964 0.83202297</span>
-<span class="co">#&gt;  [7] 0.92736838 0.96734455 0.96637604 0.92983136 0.85264515 0.73021653</span>
-<span class="co">#&gt; [13] 0.57079495</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $humans_in_bed</span>
-<span class="co">#&gt;  [1] 0.05628637 0.14084496 0.28558507 0.47761203 0.67502964 0.83202297</span>
-<span class="co">#&gt;  [7] 0.92736838 0.96734455 0.96637604 0.92983136 0.85264515 0.73021653</span>
-<span class="co">#&gt; [13] 0.57079495</span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># Briet et al 2019, Table S5. Biting rhythm of An. albimanus in Haiti, Dame Marie</span></span>
+<span><span class="va">HBI</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.22</span>, <span class="fl">0.21</span>, <span class="fl">0.22</span>, <span class="fl">0.10</span>, <span class="fl">0.13</span>, <span class="fl">0.17</span>, <span class="fl">0.08</span>, <span class="fl">0.12</span>, <span class="fl">0.03</span>, <span class="fl">0.12</span>, <span class="fl">0.17</span>, <span class="fl">0.18</span>, <span class="fl">0.25</span><span class="op">)</span></span>
+<span><span class="va">HBO</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.25</span>, <span class="fl">0.35</span>, <span class="fl">0.37</span>, <span class="fl">0.33</span>, <span class="fl">0.36</span>, <span class="fl">0.32</span>, <span class="fl">0.13</span>, <span class="fl">0.14</span>, <span class="fl">0.09</span>, <span class="fl">0.15</span>, <span class="fl">0.36</span>, <span class="fl">0.23</span>, <span class="fl">0.25</span><span class="op">)</span></span>
+<span><span class="co"># Human activity in Haiti from Briet et al 2019, Knutson et al. 2014</span></span>
+<span><span class="va">humans_in_bed</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5.628637</span>, <span class="fl">14.084496</span>, <span class="fl">28.558507</span>, <span class="fl">47.761203</span>, <span class="fl">67.502964</span>, <span class="fl">83.202297</span>, <span class="fl">92.736838</span>, <span class="fl">96.734455</span>, <span class="fl">96.637604</span>, <span class="fl">92.983136</span>, <span class="fl">85.264515</span>, <span class="fl">73.021653</span>, <span class="fl">57.079495</span><span class="op">)</span><span class="op">/</span><span class="fl">100</span> </span>
+<span><span class="va">humans_indoors</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5.628637</span>, <span class="fl">14.084496</span>, <span class="fl">28.558507</span>, <span class="fl">47.761203</span>, <span class="fl">67.502964</span>, <span class="fl">83.202297</span>, <span class="fl">92.736838</span>, <span class="fl">96.734455</span>, <span class="fl">96.637604</span>, <span class="fl">92.983136</span>, <span class="fl">85.264515</span>, <span class="fl">73.021653</span>, <span class="fl">57.079495</span><span class="op">)</span><span class="op">/</span><span class="fl">100</span> </span>
+<span><span class="va">custom_params</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">HBI</span>, <span class="va">HBO</span>, <span class="va">humans_indoors</span>,<span class="va">humans_in_bed</span> <span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">custom_activity_obj</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_activity_patterns.html">def_activity_patterns</a></span><span class="op">(</span><span class="va">custom_params</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">custom_activity_obj</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $HBI</span></span>
+<span><span class="co">#&gt;  [1] 0.22 0.21 0.22 0.10 0.13 0.17 0.08 0.12 0.03 0.12 0.17 0.18 0.25</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $HBO</span></span>
+<span><span class="co">#&gt;  [1] 0.25 0.35 0.37 0.33 0.36 0.32 0.13 0.14 0.09 0.15 0.36 0.23 0.25</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $humans_indoors</span></span>
+<span><span class="co">#&gt;  [1] 0.05628637 0.14084496 0.28558507 0.47761203 0.67502964 0.83202297</span></span>
+<span><span class="co">#&gt;  [7] 0.92736838 0.96734455 0.96637604 0.92983136 0.85264515 0.73021653</span></span>
+<span><span class="co">#&gt; [13] 0.57079495</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $humans_in_bed</span></span>
+<span><span class="co">#&gt;  [1] 0.05628637 0.14084496 0.28558507 0.47761203 0.67502964 0.83202297</span></span>
+<span><span class="co">#&gt;  [7] 0.92736838 0.96734455 0.96637604 0.92983136 0.85264515 0.73021653</span></span>
+<span><span class="co">#&gt; [13] 0.57079495</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="step-4-initializing-the-entomological-model">Step 4: Initializing the entomological model<a class="anchor" aria-label="anchor" href="#step-4-initializing-the-entomological-model"></a>
@@ -608,18 +608,18 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <p>Once the vector, host and activity parameters have been defined, the entomological model can be initialized and calibrated accordingly. In this step, the death rate and the availability to mosquitoes for each host type are estimated. For a description of how these two parameters are estimated, see <span class="citation">(Chitnis, Smith, and Steketee 2008)</span>.</p>
 <p>First, the sizes of the host and mosquito populations need to be defined:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># Define size of the host and mosquito population </span>
-<span class="va">host_pop</span> <span class="op">=</span> <span class="fl">2000</span>
-<span class="va">vec_pop</span> <span class="op">=</span> <span class="fl">10000</span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># Define size of the host and mosquito population </span></span>
+<span><span class="va">host_pop</span> <span class="op">=</span> <span class="fl">2000</span></span>
+<span><span class="va">vec_pop</span> <span class="op">=</span> <span class="fl">10000</span></span></code></pre></div>
 <p>Then, to initialize the entomological model and build the model object:</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">model_params</span> <span class="op">=</span> <span class="fu"><a href="../reference/build_model_obj.html">build_model_obj</a></span><span class="op">(</span><span class="va">custom_ent_params</span>, <span class="va">default_host_params</span>, <span class="va">custom_activity_obj</span>, <span class="va">host_pop</span><span class="op">)</span>
-<span class="co"># Print the calculated mosquito death rate</span>
-<span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">model_params</span><span class="op">$</span><span class="va">host_params</span><span class="op">$</span><span class="va">muvA</span><span class="op">)</span>
-<span class="co">#&gt; [1] 0.2362186</span>
-<span class="co"># Print the estimated availability to mosquitoes for each host type</span>
-<span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">model_params</span><span class="op">$</span><span class="va">host_params</span><span class="op">$</span><span class="va">alphai</span><span class="op">)</span>
-<span class="co">#&gt; [1] 8.464341e-04 5.498667e-05</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">model_params</span> <span class="op">=</span> <span class="fu"><a href="../reference/build_model_obj.html">build_model_obj</a></span><span class="op">(</span><span class="va">custom_ent_params</span>, <span class="va">default_host_params</span>, <span class="va">custom_activity_obj</span>, <span class="va">host_pop</span><span class="op">)</span></span>
+<span><span class="co"># Print the calculated mosquito death rate</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">model_params</span><span class="op">$</span><span class="va">host_params</span><span class="op">$</span><span class="va">muvA</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0.2362186</span></span>
+<span><span class="co"># Print the estimated availability to mosquitoes for each host type</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">model_params</span><span class="op">$</span><span class="va">host_params</span><span class="op">$</span><span class="va">alphai</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 8.464341e-04 5.498667e-05</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="step-5-defining-interventions-effects">Step 5: Defining interventions effects<a class="anchor" aria-label="anchor" href="#step-5-defining-interventions-effects"></a>
@@ -627,113 +627,113 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <p>In the <code>AnophelesModel</code> package, the interventions and their characteristics are specified through a list of intervention objects. A detailed description of how the intervention objects are specified can be obtained by using the command <code><a href="../reference/def_interventions_effects.html">?def_interventions_effects</a></code>. To facilitate definition of these objects, the package contains a list of intervention object examples for each intervention type included in the <code>intervention_obj_examples</code> list.</p>
 <p>The <code>intervention_obj_examples</code> list contains three examples of interventions : LLIN, IRS and House screening, respectively:</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">intervention_obj_examples</span><span class="op">)</span>
-<span class="co">#&gt; $LLINs_example</span>
-<span class="co">#&gt; $LLINs_example$id</span>
-<span class="co">#&gt; [1] "LLINs"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $LLINs_example$description</span>
-<span class="co">#&gt; [1] "LLINs"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $LLINs_example$parameterisation</span>
-<span class="co">#&gt; [1] "LLINs01"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $LLINs_example$LLIN_type</span>
-<span class="co">#&gt; [1] "Default"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $LLINs_example$LLIN_insecticide</span>
-<span class="co">#&gt; [1] "Default"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $LLINs_example$LLIN_country</span>
-<span class="co">#&gt; [1] "Kenya"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $IRS_example</span>
-<span class="co">#&gt; $IRS_example$id</span>
-<span class="co">#&gt; [1] "IRS"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $IRS_example$description</span>
-<span class="co">#&gt; [1] "IRS"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $IRS_example$parameterisation</span>
-<span class="co">#&gt; [1] "IRS12"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $Screening_example</span>
-<span class="co">#&gt; $Screening_example$id</span>
-<span class="co">#&gt; [1] "House_screening"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $Screening_example$description</span>
-<span class="co">#&gt; [1] "House screening"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $Screening_example$parameterisation</span>
-<span class="co">#&gt; [1] "Screening01"</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">intervention_obj_examples</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $LLINs_example</span></span>
+<span><span class="co">#&gt; $LLINs_example$id</span></span>
+<span><span class="co">#&gt; [1] "LLINs"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $LLINs_example$description</span></span>
+<span><span class="co">#&gt; [1] "LLINs"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $LLINs_example$parameterisation</span></span>
+<span><span class="co">#&gt; [1] "LLINs01"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $LLINs_example$LLIN_type</span></span>
+<span><span class="co">#&gt; [1] "Default"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $LLINs_example$LLIN_insecticide</span></span>
+<span><span class="co">#&gt; [1] "Default"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $LLINs_example$LLIN_country</span></span>
+<span><span class="co">#&gt; [1] "Kenya"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $IRS_example</span></span>
+<span><span class="co">#&gt; $IRS_example$id</span></span>
+<span><span class="co">#&gt; [1] "IRS"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $IRS_example$description</span></span>
+<span><span class="co">#&gt; [1] "IRS"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $IRS_example$parameterisation</span></span>
+<span><span class="co">#&gt; [1] "IRS12"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $Screening_example</span></span>
+<span><span class="co">#&gt; $Screening_example$id</span></span>
+<span><span class="co">#&gt; [1] "House_screening"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $Screening_example$description</span></span>
+<span><span class="co">#&gt; [1] "House screening"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $Screening_example$parameterisation</span></span>
+<span><span class="co">#&gt; [1] "Screening01"</span></span></code></pre></div>
 <p>Except for the house screening where only the <code>id</code> and <code>description</code> attributes are required, to use the IRS and LLIN interventions included in the package, the user needs to provide the parameterisation ID (e.g., LLINs01, IRS01). A list of all package intervention parameterisations and their IDs can be obtained with the <code><a href="../reference/list_intervention_models.html">list_intervention_models()</a></code> command. The examples from <code>intervention_obj_examples</code> can be adapted to the user’s needs to pick other available parameterisations and intervention characteristics available within the package. For example, to select a different IRS parameterisation, we can modify the <code>parameterisation</code> attribute of the IRS example:</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">new_IRS</span> <span class="op">=</span> <span class="va">intervention_obj_examples</span><span class="op">$</span><span class="va">IRS_example</span>
-<span class="va">new_IRS</span><span class="op">$</span><span class="va">description</span> <span class="op">=</span> <span class="st">"Permethrin IRS"</span>
-<span class="va">new_IRS</span><span class="op">$</span><span class="va">parameterisation</span> <span class="op">=</span> <span class="st">"IRS16"</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">new_IRS</span> <span class="op">=</span> <span class="va">intervention_obj_examples</span><span class="op">$</span><span class="va">IRS_example</span></span>
+<span><span class="va">new_IRS</span><span class="op">$</span><span class="va">description</span> <span class="op">=</span> <span class="st">"Permethrin IRS"</span></span>
+<span><span class="va">new_IRS</span><span class="op">$</span><span class="va">parameterisation</span> <span class="op">=</span> <span class="st">"IRS16"</span></span></code></pre></div>
 <p>then we can concatenate the new intervention object to the list with intervention examples:</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">new_intervention_list</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">intervention_obj_examples</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>new_IRS <span class="op">=</span> <span class="va">new_IRS</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">new_intervention_list</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">intervention_obj_examples</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>new_IRS <span class="op">=</span> <span class="va">new_IRS</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Once the intervention parameterisations have been defined, the user needs to specify the intervention deployment coverages and a number of time points. The duration of each intervention will be evenly split across the time points and the intervention effects will be calculated at each time point.</p>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">list_interv</span> <span class="op">=</span> <span class="va">new_intervention_list</span>
-<span class="va">coverages</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span><span class="op">)</span>
-<span class="va">n_ip</span> <span class="op">=</span> <span class="fl">100</span>
-<span class="co"># Calculate the intervention effects:</span>
-<span class="va">intervention_vec</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_interventions_effects.html">def_interventions_effects</a></span><span class="op">(</span><span class="va">list_interv</span>, <span class="va">model_params</span>, <span class="va">n_ip</span><span class="op">)</span>
-<span class="co">#&gt; [1] "Defining intervention effects for LLINs"</span>
-<span class="co">#&gt; [1] "Using intervention effects available for model LLINs01"</span>
-<span class="co">#&gt; [1] "Defining intervention effects for IRS"</span>
-<span class="co">#&gt; [1] "Using intervention effects available for model IRS12"</span>
-<span class="co">#&gt; [1] "IRS"</span>
-<span class="co">#&gt; Warning in bs(input_times, degree = 3L, knots = numeric(0), Boundary.knots =</span>
-<span class="co">#&gt; c(0.041666667, : some 'x' values beyond boundary knots may cause ill-conditioned</span>
-<span class="co">#&gt; bases</span>
-
-<span class="co">#&gt; Warning in bs(input_times, degree = 3L, knots = numeric(0), Boundary.knots =</span>
-<span class="co">#&gt; c(0.041666667, : some 'x' values beyond boundary knots may cause ill-conditioned</span>
-<span class="co">#&gt; bases</span>
-
-<span class="co">#&gt; Warning in bs(input_times, degree = 3L, knots = numeric(0), Boundary.knots =</span>
-<span class="co">#&gt; c(0.041666667, : some 'x' values beyond boundary knots may cause ill-conditioned</span>
-<span class="co">#&gt; bases</span>
-<span class="co">#&gt; [1] "Defining intervention effects for House_screening"</span>
-<span class="co">#&gt; [1] "Using intervention effects available for model Screening01"</span>
-<span class="co">#&gt; [1] "Defining intervention effects for IRS"</span>
-<span class="co">#&gt; [1] "Using intervention effects available for model IRS16"</span>
-<span class="co">#&gt; [1] "IRS"</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">list_interv</span> <span class="op">=</span> <span class="va">new_intervention_list</span></span>
+<span><span class="va">coverages</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">n_ip</span> <span class="op">=</span> <span class="fl">100</span></span>
+<span><span class="co"># Calculate the intervention effects:</span></span>
+<span><span class="va">intervention_vec</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_interventions_effects.html">def_interventions_effects</a></span><span class="op">(</span><span class="va">list_interv</span>, <span class="va">model_params</span>, <span class="va">n_ip</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "Defining intervention effects for LLINs"</span></span>
+<span><span class="co">#&gt; [1] "Using intervention effects available for model LLINs01"</span></span>
+<span><span class="co">#&gt; [1] "Defining intervention effects for IRS"</span></span>
+<span><span class="co">#&gt; [1] "Using intervention effects available for model IRS12"</span></span>
+<span><span class="co">#&gt; [1] "IRS"</span></span>
+<span><span class="co">#&gt; Warning in bs(input_times, degree = 3L, knots = numeric(0), Boundary.knots =</span></span>
+<span><span class="co">#&gt; c(0.041666667, : some 'x' values beyond boundary knots may cause ill-conditioned</span></span>
+<span><span class="co">#&gt; bases</span></span>
+<span></span>
+<span><span class="co">#&gt; Warning in bs(input_times, degree = 3L, knots = numeric(0), Boundary.knots =</span></span>
+<span><span class="co">#&gt; c(0.041666667, : some 'x' values beyond boundary knots may cause ill-conditioned</span></span>
+<span><span class="co">#&gt; bases</span></span>
+<span></span>
+<span><span class="co">#&gt; Warning in bs(input_times, degree = 3L, knots = numeric(0), Boundary.knots =</span></span>
+<span><span class="co">#&gt; c(0.041666667, : some 'x' values beyond boundary knots may cause ill-conditioned</span></span>
+<span><span class="co">#&gt; bases</span></span>
+<span><span class="co">#&gt; [1] "Defining intervention effects for House_screening"</span></span>
+<span><span class="co">#&gt; [1] "Using intervention effects available for model Screening01"</span></span>
+<span><span class="co">#&gt; [1] "Defining intervention effects for IRS"</span></span>
+<span><span class="co">#&gt; [1] "Using intervention effects available for model IRS16"</span></span>
+<span><span class="co">#&gt; [1] "IRS"</span></span></code></pre></div>
 <p>The effects of the interventions are adjusted according to indoor and outdoor human exposure to mosquitoes. The user can calculate the human exposure parameters using the following function:</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">in_out_exp</span> <span class="op">=</span> <span class="fu"><a href="../reference/get_in_out_exp.html">get_in_out_exp</a></span><span class="op">(</span>activity_cycles <span class="op">=</span> <span class="va">custom_activity_obj</span>, vec_p <span class="op">=</span> <span class="va">custom_ent_params</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">in_out_exp</span><span class="op">)</span>
-<span class="co">#&gt; $Exposure_Indoor_total</span>
-<span class="co">#&gt; [1] 1</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $Exposure_Outdoor_total</span>
-<span class="co">#&gt; [1] 0</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $Exposure_Indoor_whileinbed</span>
-<span class="co">#&gt; [1] 1</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $Exposure_Outdoor_whileinbed</span>
-<span class="co">#&gt; [1] 0</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $indoor_resting</span>
-<span class="co">#&gt; [1] 1</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">in_out_exp</span> <span class="op">=</span> <span class="fu"><a href="../reference/get_in_out_exp.html">get_in_out_exp</a></span><span class="op">(</span>activity_cycles <span class="op">=</span> <span class="va">custom_activity_obj</span>, vec_p <span class="op">=</span> <span class="va">custom_ent_params</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">in_out_exp</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $Exposure_Indoor_total</span></span>
+<span><span class="co">#&gt; [1] 1</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $Exposure_Outdoor_total</span></span>
+<span><span class="co">#&gt; [1] 0</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $Exposure_Indoor_whileinbed</span></span>
+<span><span class="co">#&gt; [1] 1</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $Exposure_Outdoor_whileinbed</span></span>
+<span><span class="co">#&gt; [1] 0</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $indoor_resting</span></span>
+<span><span class="co">#&gt; [1] 1</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="step-6-calculating-intervention-impact-on-vectorial-capacity">Step 6: Calculating intervention impact on vectorial capacity<a class="anchor" aria-label="anchor" href="#step-6-calculating-intervention-impact-on-vectorial-capacity"></a>
 </h3>
 <p>Once all the intervention effects have been defined, their impact on the vectorial capacity can be estimated (using equation 20 from <span class="citation">(Chitnis, Smith, and Steketee 2008)</span>) :</p>
 <div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">impacts</span> <span class="op">=</span> <span class="fu"><a href="../reference/calculate_impact.html">calculate_impact</a></span><span class="op">(</span><span class="va">intervention_vec</span>, <span class="va">coverages</span>, <span class="va">model_params</span>,
-<span class="va">vec_pop</span>, <span class="va">n_ip</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">impacts</span> <span class="op">=</span> <span class="fu"><a href="../reference/calculate_impact.html">calculate_impact</a></span><span class="op">(</span><span class="va">intervention_vec</span>, <span class="va">coverages</span>, <span class="va">model_params</span>,</span>
+<span><span class="va">vec_pop</span>, <span class="va">n_ip</span><span class="op">)</span></span></code></pre></div>
 <p>The resulting vectorial capacity is calculated and aggregated across the previously-specified time points which are uniformly-distributed across the duration of an intervention. To display the average vectorial capacity for various coverages:</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">p</span> <span class="op">=</span> <span class="fu"><a href="../reference/plot_impact_species.html">plot_impact_species</a></span><span class="op">(</span><span class="va">impacts</span>, <span class="st">"VC_red"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">p</span> <span class="op">=</span> <span class="fu"><a href="../reference/plot_impact_species.html">plot_impact_species</a></span><span class="op">(</span><span class="va">impacts</span>, <span class="st">"VC_red"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <img src="AnophelesModel_files/figure-html/unnamed-chunk-30-1.png" alt="Impact of interventions on vectorial capacity." width="1093.75"><p class="caption">
 Impact of interventions on vectorial capacity.
@@ -741,12 +741,12 @@ Impact of interventions on vectorial capacity.
 </div>
 <p>The variability in the entomological parameters for each mosquito species can be accounted for when calculating the impact of interventions on the vectorial capacity. To do so, the standard deviation values of the entomological parameters (namely parameters <code>M.sd</code>, <code>A0.sd</code>, <code>endophily.sd</code> and <code>endophagy.sd</code> in the <code>vec_ent_param</code> object) are used to create a confidence interval defined as the mean value +/- two standard deviations. Using latin hypercube sampling <span class="citation">(Stein 1987)</span>, a set of samples are uniformly drawn from the multi-dimensional parameter space defined by the confidence intervals. Then, the average vectorial capacity is computed for each of these samples and the resulting confidence interval for the vectorial capacity is represented by the mean value +/- two standard deviations. This sampling-based approach is included in the <code><a href="../reference/calculate_impact_var.html">calculate_impact_var()</a></code> function to estimate the confidence interval for the reported mean vectorial capacity. In the example below, in the interest of execution time, only 10 samples have been used to estimate the confidence intervals of the vectorial capacity:</p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">impact_gambiae</span> <span class="op">=</span> <span class="fu"><a href="../reference/calculate_impact_var.html">calculate_impact_var</a></span><span class="op">(</span>mosquito_species <span class="op">=</span> <span class="st">"Anopheles gambiae"</span>,
-                                        activity_patterns <span class="op">=</span> <span class="st">"default_Anopheles_gambiae"</span>,
-                                        interventions <span class="op">=</span> <span class="va">intervention_vec</span>,
-                                        n_sample_points <span class="op">=</span> <span class="fl">10</span>,
-                                        plot_result <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>
-<span class="fu"><a href="../reference/plot_impact_var.html">plot_impact_var</a></span><span class="op">(</span><span class="st">"Anopheles gambiae"</span>, <span class="va">impact_gambiae</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">impact_gambiae</span> <span class="op">=</span> <span class="fu"><a href="../reference/calculate_impact_var.html">calculate_impact_var</a></span><span class="op">(</span>mosquito_species <span class="op">=</span> <span class="st">"Anopheles gambiae"</span>,</span>
+<span>                                        activity_patterns <span class="op">=</span> <span class="st">"default_Anopheles_gambiae"</span>,</span>
+<span>                                        interventions <span class="op">=</span> <span class="va">intervention_vec</span>,</span>
+<span>                                        n_sample_points <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>                                        plot_result <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/plot_impact_var.html">plot_impact_var</a></span><span class="op">(</span><span class="st">"Anopheles gambiae"</span>, <span class="va">impact_gambiae</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <img src="AnophelesModel_files/figure-html/unnamed-chunk-31-1.png" alt="Impact of interventions on vectorial capacity including the variability in the entomological parameters specific to the mosquito species." width="1093.75"><p class="caption">
 Impact of interventions on vectorial capacity including the variability in the entomological parameters specific to the mosquito species.
@@ -766,73 +766,88 @@ Impact of interventions on vectorial capacity including the variability in the e
 </ul>
 <p>For example, to generate the <code>&lt;mosq&gt;</code> and <code>&lt;nonHumanHosts&gt;</code> snippets for <em>Anopheles nili</em>:</p>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">entomology_xml</span> <span class="op">=</span> <span class="fu"><a href="../reference/get_OM_ento_snippet.html">get_OM_ento_snippet</a></span><span class="op">(</span><span class="va">nili_ent_params</span>, <span class="va">default_host_params</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">entomology_xml</span><span class="op">)</span>
-<span class="co">#&gt; $mosq_snippet</span>
-<span class="co">#&gt; &lt;mosq minInfectedThreshold="0.01"&gt;</span>
-<span class="co">#&gt;   &lt;mosqRestDuration value="2"/&gt;</span>
-<span class="co">#&gt;   &lt;extrinsicIncubationPeriod value="10"/&gt;</span>
-<span class="co">#&gt;   &lt;mosqLaidEggsSameDayProportion value="0.495191314314922"/&gt;</span>
-<span class="co">#&gt;   &lt;mosqSeekingDuration value="3"/&gt;</span>
-<span class="co">#&gt;   &lt;mosqSurvivalFeedingCycleProbability value="0.659364630942942"/&gt;</span>
-<span class="co">#&gt;   &lt;availabilityVariance value="0"/&gt;</span>
-<span class="co">#&gt;   &lt;mosqProbBiting mean="0.95" variance="0"/&gt;</span>
-<span class="co">#&gt;   &lt;mosqProbFindRestSite mean="0.95" variance="0"/&gt;</span>
-<span class="co">#&gt;   &lt;mosqProbResting mean="0.99" variance="0"/&gt;</span>
-<span class="co">#&gt;   &lt;mosqProbOvipositing mean="0.88"/&gt;</span>
-<span class="co">#&gt;   &lt;mosqHumanBloodIndex mean="0.670720617095951"/&gt;</span>
-<span class="co">#&gt; &lt;/mosq&gt; </span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $nonHumanHosts_snippet</span>
-<span class="co">#&gt; &lt;nonHumanHosts name="unprotectedAnimals"&gt;</span>
-<span class="co">#&gt;   &lt;mosqRelativeEntoAvailability value="1"/&gt;</span>
-<span class="co">#&gt;   &lt;mosqProbBiting value="0.95"/&gt;</span>
-<span class="co">#&gt;   &lt;mosqProbFindRestSite value="0.95"/&gt;</span>
-<span class="co">#&gt;   &lt;mosqProbResting value="0.99"/&gt;</span>
-<span class="co">#&gt; &lt;/nonHumanHosts&gt;</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">entomology_xml</span> <span class="op">=</span> <span class="fu"><a href="../reference/get_OM_ento_snippet.html">get_OM_ento_snippet</a></span><span class="op">(</span><span class="va">nili_ent_params</span>, <span class="va">default_host_params</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">entomology_xml</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $mosq_snippet</span></span>
+<span><span class="co">#&gt; &lt;mosq minInfectedThreshold="0.01"&gt;</span></span>
+<span><span class="co">#&gt;   &lt;mosqRestDuration value="2"/&gt;</span></span>
+<span><span class="co">#&gt;   &lt;extrinsicIncubationPeriod value="10"/&gt;</span></span>
+<span><span class="co">#&gt;   &lt;mosqLaidEggsSameDayProportion value="0.495191314314922"/&gt;</span></span>
+<span><span class="co">#&gt;   &lt;mosqSeekingDuration value="3"/&gt;</span></span>
+<span><span class="co">#&gt;   &lt;mosqSurvivalFeedingCycleProbability value="0.659364630942942"/&gt;</span></span>
+<span><span class="co">#&gt;   &lt;availability/&gt;</span></span>
+<span><span class="co">#&gt;   &lt;mosqProbBiting mean="0.95" variance="0"/&gt;</span></span>
+<span><span class="co">#&gt;   &lt;mosqProbFindRestSite mean="0.95" variance="0"/&gt;</span></span>
+<span><span class="co">#&gt;   &lt;mosqProbResting mean="0.99" variance="0"/&gt;</span></span>
+<span><span class="co">#&gt;   &lt;mosqProbOvipositing mean="0.88"/&gt;</span></span>
+<span><span class="co">#&gt;   &lt;mosqHumanBloodIndex mean="0.670720617095951"/&gt;</span></span>
+<span><span class="co">#&gt; &lt;/mosq&gt; </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $nonHumanHosts_snippet</span></span>
+<span><span class="co">#&gt; &lt;nonHumanHosts name="unprotectedAnimals"&gt;</span></span>
+<span><span class="co">#&gt;   &lt;mosqRelativeEntoAvailability value="1"/&gt;</span></span>
+<span><span class="co">#&gt;   &lt;mosqProbBiting value="0.95"/&gt;</span></span>
+<span><span class="co">#&gt;   &lt;mosqProbFindRestSite value="0.95"/&gt;</span></span>
+<span><span class="co">#&gt;   &lt;mosqProbResting value="0.99"/&gt;</span></span>
+<span><span class="co">#&gt; &lt;/nonHumanHosts&gt;</span></span></code></pre></div>
 <p>To generate the <code>&lt;GVI&gt;</code> snippets with deterrency, pre- and post-prandial effects of interventions, a set of 7 decay functions are fitted to the time series with intervention effects calculated previously with <code><a href="../reference/def_interventions_effects.html">def_interventions_effects()</a></code> and the best fit is chosen. The package also produces visualizations of the different decay fits. For a detailed description of the fitted decay functions, check the <a href="https://github.com/SwissTPH/openmalaria/wiki/ModelDecayFunctions" class="external-link">description in the OpenMalaria wiki</a>.</p>
 <div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
-<code class="sourceCode R">
-<span class="va">GVI_snippets</span> <span class="op">=</span> <span class="fu"><a href="../reference/get_OM_GVI_snippet.html">get_OM_GVI_snippet</a></span><span class="op">(</span><span class="st">"Anopheles example"</span>, <span class="va">impacts</span><span class="op">$</span><span class="va">interventions_vec</span><span class="op">$</span><span class="va">LLINs_example</span>,
-                    <span class="fl">100</span>, plot_f <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>
-<span class="co">#&gt; [1] "Creating snippet for deterrency"</span></code></pre></div>
+<code class="sourceCode R"><span></span>
+<span><span class="va">GVI_snippets</span> <span class="op">=</span> <span class="fu"><a href="../reference/get_OM_GVI_snippet.html">get_OM_GVI_snippet</a></span><span class="op">(</span><span class="st">"Anopheles example"</span>, <span class="va">impacts</span><span class="op">$</span><span class="va">interventions_vec</span><span class="op">$</span><span class="va">LLINs_example</span>,</span>
+<span>                    <span class="fl">100</span>, plot_f <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "Creating snippet for deterrency"</span></span>
+<span><span class="co">#&gt; [1] "Exponential decay fitted successfully."</span></span>
+<span><span class="co">#&gt; [1] "Weibull decay fitted successfully."</span></span>
+<span><span class="co">#&gt; [1] "Hill decay fitted successfully."</span></span>
+<span><span class="co">#&gt; [1] "Linear decay fitted successfully."</span></span>
+<span><span class="co">#&gt; [1] "Smooth-compact decay fitted successfully."</span></span></code></pre></div>
 <p><img src="AnophelesModel_files/figure-html/unnamed-chunk-33-1.png" width="1093.75"></p>
-<pre><code><span class="co">#&gt; [1] "Best decay fit:"</span>
-<span class="co">#&gt; $decay</span>
-<span class="co">#&gt; [1] "Weibull"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $RSS</span>
-<span class="co">#&gt; [1] 0.0001349526</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $params</span>
-<span class="co">#&gt;         a         L         k </span>
-<span class="co">#&gt; 0.7954385 8.7559914 0.7016281 </span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; [1] "Creating snippet for preprandial killing"</span></code></pre>
+<pre><code><span><span class="co">#&gt; [1] "Best decay fit:"</span></span>
+<span><span class="co">#&gt; $decay</span></span>
+<span><span class="co">#&gt; [1] "Weibull"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $RSS</span></span>
+<span><span class="co">#&gt; [1] 0.0001349526</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $params</span></span>
+<span><span class="co">#&gt;         a         L         k </span></span>
+<span><span class="co">#&gt; 0.7954385 8.7559914 0.7016281 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [1] "Creating snippet for preprandial killing"</span></span>
+<span><span class="co">#&gt; [1] "Exponential decay fitted successfully."</span></span>
+<span><span class="co">#&gt; [1] "Weibull decay fitted successfully."</span></span>
+<span><span class="co">#&gt; [1] "Hill decay fitted successfully."</span></span>
+<span><span class="co">#&gt; [1] "Linear decay fitted successfully."</span></span>
+<span><span class="co">#&gt; [1] "Smooth-compact decay fitted successfully."</span></span></code></pre>
 <p><img src="AnophelesModel_files/figure-html/unnamed-chunk-33-2.png" width="1093.75"></p>
-<pre><code><span class="co">#&gt; [1] "Best decay fit:"</span>
-<span class="co">#&gt; $decay</span>
-<span class="co">#&gt; [1] "Weibull"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $RSS</span>
-<span class="co">#&gt; [1] 0.0007299102</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $params</span>
-<span class="co">#&gt;         a         L         k </span>
-<span class="co">#&gt; 0.9901066 1.8670517 1.7217937 </span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; [1] "Creating snippet for postprandial killing"</span></code></pre>
+<pre><code><span><span class="co">#&gt; [1] "Best decay fit:"</span></span>
+<span><span class="co">#&gt; $decay</span></span>
+<span><span class="co">#&gt; [1] "Weibull"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $RSS</span></span>
+<span><span class="co">#&gt; [1] 0.0007299102</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $params</span></span>
+<span><span class="co">#&gt;         a         L         k </span></span>
+<span><span class="co">#&gt; 0.9901066 1.8670517 1.7217937 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [1] "Creating snippet for postprandial killing"</span></span>
+<span><span class="co">#&gt; [1] "Exponential decay fitted successfully."</span></span>
+<span><span class="co">#&gt; [1] "Weibull decay fitted successfully."</span></span>
+<span><span class="co">#&gt; [1] "Hill decay fitted successfully."</span></span>
+<span><span class="co">#&gt; [1] "Linear decay fitted successfully."</span></span>
+<span><span class="co">#&gt; [1] "Smooth-compact decay fitted successfully."</span></span></code></pre>
 <p><img src="AnophelesModel_files/figure-html/unnamed-chunk-33-3.png" width="1093.75"></p>
-<pre><code><span class="co">#&gt; [1] "Best decay fit:"</span>
-<span class="co">#&gt; $decay</span>
-<span class="co">#&gt; [1] "Weibull"</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $RSS</span>
-<span class="co">#&gt; [1] 0.0004681643</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; $params</span>
-<span class="co">#&gt;         a         L         k </span>
-<span class="co">#&gt; 0.6570024 1.3772267 1.0142439</span></code></pre>
+<pre><code><span><span class="co">#&gt; [1] "Best decay fit:"</span></span>
+<span><span class="co">#&gt; $decay</span></span>
+<span><span class="co">#&gt; [1] "Weibull"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $RSS</span></span>
+<span><span class="co">#&gt; [1] 0.0004681643</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $params</span></span>
+<span><span class="co">#&gt;         a         L         k </span></span>
+<span><span class="co">#&gt; 0.6570024 1.3772267 1.0142439</span></span></code></pre>
 </div>
 <div class="section level2 unnumbered">
 <h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
@@ -892,7 +907,7 @@ Stein, Michael. 1987. <span>“Large Sample Properties of Simulations Using Lati
 
 <div class="pkgdown">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer>

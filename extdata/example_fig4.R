@@ -62,14 +62,16 @@ plot_df[which(plot_df$setting == "PNG"), "setting"] = "Papua New Guinea"
 
 plot_df$setting = factor(plot_df$setting, levels = c("Papua New Guinea", "Kenya"))
 
-ggplot(plot_df, aes(x = as.Date(date), y = mean_prev*100, color = setting)) + 
+ggplot(plot_df, aes(x = as.Date(date), y = mean_prev*100, color = setting)) +
   theme_light() + theme_linedraw() + theme_bw(base_size = 16) +
   geom_ribbon(aes(ymin = (mean_prev - sd_prev)*100, ymax = (mean_prev - sd_prev)*100 + 1,
                   fill = setting, alpha = 0.5, color = NULL), show.legend = FALSE) +
+    geom_vline(xintercept = as.Date("2000-01-01"), color = "black", linetype = "dashed") +
   labs(x = "Time", y="Prevalence (%)") +
-  scale_color_manual(values = c("#fd8d3c", "#74c476")) +
+  scale_color_manual(values = c("#74c476", "#c51b8a")) +
+    scale_fill_manual(values = c("#74c476", "#c51b8a")) +
   labs(color = "Setting") + theme(legend.position = "top") +
-  geom_line() 
+  geom_line()
 
 ggsave("~/paper_AnophelesModel/Figures/Fig4.pdf", width = 8, height = 4)
 

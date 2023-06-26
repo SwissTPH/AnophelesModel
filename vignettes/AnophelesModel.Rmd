@@ -76,8 +76,8 @@ These probabilities (represented by the arrows in the diagram above)
 are in turn affected by mosquito ecology, human behavior 
 and interventions as described in the following sections of this vignette. 
 
-The present document provides information about the various use-cases of the
-package with examples. First, it provides an overview of the general 
+This documentation provides information about the various use-cases of the
+package with examples. First, it gives an overview of the general 
 analysis workflow. Next, it presents the contents of the
 package database and its data objects. Finally, it provides more detailed 
 example use cases of the package functions. These examples include how to 
