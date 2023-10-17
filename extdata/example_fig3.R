@@ -1,6 +1,8 @@
 ###############################
-# Script for generating Fig. 3 which presents the impact on vectorial capacity
-# as well as integration with OpenMalaria
+# Script for generating Fig. 3 which presents the decay of intervention effects
+# for LLIN in PNG and KEN as well as corresponding reduction in vectorial capacity.
+# This script also generates the GVI snippets to be used for parameterising OpenMalaria.
+#
 # monica.golumbeanu@unibas.ch
 # 22.08.2022
 ##############################
@@ -163,6 +165,6 @@ p_vc = ggplot(impact_df, aes(x = intervention_coverage, y = intervention_impact*
                 labs(x = "Coverage", y="Mean reduction in\nvectorial capacity (%)")
 
 p_fig3 = ggarrange(plotlist = list(p_effects, p_vc), ncol = 1, nrow = 2, labels = c("A", "B"))
-ggsave("~/paper_AnophelesModel/Figures/Fig3.pdf", width = 8, height = 7)
+# ggsave("~/paper_AnophelesModel/Figures/Fig3.pdf", width = 8, height = 7)
 
 

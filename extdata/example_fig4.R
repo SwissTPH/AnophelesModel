@@ -1,5 +1,6 @@
 #################################
 # Example script for downstream analysis using the postprocessed simulation outputs
+# This script generates Figure 4 from the paper.
 #
 # 10.11.2022
 # monica.golumbeanu@unibas.ch
@@ -8,12 +9,22 @@ library(RSQLite)
 library(magrittr)
 library(dplyr)
 library(ggplot2)
+library(lubridate)
+####################
+# PART TO BE SPECIFIED BY THE USER
+# The file paths are relative to the "extdata/om_data/" directory of the AnophelesModel git repository
+# This working directory needs to be specified for each user as it depends on their system
+working_dir = "~/GitRepos/STPHrepos/AnophelesModel/extdata/om_data/"
+# Folder where the generated figure should be saved
+out_dir = "~/paper_AnophelesModel/Figures/"
+#####################
+
 
 # Define database file path
-db_exp_KEN = "/scicore/home/pothin/golmon00/OpenMalaria/AnophelesModel/KEN.sqlite"
-db_exp_PNG = "/scicore/home/pothin/golmon00/OpenMalaria/AnophelesModel/PNG.sqlite"
-scens_KEN = readRDS("/scicore/home/pothin/golmon00/OpenMalaria/AnophelesModel/KEN/cache/scenarios.rds")
-scens_PNG = readRDS("/scicore/home/pothin/golmon00/OpenMalaria/AnophelesModel/PNG/cache/scenarios.rds")
+db_exp_KEN = paste0(working_dir, "KEN.sqlite")
+db_exp_PNG = paste0(working_dir, "PNG.sqlite")
+scens_KEN = readRDS(paste0(working_dir, "scenarios_KEN.rds"))
+scens_PNG = readRDS(paste0(working_dir, "scenarios_PNG.rds"))
 
 # Read the results table from the database:
 # open database connection:
@@ -62,16 +73,20 @@ plot_df[which(plot_df$setting == "PNG"), "setting"] = "Papua New Guinea"
 
 plot_df$setting = factor(plot_df$setting, levels = c("Papua New Guinea", "Kenya"))
 
+# Make the dates relevant for the present time
+plot_df$date = as.Date(plot_df$date) %m+% years(23)
+
 ggplot(plot_df, aes(x = as.Date(date), y = mean_prev*100, color = setting)) +
   theme_light() + theme_linedraw() + theme_bw(base_size = 16) +
   geom_ribbon(aes(ymin = (mean_prev - sd_prev)*100, ymax = (mean_prev - sd_prev)*100 + 1,
                   fill = setting, alpha = 0.5, color = NULL), show.legend = FALSE) +
-    geom_vline(xintercept = as.Date("2000-01-01"), color = "black", linetype = "dashed") +
-  labs(x = "Time", y="Prevalence (%)") +
+    geom_vline(xintercept = as.Date("2023-01-01"), color = "black", linetype = "dashed") +
+  labs(x = "Time since LLIN deployment (years)", y="Prevalence (%)") +
   scale_color_manual(values = c("#74c476", "#c51b8a")) +
     scale_fill_manual(values = c("#74c476", "#c51b8a")) +
+    scale_x_date(date_breaks = "4 years",date_labels = "%Y")+
   labs(color = "Setting") + theme(legend.position = "top") +
   geom_line()
 
-ggsave("~/paper_AnophelesModel/Figures/Fig4.pdf", width = 8, height = 4)
+ggsave(paste0(out_dir, "Fig4.pdf"), width = 8, height = 4)
 

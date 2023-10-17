@@ -1,5 +1,5 @@
 ###############################
-# Script for generating Fig. 1 which describes the heterogeneity of bionomics,
+# Script for generating Fig. 2 which describes the heterogeneity of bionomics,
 # mosquito biting and intervention effects and emphasizes the need of a
 # way to incorporate those when estimating the effect of vector control
 #
@@ -13,6 +13,7 @@ library(tidyr)
 library(reshape2)
 library(stringr)
 library(ggpubr)
+library(reporter)
 
 plot_activities_human = function(country, id_tab, act_file) {
 
@@ -200,8 +201,9 @@ nets_prop_Kenya = nets_prop_Kenya %>% filter(Parameter != "SD of log transformed
 nets_prop_Kenya = nets_prop_Kenya %>% filter(Net_Type != "PermaNet 3.0")
 nets_prop_Kenya$L95 = pmax(nets_prop_Kenya$L95, 0)
 nets_prop_Kenya = nets_prop_Kenya %>% filter(Semester < 7)
-nets_prop_Kenya[which(nets_prop_Kenya$Parameter == "Mean of log transformed holed area"), "Title"] = "Mean LLIN log holed area"
-nets_prop_Kenya[which(nets_prop_Kenya$Parameter == "Survival"), "Title"] = "LLIN survival"
+title_area = paste0("Mean LLIN log holed area (cm" %p% supsc("2"), ")")
+nets_prop_Kenya[which(nets_prop_Kenya$Parameter == "Mean of log transformed holed area"), "Title"] = title_area
+nets_prop_Kenya[which(nets_prop_Kenya$Parameter == "Survival"), "Title"] = "LLIN survival (% remaining nets)"
 
 p_net_decay_country = ggplot(nets_prop_Kenya, aes(x = Semester, y = Value, fill = Net_Type)) +
     geom_bar(stat = "identity", position = position_dodge(width=0.9)) +
@@ -216,4 +218,6 @@ p_net_decay_country = ggplot(nets_prop_Kenya, aes(x = Semester, y = Value, fill 
     labs(fill = "LLIN type")
 
 p_fig2 = ggarrange(plotlist = list(p_bio, p_act, p_net_decay_country), ncol = 1, nrow = 3, labels = c("A", "B", "D"))
-ggsave("~/paper_AnophelesModel/Figures/Fig2.pdf", width = 11, height = 9)
+
+# To modify ouptut folder accordingly
+# ggsave("~/paper_AnophelesModel/Figures/Fig2.pdf", width = 11, height = 9)
