@@ -22,9 +22,6 @@ help prioritizing interventions according to local entomological
 characteristics.
 }
 
-\references{
-
-}
 \author{
 Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
 

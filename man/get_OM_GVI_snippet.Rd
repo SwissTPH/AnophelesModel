@@ -22,9 +22,6 @@ Precisely, it creates the <mosq> element containing
 parameters describing the mosquito life cycle, as well as the <nonHumanHosts>
 element with parameters specific to animal hosts.
 }
-\examples{
-
-}
 \references{
 TO DO
 }

@@ -49,9 +49,6 @@ object with the following attributes (columns = different coverages):
 proportion by which vectorial capacity is reduced when an intervention is
 deployed to a cohort of humans at a given time point
 }
-\examples{
-
-}
 \author{
 Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
 

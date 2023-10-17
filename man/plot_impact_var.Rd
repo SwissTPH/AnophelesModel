@@ -17,9 +17,6 @@ plot object
 \description{
 \code{plot_impact_var}
 }
-\examples{
-
-}
 \author{
 Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
 }

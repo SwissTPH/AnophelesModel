@@ -201,7 +201,7 @@ get_net_types = function() {
 #'
 #'
 #' @examples
-#' net_insecticide_types = get_net_insecticide_types()
+#' net_insecticide_types = get_net_insecticides()
 #' print(net_insecticide_types)
 #'
 #' @export
@@ -285,8 +285,6 @@ get_net_decay = function(net_type, country, insecticide_type, n_ips, duration){
 #' @references TO DO
 #'
 #' @examples
-#' net_surv = get_net_survival_and_holed_area()
-#' print(net_surv)
 #'
 #' @export
 #'

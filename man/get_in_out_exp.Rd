@@ -34,11 +34,6 @@ exposure in the absence of interventions.
 \code{get_in_out_exp} This function can be
 used to calculate indoor and outdoor exposure to biting.
 }
-\examples{
-net_surv = get_net_survival_and_holed_area()
-print(net_surv)
-
-}
 \references{
 TO DO
 }

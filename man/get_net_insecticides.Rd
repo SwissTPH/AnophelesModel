@@ -15,7 +15,7 @@ available LLIN insecticide types
 available within the \code{AnophelesModel} database.
 }
 \examples{
-net_insecticide_types = get_net_insecticide_types()
+net_insecticide_types = get_net_insecticides()
 print(net_insecticide_types)
 
 }

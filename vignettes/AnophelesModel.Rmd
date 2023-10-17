@@ -624,7 +624,7 @@ been used to estimate the confidence intervals of the vectorial capacity:
 ```{r, dpi=150, fig.cap="Impact of interventions on vectorial capacity including the variability in the entomological parameters specific to the mosquito species."}
 impact_gambiae = calculate_impact_var(mosquito_species = "Anopheles gambiae",
                                         activity_patterns = "default_Anopheles_gambiae",
-                                        interventions = intervention_vec,
+                                        interventions = intervention_obj_examples,
                                         n_sample_points = 10,
                                         plot_result = FALSE)
 plot_impact_var("Anopheles gambiae", impact_gambiae)

@@ -10,6 +10,8 @@ To install the package:
 ```{r}
 devtools::install_github("SwissTPH/AnophelesModel", build_vignettes = TRUE)
 ```
+IMPORTANT: To be able to build the vignette during package installation, you need to have the following packages installed: DiagrammeR, ggpubr, and Hmisc.
+
 A documentation describing the package use cases and functions is available [here](https://swisstph.github.io/AnophelesModel/articles/AnophelesModel.html) and can also be accessed using the following R command:
 ```{r}
 browseVignettes(AnophelesModel)

@@ -24,9 +24,6 @@ exposure multiplier value to be used for adjusting averted exposure
 the proportion of averted exposure to adjust for
 depending on the human location importance for intervention impact
 }
-\examples{
-
-}
 \references{
 TO DO
 }

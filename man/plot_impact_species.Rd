@@ -17,9 +17,6 @@ plot object
 \description{
 \code{plot_impact_species}
 }
-\examples{
-
-}
 \references{
 TO DO
 }
