@@ -38,9 +38,6 @@ parameters and impact (vectorial capacity) values
 proportion by which vectorial capacity is reduced for each of a list of interventions
 when deployed to a cohort of humans
 }
-\examples{
-
-}
 \references{
 TO DO
 }

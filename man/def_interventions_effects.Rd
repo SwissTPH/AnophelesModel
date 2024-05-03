@@ -132,9 +132,6 @@ adjusted according to the mosquito bionomics,
 activity patterns of mosquitoes and humans, as well as
 human exposure to mosquitoes.
 }
-\examples{
-
-}
 \author{
 Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
 }

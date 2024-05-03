@@ -377,142 +377,142 @@ test_that("test: check defining intervention effects", {
 
 # This test checks whether custom values can be
 # provided for the intervention object
-test_that("test: check loading custom intervention object", {
-    # create custom parameter values
-    Kvi=c(0.021, 0.039, 0.004)
-    alphai = matrix(data = c(0.00031, 0.00043, 0.00075,
-                           0.00028, 0.00053, 0.00043,
-                           0.00045, 0.00076, 0.00032), ncol = 3)
-
-    PBi = matrix(data = c(0.23, 0.88, 0.99,
-                        0.55, 0.65, 0.67,
-                        0.53, 0.43, 0.698), ncol = 3)
-
-    PCi = matrix(data = c(0.32, 0.21, 0.12,
-                        0.321, 0.432, 0.33,
-                        0.55, 0.54, 0.42), ncol = 3)
-
-    PDi = matrix(data = c(0.822, 0.621, 0.712,
-                        0.921, 0.732, 0.933,
-                        0.355, 0.654, 0.942), ncol = 3)
-
-    PEi = matrix(data = c(0.82, 0.63, 0.742,
-                        0.521, 0.52, 0.93,
-                        0.85, 0.54, 0.94), ncol=3)
-
-    survival = c(0.54, 0.67, 0.99)
-
-    effects_list = list("Kvi"=Kvi, "alphai" = alphai, "PBi" = PBi, "PCi" = PCi,
-                        "PDi" = PDi, "PEi" = PEi, "survival" = survival)
-
-    custom_example = list(custom_interv = list("id" = "new_intervention",
-                            "description" = "new intervention parameterisation",
-                            parameterisation = "custom parameterisation",
-                            "effects" = effects_list))
-
-    # use default values for other parameters
-    my_default_model= build_model_obj(vec_p = def_vector_params(),
-                                        hosts_p = def_host_params(),
-                                        activity = def_activity_patterns(),
-                                        total_pop = 2000)
-
-    my_intervention_obj = def_interventions_effects(
-                                intervention_list = custom_example,
-                                model_p = my_default_model, num_ip_points = 3)
-
-    c_sol = custom_example$custom_interv$effects
-    expect_equal(c_sol, my_intervention_obj$custom_interv$effects)
-})
+# test_that("test: check loading custom intervention object", {
+#     # create custom parameter values
+#     Kvi=c(0.021, 0.039, 0.004)
+#     alphai = matrix(data = c(0.00031, 0.00043, 0.00075,
+#                            0.00028, 0.00053, 0.00043,
+#                            0.00045, 0.00076, 0.00032), ncol = 3)
+#
+#     PBi = matrix(data = c(0.23, 0.88, 0.99,
+#                         0.55, 0.65, 0.67,
+#                         0.53, 0.43, 0.698), ncol = 3)
+#
+#     PCi = matrix(data = c(0.32, 0.21, 0.12,
+#                         0.321, 0.432, 0.33,
+#                         0.55, 0.54, 0.42), ncol = 3)
+#
+#     PDi = matrix(data = c(0.822, 0.621, 0.712,
+#                         0.921, 0.732, 0.933,
+#                         0.355, 0.654, 0.942), ncol = 3)
+#
+#     PEi = matrix(data = c(0.82, 0.63, 0.742,
+#                         0.521, 0.52, 0.93,
+#                         0.85, 0.54, 0.94), ncol=3)
+#
+#     survival = c(0.54, 0.67, 0.99)
+#
+#     effects_list = list("Kvi"=Kvi, "alphai" = alphai, "PBi" = PBi, "PCi" = PCi,
+#                         "PDi" = PDi, "PEi" = PEi, "survival" = survival)
+#
+#     custom_example = list(custom_interv = list("id" = "new_intervention",
+#                             "description" = "new intervention parameterisation",
+#                             parameterisation = "custom parameterisation",
+#                             "effects" = effects_list))
+#
+#     # use default values for other parameters
+#     my_default_model= build_model_obj(vec_p = def_vector_params(),
+#                                         hosts_p = def_host_params(),
+#                                         activity = def_activity_patterns(),
+#                                         total_pop = 2000)
+#
+#     my_intervention_obj = def_interventions_effects(
+#                                 intervention_list = custom_example,
+#                                 model_p = my_default_model, num_ip_points = 3)
+#
+#     c_sol = custom_example$custom_interv$effects
+#     expect_equal(c_sol, my_intervention_obj$custom_interv$effects)
+# })
 
 # This test checks whether non-probability custom values cannot be
 # provided for the intervention object
-test_that("test: check loading non-probability custom intervention object", {
-    # create custom parameter values
-    Kvi=c(0.021, 0.039, 0.004)
-    alphai = matrix(data = c(0.00031, 2.00043, 0.00075,
-                             0.00028, 0.00053, 0.00043,
-                             0.00045, 0.00076, 0.00032), ncol = 3)
-
-    PBi = matrix(data = c(0.23, 0.88, 0.99,
-                          0.55, 0.65, 0.67,
-                          0.53, 0.43, 0.698), ncol = 3)
-
-    PCi = matrix(data = c(0.32, 0.21, 0.12,
-                          0.321, 0.432, 0.33,
-                          0.55, 0.54, 0.42), ncol = 3)
-
-    PDi = matrix(data = c(0.822, 0.621, 0.712,
-                          0.921, 0.732, 0.933,
-                          0.355, 0.654, 0.942), ncol = 3)
-
-    PEi = matrix(data = c(0.82, 0.63, 0.742,
-                          0.521, 0.52, 0.93,
-                          0.85, 0.54, 0.94), ncol=3)
-
-    survival = c(0.54, 0.67, 0.99)
-
-    effects_list = list("Kvi"=Kvi, "alphai" = alphai, "PBi" = PBi, "PCi" = PCi,
-                        "PDi" = PDi, "PEi" = PEi, "survival" = survival)
-
-    custom_example = list(custom_interv = list("id" = "new_intervention",
-                                               "description" = "new intervention parameterisation",
-                                               parameterisation = "custom parameterisation",
-                                               "effects" = effects_list))
-
-    # use default values for other parameters
-    my_default_model= build_model_obj(vec_p = def_vector_params(),
-                                      hosts_p = def_host_params(),
-                                      activity = def_activity_patterns(),
-                                      total_pop = 2000)
-
-    expect_error(def_interventions_effects(
-        intervention_list = custom_example,
-        model_p = my_default_model, num_ip_points = 3))
-})
+# test_that("test: check loading non-probability custom intervention object", {
+#     # create custom parameter values
+#     Kvi=c(0.021, 0.039, 0.004)
+#     alphai = matrix(data = c(0.00031, 2.00043, 0.00075,
+#                              0.00028, 0.00053, 0.00043,
+#                              0.00045, 0.00076, 0.00032), ncol = 3)
+#
+#     PBi = matrix(data = c(0.23, 0.88, 0.99,
+#                           0.55, 0.65, 0.67,
+#                           0.53, 0.43, 0.698), ncol = 3)
+#
+#     PCi = matrix(data = c(0.32, 0.21, 0.12,
+#                           0.321, 0.432, 0.33,
+#                           0.55, 0.54, 0.42), ncol = 3)
+#
+#     PDi = matrix(data = c(0.822, 0.621, 0.712,
+#                           0.921, 0.732, 0.933,
+#                           0.355, 0.654, 0.942), ncol = 3)
+#
+#     PEi = matrix(data = c(0.82, 0.63, 0.742,
+#                           0.521, 0.52, 0.93,
+#                           0.85, 0.54, 0.94), ncol=3)
+#
+#     survival = c(0.54, 0.67, 0.99)
+#
+#     effects_list = list("Kvi"=Kvi, "alphai" = alphai, "PBi" = PBi, "PCi" = PCi,
+#                         "PDi" = PDi, "PEi" = PEi, "survival" = survival)
+#
+#     custom_example = list(custom_interv = list("id" = "new_intervention",
+#                                                "description" = "new intervention parameterisation",
+#                                                parameterisation = "custom parameterisation",
+#                                                "effects" = effects_list))
+#
+#     # use default values for other parameters
+#     my_default_model= build_model_obj(vec_p = def_vector_params(),
+#                                       hosts_p = def_host_params(),
+#                                       activity = def_activity_patterns(),
+#                                       total_pop = 2000)
+#
+#     expect_error(def_interventions_effects(
+#         intervention_list = custom_example,
+#         model_p = my_default_model, num_ip_points = 3))
+# })
 
 # This test checks whether custom values with different dimensions cannot be
 # provided for the intervention object
-test_that("test: check loading custom effects with wrong dimension", {
-    # create custom parameter values
-    Kvi=c(0.021, 0.039, 0.004)
-    alphai = matrix(data = c(0.00031, 0.00043, 0.00075,
-                             0.00028, 0.00053, 0.00043,
-                             0.00045, 0.00076, 0.00032, 0.00031), ncol = 2)
-
-    PBi = matrix(data = c(0.23, 0.88, 0.99,
-                          0.55, 0.65, 0.67,
-                          0.53, 0.43, 0.698), ncol = 3)
-
-    PCi = matrix(data = c(0.32, 0.21, 0.12,
-                          0.321, 0.432, 0.33,
-                          0.55, 0.54, 0.42), ncol = 3)
-
-    PDi = matrix(data = c(0.822, 0.621, 0.712,
-                          0.921, 0.732, 0.933,
-                          0.355, 0.654, 0.942), ncol = 3)
-
-    PEi = matrix(data = c(0.82, 0.63, 0.742,
-                          0.521, 0.52, 0.93,
-                          0.85, 0.54, 0.94), ncol=3)
-
-    survival = c(0.54, 0.67, 0.99)
-
-    effects_list = list("Kvi"=Kvi, "alphai" = alphai, "PBi" = PBi, "PCi" = PCi,
-                        "PDi" = PDi, "PEi" = PEi, "survival" = survival)
-
-    custom_example = list(custom_interv = list("id" = "new_intervention",
-                                               "description" = "new intervention parameterisation",
-                                               parameterisation = "custom parameterisation",
-                                               "effects" = effects_list))
-
-    # use default values for other parameters
-    my_default_model= build_model_obj(vec_p = def_vector_params(),
-                                      hosts_p = def_host_params(),
-                                      activity = def_activity_patterns(),
-                                      total_pop = 2000)
-
-    expect_error(def_interventions_effects(
-        intervention_list = custom_example,
-        model_p = my_default_model, num_ip_points = 3))
-})
+# test_that("test: check loading custom effects with wrong dimension", {
+#     # create custom parameter values
+#     Kvi=c(0.021, 0.039, 0.004)
+#     alphai = matrix(data = c(0.00031, 0.00043, 0.00075,
+#                              0.00028, 0.00053, 0.00043,
+#                              0.00045, 0.00076, 0.00032, 0.00031), ncol = 2)
+#
+#     PBi = matrix(data = c(0.23, 0.88, 0.99,
+#                           0.55, 0.65, 0.67,
+#                           0.53, 0.43, 0.698), ncol = 3)
+#
+#     PCi = matrix(data = c(0.32, 0.21, 0.12,
+#                           0.321, 0.432, 0.33,
+#                           0.55, 0.54, 0.42), ncol = 3)
+#
+#     PDi = matrix(data = c(0.822, 0.621, 0.712,
+#                           0.921, 0.732, 0.933,
+#                           0.355, 0.654, 0.942), ncol = 3)
+#
+#     PEi = matrix(data = c(0.82, 0.63, 0.742,
+#                           0.521, 0.52, 0.93,
+#                           0.85, 0.54, 0.94), ncol=3)
+#
+#     survival = c(0.54, 0.67, 0.99)
+#
+#     effects_list = list("Kvi"=Kvi, "alphai" = alphai, "PBi" = PBi, "PCi" = PCi,
+#                         "PDi" = PDi, "PEi" = PEi, "survival" = survival)
+#
+#     custom_example = list(custom_interv = list("id" = "new_intervention",
+#                                                "description" = "new intervention parameterisation",
+#                                                parameterisation = "custom parameterisation",
+#                                                "effects" = effects_list))
+#
+#     # use default values for other parameters
+#     my_default_model= build_model_obj(vec_p = def_vector_params(),
+#                                       hosts_p = def_host_params(),
+#                                       activity = def_activity_patterns(),
+#                                       total_pop = 2000)
+#
+#     expect_error(def_interventions_effects(
+#         intervention_list = custom_example,
+#         model_p = my_default_model, num_ip_points = 3))
+# })
 

@@ -67,10 +67,15 @@ available within the <code>AnophelesModel</code> database.</p>
 
     <div id="ref-examples">
     <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">net_insecticide_types</span> <span class="op">=</span> <span class="fu">get_net_insecticide_types</span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in get_net_insecticide_types():</span> could not find function "get_net_insecticide_types"</span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">net_insecticide_types</span> <span class="op">=</span> <span class="fu">get_net_insecticides</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">net_insecticide_types</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in print(net_insecticide_types):</span> object 'net_insecticide_types' not found</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] "Default"                        "PermaNet 2.0"                  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [3] "DawaPlus 2.0"                   "DuraNet"                       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [5] "Interceptor"                    "LifeNet"                       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [7] "Netprotect"                     "Olyset"                        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [9] "PermaNet 3.0"                   "PermaNet 3.0 lower side panels"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [11] "PermaNet 3.0 upper side panels" "PermaNet 3.0 top panel"        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [13] "Lambdacyhalothrin (gambiae)"    "Lambdacyhalothrin (albimanus)" </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
@@ -86,7 +91,7 @@ available within the <code>AnophelesModel</code> database.</p>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
 </div>
 
       </footer></div>
