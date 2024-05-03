@@ -81,7 +81,7 @@ ggplot(plot_df, aes(x = as.Date(date), y = mean_prev*100, color = setting)) +
   geom_ribbon(aes(ymin = (mean_prev - sd_prev)*100, ymax = (mean_prev - sd_prev)*100 + 1,
                   fill = setting, alpha = 0.5, color = NULL), show.legend = FALSE) +
     geom_vline(xintercept = as.Date("2023-01-01"), color = "black", linetype = "dashed") +
-  labs(x = "Time since LLIN deployment (years)", y="Prevalence (%)") +
+  labs(x = "Time (years)", y="Prevalence (%)") +
   scale_color_manual(values = c("#74c476", "#c51b8a")) +
     scale_fill_manual(values = c("#74c476", "#c51b8a")) +
     scale_x_date(date_breaks = "4 years",date_labels = "%Y")+
