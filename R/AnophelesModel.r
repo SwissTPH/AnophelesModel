@@ -258,7 +258,7 @@ calculate_impact_var = function(mosquito_species = "Anopheles gambiae",
         model_obj = build_model_obj(vec_obj, host_obj, activity_obj, total_pop)
         # Define interventions array
         interventions_vec = def_interventions_effects(interventions, model_obj,
-                                                     n_time_points, FALSE)
+                                                      n_time_points, FALSE, NULL)
         # Calculate impact
         impact_obj = calculate_impact(interventions_vec, coverage_vec,
                                       model_obj, n_vec, n_time_points)
@@ -496,7 +496,7 @@ AnophelesModel = function(mosquito_species = "Anopheles gambiae",
     # consecutive stages of the mosquito oviposition cycle
     print("Defining interventions effects ...")
     intervention_vec = def_interventions_effects(interventions, model_params,
-                                                 n_time_points)
+                                                 n_time_points, FALSE, NULL)
 
     # Calculate intervention impact
     print("Calculating interventions impact ...")

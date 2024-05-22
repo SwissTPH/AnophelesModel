@@ -470,9 +470,9 @@ build_model_obj = function(vec_p, hosts_p, activity, total_pop) {
 #'
 #' @export
 #'
-def_interventions_effects = function(intervention_list,
-                                        model_p, num_ip_points = 100,
-                                        verbose = TRUE) {
+def_interventions_effects = function(intervention_list, model_p,
+                                     num_ip_points = 100, verbose = TRUE,
+                                     specified_multiplier = NULL) {
     # Check if inputs were provided
     assertList(intervention_list, min.len = 1)
     assertList(model_p, len = 4)
@@ -513,7 +513,8 @@ def_interventions_effects = function(intervention_list,
             }
             int_obj = calc_interv_effects_db(interv_obj = int_obj,
                                              model_p = model_p,
-                                             ip = num_ip_points)
+                                             ip = num_ip_points,
+                                             specified_multiplier = specified_multiplier)
             intervention_list[[i]] = int_obj
         } else {
             err_msg = paste("Error defining intervention effects",
