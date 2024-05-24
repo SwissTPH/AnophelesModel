@@ -106,7 +106,7 @@ intervention_effects_vec_stephensi <- def_interventions_effects(intervention_lis
                                                                 verbose = TRUE,
                                                                 specified_multiplier = NULL)
 
-# Calculate the impact of interventions using the custom biting patterns.
+# Calculate and plot the impact of interventions using the custom biting patterns.
 impacts_gambiae <- calculate_impact(interventions_vec = intervention_effects_vec_gambiae,
                                     coverage_vec = coverages,
                                     model_p = my_default_model_gambiae,
@@ -117,8 +117,6 @@ impacts_stephensi <- calculate_impact(interventions_vec = intervention_effects_v
                                       model_p = my_default_model_stephensi,
                                       Nv0 = vec_pop,
                                       num_ip_points = n_ip)
-
-# Plot the impact for both species.
 plot_impact_species(impacts_gambiae, "VC_red")
 plot_impact_species(impacts_stephensi, "VC_red")
 
