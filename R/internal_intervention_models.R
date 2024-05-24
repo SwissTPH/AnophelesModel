@@ -9,7 +9,7 @@
 # This code generates the interpolation points for the decays for each parameter
 # but differs from the original implementation (for the Albimanus paper) in not
 # making use of the vector_specific_parameter vector or Pii
-calc_IRS_p = function(int_obj, vec_params, int_host, activity_cycles, nips) {
+calc_IRS_p = function(int_obj, vec_params, int_host, activity_cycles, nips, specified_multiplier = NULL) {
     print("IRS")
     IRS_models_params = interventions_param$IRS_params
     int_summary = interventions_param$interventions_summary
