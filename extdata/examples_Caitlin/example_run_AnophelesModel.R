@@ -12,6 +12,7 @@ rm(list = ls())
 # Load packages.
 library(AnophelesModel)
 library(dplyr)
+library(ggplot2)
 
 # Filter for activity patterns in Kenya.
 activity_kenya <- activity_patterns %>% filter(country == "Kenya")
@@ -62,10 +63,10 @@ activity_p_gambiae$humans_in_bed <- c(0.00000000, 0.22713330, 0.66663330, 1.0000
 # Input HBI and HBO data for Anopheles stephensi based on the species' activity patterns in Goa, India.
 # Assume that the species' biting behaviour in Africa (Kenya) is similar to that exhibited in Asia (India).
 # Use data for 18:00 to 06:00.
-activity_p_stephensi$HBI <- c(0.273, 0.25475, 0.2365, 0.21825, 0.2, 0.17725, 0.1545,
-                              0.13175, 0.109, 0.18625, 0.2635, 0.34075, 0.418)
-activity_p_stephensi$HBO <- c(0.727, 0.74525, 0.7635, 0.78175, 0.8, 0.82275, 0.8455,
-                              0.86825, 0.891, 0.81375, 0.7365, 0.65925, 0.582)
+activity_p_stephensi$HBI <- c(0.273, 0.25475, 0.2365, 0.21825, 0.2, 0.17725,
+                              0.1545, 0.13175, 0.109, 0.18625, 0.2635, 0.418)
+activity_p_stephensi$HBO <- c(0.727, 0.74525, 0.7635, 0.78175, 0.8, 0.82275,
+                              0.8455, 0.86825, 0.891, 0.81375, 0.7365, 0.582)
 
 # Input humans_indoors data based on human activity patterns in Rarieda, Kenya.
 # Use data for 18:00 to 06:00.
@@ -84,7 +85,8 @@ my_default_model_stephensi <- build_model_obj(vec_p = vec_p_stephensi, hosts_p =
                                               activity = activity_p_stephensi, total_pop = 2000)
 
 
-## Use the package intervention object.
+#### USE THE PACKAGE INTERVENTION OBJECT ####
+
 
 # Define other parameters.
 coverages <- c(seq(0, 1, by = 0.1))
@@ -92,8 +94,7 @@ n_ip <- 100
 host_pop <- 2000
 vec_pop <- 10000
 
-# Define the intervention effects, either from the package database or custom.
-# In this example we use the intervention list with examples included in the package
+# Define the intervention effects using the intervention list with examples included in the package.
 intervention_effects_vec_gambiae <- def_interventions_effects(intervention_list =  intervention_obj_examples,
                                                               model_p = my_default_model_gambiae,
                                                               num_ip_points = n_ip,
@@ -120,4 +121,20 @@ impacts_stephensi <- calculate_impact(interventions_vec = intervention_effects_v
 # Plot the impact for both species.
 plot_impact_species(impacts_gambiae, "VC_red")
 plot_impact_species(impacts_stephensi, "VC_red")
+
+# Plot the impact for both species, account for confidence intervals.
+# In both cases, 100 samples have been used to estimate the confidence intervals of the vectorial capacity.
+impacts_gambiae_ci <- calculate_impact_var(mosquito_species = "Anopheles gambiae",
+                                           activity_patterns = activity_p_gambiae,
+                                           interventions = intervention_obj_examples,
+                                           n_sample_points = 100,
+                                           plot_result = FALSE)
+impacts_stephensi_ci <- calculate_impact_var(mosquito_species = "Anopheles stephensi",
+                                             activity_patterns = activity_p_stephensi,
+                                             interventions = intervention_obj_examples,
+                                             n_sample_points = 100,
+                                             plot_result = FALSE)
+plot_impact_var("Anopheles gambiae", impacts_gambiae_ci)
+plot_impact_var("Anopheles stephensi", impacts_stephensi_ci)
+
 
