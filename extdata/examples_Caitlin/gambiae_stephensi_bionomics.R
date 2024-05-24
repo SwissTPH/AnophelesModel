@@ -1,4 +1,10 @@
-## Load libraries.
+#### SETUP ####
+
+
+# Clear working space.
+rm(list = ls())
+
+## Load packages.
 library(ggplot2)
 library(AnophelesModel)
 library(dplyr)
@@ -8,8 +14,7 @@ library(stringr)
 library(ggpubr)
 library(reporter)
 
-
-# Build data frame bionomics.
+# Build dataframe of bionomics.
 df_bionomics = vec_ent_param[, c("species_name", "M", "A0", "Chi", "endophagy")]
 df_bionomics = df_bionomics %>% filter(grepl(pattern = "Anopheles", x = species_name))
 df_bionomics = melt(df_bionomics, id.vars = c("species_name"))
@@ -20,7 +25,11 @@ df_bionomics$variable = recode_factor(df_bionomics$variable, M = "Parous Rate",
                                       Chi = "Human Blood\nIndex",
                                       endophagy = "Endophagy")
 
-# Selected species bionomics.
+
+#### MOSQUITO BIONOMICS ####
+
+
+# Filter for Anopheles gambiae and Anopheles stephensi bionomics.
 sf_selected_bio = df_bionomics %>% filter(species_name %in% c("Anopheles gambiae", "Anopheles stephensi"))
 sf_selected_bio$species_name = factor(sf_selected_bio$species_name,
                                       levels = c("Anopheles farauti", "Anopheles stephensi"))

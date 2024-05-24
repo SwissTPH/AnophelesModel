@@ -41,6 +41,7 @@ hosts_p_stephensi <- def_host_params(mosquito_species = "Anopheles gambiae")
 
 #### INPUT PARAMETERS ####
 
+
 # Input HBI and HBO data for Anopheles gambiae based on the species' activity patterns in Rarieda, Kenya.
 # Use data for 18:00 to 06:00.
 activity_p_gambiae$HBI <- c(0.005608974, 0.061698718, 0.031250000, 0.080929487, 0.095352564, 0.040064103,
