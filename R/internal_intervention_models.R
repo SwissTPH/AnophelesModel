@@ -198,7 +198,7 @@ calc_prob_vectors = function(PEnt, PEnt.u, PAtt, PAtt.u, PBmu, PBi.u, PBmu.u,
     return(ip_vecs)
 }
 
-calc_LLINs_p = function(int_obj, vec_params, activity_cycles, nips) {
+calc_LLINs_p = function(int_obj, vec_params, activity_cycles, nips, specified_multiplier = NULL) {
     # Select the relevant coefficients of the LLIN regression model
     LLINs_model_coeff = interventions_param$LLINs_params$model_coeff
     net_p = as.list(LLINs_model_coeff[int_obj$parameterisation,])
@@ -282,7 +282,7 @@ calc_LLINs_p = function(int_obj, vec_params, activity_cycles, nips) {
 ######################################################################
 # Function required for calculating house screenning impact
 #####################################################################
-calc_House_screening_p = function(int_obj, vec_params, activity_cycles, nips) {
+calc_House_screening_p = function(int_obj, vec_params, activity_cycles, nips, specified_multiplier = NULL) {
     indoor_outdoor = get_in_out_exp(activity_cycles, vec_params, specified_multiplier = NULL)
     int_obj$effects$alphai[,1] = int_obj$effects$alphai[,2] *
         (1 - adjustment_for_location("alphai", indoor_outdoor,
@@ -294,7 +294,7 @@ calc_House_screening_p = function(int_obj, vec_params, activity_cycles, nips) {
 # Function required for calculating behavior change impact
 # TO DO: check if this function is correct
 #####################################################################
-calc_Stay_indoors_p = function(int_obj, vec_params, activity_cycles, nips) {
+calc_Stay_indoors_p = function(int_obj, vec_params, activity_cycles, nips, specified_multiplier = NULL) {
     indoor_outdoor = get_in_out_exp(activity_cycles, vec_params, specified_multiplier = NULL)
     int_obj$effects$alphai[,1] = int_obj$effects$alphai[,2] *
         (1 - adjustment_for_location("alphai", indoor_outdoor,
