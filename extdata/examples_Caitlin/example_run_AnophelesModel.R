@@ -34,7 +34,7 @@ vec_p_stephensi <- def_vector_params(mosquito_species = "Anopheles stephensi")
 activity_p_gambiae <- def_activity_patterns(activity = "default_Anopheles_gambiae")
 activity_p_stephensi <- def_activity_patterns(activity = "default_Anopheles_gambiae")
 
-# Define hosts parameters for each mosquito species
+# Define hosts parameters for each mosquito species.
 hosts_p_gambiae <- def_host_params(mosquito_species = "Anopheles gambiae")
 hosts_p_stephensi <- def_host_params(mosquito_species = "Anopheles gambiae")
 
