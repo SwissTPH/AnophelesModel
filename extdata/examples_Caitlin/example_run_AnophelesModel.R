@@ -1,13 +1,15 @@
-###################
-# Example script which runs AnophelesModel
-#
-# created 03.05.2024
-###################
+##########################################################
+#### RUNNING ANOPHELESMODEL FOR GAMBIAE VS. STEPHENSI ####
+##########################################################
+
+
+#### SETUP ####
+
 
 # Clear working space.
 rm(list = ls())
 
-# Load packages
+# Load packages.
 library(AnophelesModel)
 library(dplyr)
 
@@ -111,7 +113,7 @@ impacts_gambiae <- calculate_impact(interventions_vec = intervention_effects_vec
 impacts_stephensi <- calculate_impact(interventions_vec = intervention_effects_vec_stephensi,
                                       coverage_vec = coverages,
                                       model_p = my_default_model_stephensi,
-                                      Nv0= vec_pop,
+                                      Nv0 = vec_pop,
                                       num_ip_points = n_ip)
 
 # Plot the impact for both species.
