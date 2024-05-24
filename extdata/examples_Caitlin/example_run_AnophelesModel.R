@@ -136,3 +136,4 @@ plot_impact_var("Anopheles gambiae", impacts_gambiae_ci)
 plot_impact_var("Anopheles stephensi", impacts_stephensi_ci)
 
 
+
