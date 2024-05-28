@@ -14,6 +14,7 @@ library(AnophelesModel)
 library(dplyr)
 library(ggplot2)
 library(ggpubr)
+library(reshape2)
 
 # Filter for activity patterns in Kenya.
 activity_kenya <- activity_patterns %>% filter(country == "Kenya")
@@ -98,11 +99,11 @@ vec_pop <- 10000
 intervention_effects_vec_gambiae <- def_interventions_effects(intervention_list =  intervention_obj_examples,
                                                               model_p = my_default_model_gambiae,
                                                               num_ip_points = n_ip, verbose = TRUE,
-                                                              specified_multiplier = NULL)
+                                                              specified_multiplier = 0.9)
 intervention_effects_vec_stephensi <- def_interventions_effects(intervention_list = intervention_obj_examples,
                                                                 model_p = my_default_model_stephensi,
                                                                 num_ip_points = n_ip, verbose = TRUE,
-                                                                specified_multiplier = NULL)
+                                                                specified_multiplier = 0.9)
 
 # Calculate and plot the impact of interventions using the custom biting patterns.
 impacts_gambiae <- calculate_impact(interventions_vec = intervention_effects_vec_gambiae,
@@ -124,11 +125,11 @@ impacts
 # In both cases, 100 samples have been used to estimate the confidence intervals of the vectorial capacity.
 impacts_gambiae_ci <- calculate_impact_var(mosquito_species = "Anopheles gambiae",
                                            activity_patterns = activity_p_gambiae,
-                                           interventions = intervention_obj_examples,
+                                           interventions = intervention_effects_vec_gambiae,
                                            n_sample_points = 100, plot_result = FALSE)
 impacts_stephensi_ci <- calculate_impact_var(mosquito_species = "Anopheles stephensi",
                                              activity_patterns = activity_p_stephensi,
-                                             interventions = intervention_obj_examples,
+                                             interventions = intervention_effects_vec_stephensi,
                                              n_sample_points = 100, plot_result = FALSE)
 impacts_gambiae_ci_plot <- plot_impact_var("Anopheles gambiae", impacts_gambiae_ci)
 impacts_stephensi_ci_plot <- plot_impact_var("Anopheles stephensi", impacts_stephensi_ci)
@@ -139,7 +140,7 @@ impacts_ci
 #### DECAY OF INTERVENTION EFFECTS ####
 
 
-# Create the calculate_impact_vec funcion.
+# Create the calculate_impact_vec function.
 calculate_impact_vec <- function(tab_activity, mosquito_model_params, host_params) {
     HBI_vec <- tab_activity$HBI
     HBO_vec <- tab_activity$HBO
