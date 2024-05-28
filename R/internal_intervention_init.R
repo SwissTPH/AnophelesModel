@@ -107,6 +107,7 @@ calc_interv_effects_db <- function(interv_obj, model_p, ip, specified_multiplier
         if (interv_obj$id %in% db_interventions$Intervention) {
             f_name = paste("calc_", interv_obj$id, "_p", sep = "")
             # update the parameters by calling the intervention function
+            print(paste("calc_interv_effects_db", specified_multiplier))
             interv_obj = do.call(f_name,
                                       list(int_obj = interv_obj,
                                            vec_params = model_p$vec_params,

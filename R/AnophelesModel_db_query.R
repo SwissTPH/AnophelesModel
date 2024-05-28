@@ -293,6 +293,7 @@ get_net_decay = function(net_type, country, insecticide_type, n_ips, duration){
 get_in_out_exp <- function(activity_cycles, vec_p, specified_multiplier = NULL) {
 
     # If specified_multiplier is not NULL, return a list with each element equal to the specified multiplier.
+    print(specified_multiplier)
     if (!is.null(specified_multiplier)) {
         indoor_outdoor <- list(specified_multiplier, specified_multiplier,
                                specified_multiplier, specified_multiplier,
@@ -302,45 +303,46 @@ get_in_out_exp <- function(activity_cycles, vec_p, specified_multiplier = NULL) 
                                    'indoor_resting')
         return(indoor_outdoor)
     }
+    else {
+        # Calculate exposure to biting by category in the absence of interventions
+        # Endophagy is ideally the proportion of bites that are indoors from matched
+        # indoor:outdoor landing collections
+        activity_cycles$HBI <- activity_cycles$HBI / sum(activity_cycles$HBI, na.rm = TRUE) * vec_p$endophagy
+        activity_cycles$HBO <- activity_cycles$HBO / sum(activity_cycles$HBO, na.rm = TRUE) * (1 - vec_p$endophagy)
 
-    # Calculate exposure to biting by category in the absence of interventions
-    # Endophagy is ideally the proportion of bites that are indoors from matched
-    # indoor:outdoor landing collections
-    activity_cycles$HBI <- activity_cycles$HBI / sum(activity_cycles$HBI, na.rm = TRUE) * vec_p$endophagy
-    activity_cycles$HBO <- activity_cycles$HBO / sum(activity_cycles$HBO, na.rm = TRUE) * (1 - vec_p$endophagy)
+        # Assume humans are indoors while sleeping unless a separate humans_indoors cycle is specified.
+        activity_cycles$humans_indoors <- with(activity_cycles, ifelse(is.na(humans_indoors),
+                                                                       humans_in_bed, humans_indoors))
+        activity_cycles$Exposure_Indoor_total <- with(activity_cycles, HBI * humans_indoors)
+        activity_cycles$Exposure_Outdoor_total <- with(activity_cycles, HBO * (1 - humans_indoors))
 
-    # Assume humans are indoors while sleeping unless a separate humans_indoors cycle is specified.
-    activity_cycles$humans_indoors <- with(activity_cycles, ifelse(is.na(humans_indoors),
-                                                                   humans_in_bed, humans_indoors))
-    activity_cycles$Exposure_Indoor_total <- with(activity_cycles, HBI * humans_indoors)
-    activity_cycles$Exposure_Outdoor_total <- with(activity_cycles, HBO * (1 - humans_indoors))
+        # If humans_indoors < humans_in_bed we assign the difference to outdoor sleeping.
+        activity_cycles$Exposure_Indoor_whileinbed <- with(activity_cycles, HBI * pmin(humans_in_bed,
+                                                                                       humans_indoors, na.rm = TRUE))
+        activity_cycles$Exposure_Outdoor_whileinbed <- with(activity_cycles, HBO * pmax(humans_in_bed - humans_indoors,
+                                                                                        rep(0, length(humans_indoors)),
+                                                                                        na.rm = TRUE))
+        Overall_total = sum(activity_cycles$Exposure_Indoor_total, na.rm = TRUE) +
+            sum(activity_cycles$Exposure_Outdoor_total, na.rm = TRUE)
 
-    # If humans_indoors < humans_in_bed we assign the difference to outdoor sleeping.
-    activity_cycles$Exposure_Indoor_whileinbed <- with(activity_cycles, HBI * pmin(humans_in_bed,
-                                                                                   humans_indoors, na.rm = TRUE))
-    activity_cycles$Exposure_Outdoor_whileinbed <- with(activity_cycles, HBO * pmax(humans_in_bed - humans_indoors,
-                                                                                    rep(0, length(humans_indoors)),
-                                                                                    na.rm = TRUE))
-    Overall_total = sum(activity_cycles$Exposure_Indoor_total, na.rm = TRUE) +
-        sum(activity_cycles$Exposure_Outdoor_total, na.rm = TRUE)
+        # Calculate exposures.
+        # Total indoor exposure as a proportion of overall exposure
+        Exposure_Indoor_total <- sum(activity_cycles$Exposure_Indoor_total, na.rm = TRUE) / Overall_total
+        # Total outdoor exposure as a proportion of overall exposure
+        Exposure_Outdoor_total <- sum(activity_cycles$Exposure_Outdoor_total, na.rm = TRUE) / Overall_total
+        # Total indoor in bed exposure as a proportion of overall exposure
+        Exposure_Indoor_whileinbed <- sum(activity_cycles$Exposure_Indoor_whileinbed, na.rm = TRUE) / Overall_total
+        # Total outdoor in bed exposure as a proportion of overall exposure
+        Exposure_Outdoor_whileinbed <- sum(activity_cycles$Exposure_Outdoor_whileinbed, na.rm = TRUE) / Overall_total
 
-    # Calculate exposures.
-    # Total indoor exposure as a proportion of overall exposure
-    Exposure_Indoor_total <- sum(activity_cycles$Exposure_Indoor_total, na.rm = TRUE) / Overall_total
-    # Total outdoor exposure as a proportion of overall exposure
-    Exposure_Outdoor_total <- sum(activity_cycles$Exposure_Outdoor_total, na.rm = TRUE) / Overall_total
-    # Total indoor in bed exposure as a proportion of overall exposure
-    Exposure_Indoor_whileinbed <- sum(activity_cycles$Exposure_Indoor_whileinbed, na.rm = TRUE) / Overall_total
-    # Total outdoor in bed exposure as a proportion of overall exposure
-    Exposure_Outdoor_whileinbed <- sum(activity_cycles$Exposure_Outdoor_whileinbed, na.rm = TRUE) / Overall_total
-
-    # Indoor-outdoor patterns relate to both mosquito and human behaviour.
-    indoor_outdoor <- list(Exposure_Indoor_total, Exposure_Outdoor_total,
-                           Exposure_Indoor_whileinbed,
-                           Exposure_Outdoor_whileinbed, vec_p$endophily)
-    names(indoor_outdoor) <- c('Exposure_Indoor_total', 'Exposure_Outdoor_total',
-                               'Exposure_Indoor_whileinbed',
-                               'Exposure_Outdoor_whileinbed', 'indoor_resting')
+        # Indoor-outdoor patterns relate to both mosquito and human behaviour.
+        indoor_outdoor <- list(Exposure_Indoor_total, Exposure_Outdoor_total,
+                               Exposure_Indoor_whileinbed,
+                               Exposure_Outdoor_whileinbed, vec_p$endophily)
+        names(indoor_outdoor) <- c('Exposure_Indoor_total', 'Exposure_Outdoor_total',
+                                   'Exposure_Indoor_whileinbed',
+                                   'Exposure_Outdoor_whileinbed', 'indoor_resting')
+    }
     return(indoor_outdoor)
 }
 

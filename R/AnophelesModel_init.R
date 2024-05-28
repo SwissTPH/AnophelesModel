@@ -511,6 +511,7 @@ def_interventions_effects = function(intervention_list, model_p,
                 print(paste0("Using intervention effects available for model ",
                              int_obj$parameterisation))
             }
+            print(paste("def_intervention_effects", specified_multiplier))
             int_obj = calc_interv_effects_db(interv_obj = int_obj,
                                              model_p = model_p,
                                              ip = num_ip_points,

@@ -20,7 +20,7 @@ calc_IRS_p = function(int_obj, vec_params, int_host, activity_cycles, nips, spec
     duration = int_summary$Duration[int_summary$Parameterisation ==
                                                     int_obj$parameterisation]
 
-    indoor_outdoor = get_in_out_exp(activity_cycles, vec_params, specified_multiplier = NULL)
+    indoor_outdoor = get_in_out_exp(activity_cycles, vec_params, specified_multiplier = specified_multiplier)
 
     ns = c("Parameterisation", "Decay_type", "Initial_effect", "L", "k")
     long_series = melt(parameter_set[, setdiff(colnames(parameter_set), ns)],
@@ -234,7 +234,7 @@ calc_LLINs_p = function(int_obj, vec_params, activity_cycles, nips, specified_mu
     insecticide.content = net_demog$insecticideContent
 
     # Calculate the exposure multiplier
-    in_out_exp = get_in_out_exp(activity_cycles, vec_params, specified_multiplier = NULL)
+    in_out_exp = get_in_out_exp(activity_cycles, vec_params, specified_multiplier = specified_multiplier)
 
     # The regression model used is
     # logit(PXxx) = beta0 + beta1 * log(Holes + 1) +
@@ -283,7 +283,7 @@ calc_LLINs_p = function(int_obj, vec_params, activity_cycles, nips, specified_mu
 # Function required for calculating house screenning impact
 #####################################################################
 calc_House_screening_p = function(int_obj, vec_params, activity_cycles, nips, specified_multiplier = NULL) {
-    indoor_outdoor = get_in_out_exp(activity_cycles, vec_params, specified_multiplier = NULL)
+    indoor_outdoor = get_in_out_exp(activity_cycles, vec_params, specified_multiplier = specified_multiplier)
     int_obj$effects$alphai[,1] = int_obj$effects$alphai[,2] *
         (1 - adjustment_for_location("alphai", indoor_outdoor,
                                      "House_screening") * 0.59)
@@ -295,7 +295,7 @@ calc_House_screening_p = function(int_obj, vec_params, activity_cycles, nips, sp
 # TO DO: check if this function is correct
 #####################################################################
 calc_Stay_indoors_p = function(int_obj, vec_params, activity_cycles, nips, specified_multiplier = NULL) {
-    indoor_outdoor = get_in_out_exp(activity_cycles, vec_params, specified_multiplier = NULL)
+    indoor_outdoor = get_in_out_exp(activity_cycles, vec_params, specified_multiplier = specified_multiplier)
     int_obj$effects$alphai[,1] = int_obj$effects$alphai[,2] *
         (1 - adjustment_for_location("alphai", indoor_outdoor,
                                      "Stay_indoors"))
