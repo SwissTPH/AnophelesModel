@@ -97,13 +97,11 @@ vec_pop <- 10000
 # Define the intervention effects using the intervention list with examples included in the package.
 intervention_effects_vec_gambiae <- def_interventions_effects(intervention_list =  intervention_obj_examples,
                                                               model_p = my_default_model_gambiae,
-                                                              num_ip_points = n_ip,
-                                                              verbose = TRUE,
+                                                              num_ip_points = n_ip, verbose = TRUE,
                                                               specified_multiplier = NULL)
 intervention_effects_vec_stephensi <- def_interventions_effects(intervention_list = intervention_obj_examples,
                                                                 model_p = my_default_model_stephensi,
-                                                                num_ip_points = n_ip,
-                                                                verbose = TRUE,
+                                                                num_ip_points = n_ip, verbose = TRUE,
                                                                 specified_multiplier = NULL)
 
 # Calculate and plot the impact of interventions using the custom biting patterns.
@@ -127,13 +125,11 @@ impacts
 impacts_gambiae_ci <- calculate_impact_var(mosquito_species = "Anopheles gambiae",
                                            activity_patterns = activity_p_gambiae,
                                            interventions = intervention_obj_examples,
-                                           n_sample_points = 100,
-                                           plot_result = FALSE)
+                                           n_sample_points = 100, plot_result = FALSE)
 impacts_stephensi_ci <- calculate_impact_var(mosquito_species = "Anopheles stephensi",
                                              activity_patterns = activity_p_stephensi,
                                              interventions = intervention_obj_examples,
-                                             n_sample_points = 100,
-                                             plot_result = FALSE)
+                                             n_sample_points = 100, plot_result = FALSE)
 impacts_gambiae_ci_plot <- plot_impact_var("Anopheles gambiae", impacts_gambiae_ci)
 impacts_stephensi_ci_plot <- plot_impact_var("Anopheles stephensi", impacts_stephensi_ci)
 impacts_ci <- ggarrange(plotlist = list(impacts_gambiae_ci_plot, impacts_stephensi_ci_plot), ncol = 2, nrow = 1)
@@ -171,14 +167,12 @@ LLIN_effects_stephensi <- def_interventions_effects(LLIN_list, my_default_model_
 LLIN_impact_gambiae <- calculate_impact_var(mosquito_species = "Anopheles gambiae",
                                             activity_patterns = activity_p_gambiae,
                                             interventions = LLIN_list,
-                                            n_sample_points = 100,
-                                            plot_result = FALSE)
+                                            n_sample_points = 100, plot_result = FALSE)
 LLIN_impact_gambiae$`Mosquito Species` <- "Anopheles gambiae"
 LLIN_impact_stephensi <- calculate_impact_var(mosquito_species = "Anopheles stephensi",
                                               activity_patterns = activity_p_stephensi,
                                               interventions = LLIN_list,
-                                              n_sample_points = 100,
-                                              plot_result = FALSE)
+                                              n_sample_points = 100, plot_result = FALSE)
 LLIN_impact_stephensi$`Mosquito Species` = "Anopheles stephensi"
 LLIN_impact_df <- rbind.data.frame(LLIN_impact_gambiae, LLIN_impact_stephensi)
 LLIN_impact_df$`Mosquito Species` <- factor(LLIN_impact_df$`Mosquito Species`,
@@ -256,4 +250,5 @@ p_vc <- ggplot(LLIN_impact_df, aes(x = intervention_coverage, y = intervention_i
 # Plot.
 p_decay <- ggarrange(plotlist = list(p_effects, p_vc), ncol = 1, nrow = 2, labels = c("A", "B"))
 p_decay
+
 
