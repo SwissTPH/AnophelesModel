@@ -13,6 +13,7 @@ rm(list = ls())
 library(AnophelesModel)
 library(dplyr)
 library(ggplot2)
+library(ggpubr)
 
 # Filter for activity patterns in Kenya.
 activity_kenya <- activity_patterns %>% filter(country == "Kenya")
@@ -134,6 +135,125 @@ impacts_stephensi_ci <- calculate_impact_var(mosquito_species = "Anopheles steph
                                              plot_result = FALSE)
 plot_impact_var("Anopheles gambiae", impacts_gambiae_ci)
 plot_impact_var("Anopheles stephensi", impacts_stephensi_ci)
+
+
+#### DECAY OF INTERVENTION EFFECTS ####
+
+
+# Create the calculate_impact_vec funcion.
+calculate_impact_vec <- function(tab_activity, mosquito_model_params, host_params) {
+    HBI_vec <- tab_activity$HBI
+    HBO_vec <- tab_activity$HBO
+    humans_indoors <- tab_activity$humans_indoors
+    humans_in_bed <- tab_activity$humans_in_bed
+    patterns_vec <- list(HBI_vec = HBI_vec, HBO_vec = HBO_vec, humans_indoors = humans_indoors, humans_in_bed = humans_in_bed)
+    activity_vec <- def_activity_patterns(patterns_vec)
+    model_params_vec <- build_model_obj(mosquito_model_params, host_params, activity_vec, total_pop = 2000)
+    intervention_vec <- def_interventions_effects(intervention_list = intervention_obj_examples,
+                                                  model_p = model_params_vec, num_ip_points = 100)
+    impacts_vec <- calculate_impact(intervention_vec, coverage_vec=c(seq(0, 1, by = 0.01)),
+                                    model_params_vec, Nv0= 10000, num_ip_points = 100)
+    return(impacts_vec)
+}
+
+# Define the LLIN intervention.
+LLIN_intervention <- intervention_obj_examples$LLINs_example
+LLIN_list <- list(LLIN_intervention = LLIN_intervention)
+
+# Calculate intervention effects.
+LLIN_effects_gambiae <- def_interventions_effects(LLIN_list, my_default_model_gambiae, 100)
+LLIN_effects_stephensi <- def_interventions_effects(LLIN_list, my_default_model_stephensi, 100)
+
+# Calculate LLIN intervention impact with variance.
+LLIN_impact_gambiae <- calculate_impact_var(mosquito_species = "Anopheles gambiae",
+                                            activity_patterns = activity_p_gambiae,
+                                            interventions = LLIN_list,
+                                            n_sample_points = 100,
+                                            plot_result = FALSE)
+LLIN_impact_gambiae$`Mosquito Species` <- "Anopheles gambiae"
+LLIN_impact_stephensi <- calculate_impact_var(mosquito_species = "Anopheles stephensi",
+                                              activity_patterns = activity_p_stephensi,
+                                              interventions = LLIN_list,
+                                              n_sample_points = 100,
+                                              plot_result = FALSE)
+LLIN_impact_stephensi$`Mosquito Species` = "Anopheles stephensi"
+LLIN_impact_df <- rbind.data.frame(LLIN_impact_gambiae, LLIN_impact_stephensi)
+LLIN_impact_df$`Mosquito Species` <- factor(LLIN_impact_df$`Mosquito Species`,
+                                            levels = c("Anopheles gambiae", "Anopheles stephensi"))
+
+# Entomology
+entomology_xml_gambiae <- get_OM_ento_snippet(vec_p_gambiae, hosts_p_gambiae)
+print(entomology_xml_gambiae)
+entomology_xml_stephensi <- get_OM_ento_snippet(vec_p_stephensi, hosts_p_stephensi)
+print(entomology_xml_stephensi)
+
+# GVI
+GVI_impacts_gambiae <- calculate_impact(interventions_vec = LLIN_effects_gambiae,
+                                        coverage_vec = c(seq(0, 0.9, by = 0.1), 0.95, 0.99),
+                                        model_p = my_default_model_gambiae,
+                                        Nv0 = vec_pop, num_ip_points = 100)
+GVI_snippets_gambiae <- get_OM_GVI_snippet("Anopheles gambiae", GVI_impacts_gambiae$interventions_vec$LLIN_intervention,
+                                           100, plot_f = TRUE)
+GVI_impacts_stephensi <- calculate_impact(interventions_vec = LLIN_effects_stephensi,
+                                          coverage_vec = c(seq(0, 0.9, by = 0.1), 0.95, 0.99),
+                                          model_p = my_default_model_stephensi,
+                                          Nv0 = vec_pop, num_ip_points = 100)
+GVI_snippets_stephensi <- get_OM_GVI_snippet("Anopheles stephensi", GVI_impacts_stephensi$interventions_vec$LLIN_intervention,
+                                             100, plot_f = TRUE)
+
+# Plot intervention effects for Anopheles gambiae.
+plot_df_effects_gambiae <- cbind.data.frame(LLIN_effects_gambiae$LLIN_intervention$effects$alphai_decay,
+                                            LLIN_effects_gambiae$LLIN_intervention$effects$PBi_decay,
+                                            LLIN_effects_gambiae$LLIN_intervention$effects$PCi_decay,
+                                            "Anopheles gambiae",
+                                            c(1:length(LLIN_effects_gambiae$LLIN_intervention$effects$alphai_decay)))
+colnames(plot_df_effects_gambiae) <- c("Deterrency", "Pre-Prandial \nKilling Effect",
+                                       "Post-Prandial \nKilling Effect", "Mosquito Species", "Time Point")
+plot_df_effects_gambiae_melted <- melt(plot_df_effects_gambiae, id.vars = c("Time Point", "Mosquito Species"))
+
+# Plot intervention effects for Anopheles stephensi.
+plot_df_effects_stephensi <- cbind.data.frame(LLIN_effects_stephensi$LLIN_intervention$effects$alphai_decay,
+                                              LLIN_effects_stephensi$LLIN_intervention$effects$PBi_decay,
+                                              LLIN_effects_stephensi$LLIN_intervention$effects$PCi_decay,
+                                              "Anopheles stephensi",
+                                              c(1:length(LLIN_effects_stephensi$LLIN_intervention$effects$alphai_decay)))
+colnames(plot_df_effects_stephensi) <- c("Deterrency", "Pre-Prandial \nKilling Effect",
+                                         "Post-Prandial \nKilling Effect", "Mosquito Species", "Time Point")
+plot_df_effects_stephensi_melted <- melt(plot_df_effects_stephensi, id.vars = c("Time Point", "Mosquito Species"))
+
+# Plot intervention effects for both species.
+plot_df_effects <- rbind.data.frame(plot_df_effects_gambiae_melted, plot_df_effects_stephensi_melted)
+plot_df_effects$`Mosquito Species` = factor(plot_df_effects$`Mosquito Species`,
+                                            levels = c("Anopheles gambiae", "Anopheles stephensi"))
+p_effects <- ggplot(plot_df_effects) +
+             geom_line(aes(x = `Time Point`, y = value*100, col = `Mosquito Species`)) +
+             facet_wrap(~ variable) + theme_light() + theme_bw(base_size = 16) +
+             theme(legend.position = "top") + ylim(c(0, 100)) +
+             theme(strip.background = element_rect(colour = "white", fill = "white")) +
+             scale_color_manual("Mosquito Species",
+                                labels = c(expression(italic("An. gambiae")), expression(italic("An. stephensi"))),
+                                values = c("#00BFC4", "#F8766D")) +
+             labs(x = "Time Point", y = "Effect (%)")
+
+# Plot the vectorial capacity reduction by species.
+p_vc <- ggplot(LLIN_impact_df, aes(x = intervention_coverage, y = intervention_impact*100,
+                                   group = `Mosquito Species`, col = `Mosquito Species`, fill = `Mosquito Species`)) +
+        theme_light() + theme_linedraw() + theme_bw(base_size = 16) +
+        ylim(c(0, 100)) + theme(legend.position = "top") +
+        stat_summary(fun.data = mean_sdl, fun.args = list(mult = 2),
+                     geom = "ribbon", alpha = 0.5, colour = NA) +
+        scale_fill_manual("Mosquito Species",
+                          labels = c(expression(italic("An. gambiae")), expression(italic("An. stephensi"))),
+                          values = c("#00BFC4", "#F8766D")) +
+        scale_color_manual("Mosquito Species",
+                           labels = c(expression(italic("An. gambiae")), expression(italic("An. stephensi"))),
+                           values = c("#00BFC4", "#F8766D")) +
+        labs(x = "Coverage", y = "Mean Reduction in\n Vectorial Capacity (%)")
+
+# Plot.
+p_decay <- ggarrange(plotlist = list(p_effects, p_vc), ncol = 1, nrow = 2, labels = c("A", "B"))
+p_decay
+
 
 
 
