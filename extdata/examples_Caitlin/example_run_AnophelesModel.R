@@ -117,8 +117,10 @@ impacts_stephensi <- calculate_impact(interventions_vec = intervention_effects_v
                                       model_p = my_default_model_stephensi,
                                       Nv0 = vec_pop,
                                       num_ip_points = n_ip)
-plot_impact_species(impacts_gambiae, "VC_red")
-plot_impact_species(impacts_stephensi, "VC_red")
+impacts_gambiae_plot <- plot_impact_species(impacts_gambiae, "VC_red")
+impacts_stephensi_plot <- plot_impact_species(impacts_stephensi, "VC_red")
+impacts <- ggarrange(plotlist = list(impacts_gambiae_plot, impacts_stephensi_plot), ncol = 2, nrow = 1)
+impacts
 
 # Plot the impact for both species, account for confidence intervals.
 # In both cases, 100 samples have been used to estimate the confidence intervals of the vectorial capacity.
@@ -132,8 +134,10 @@ impacts_stephensi_ci <- calculate_impact_var(mosquito_species = "Anopheles steph
                                              interventions = intervention_obj_examples,
                                              n_sample_points = 100,
                                              plot_result = FALSE)
-plot_impact_var("Anopheles gambiae", impacts_gambiae_ci)
-plot_impact_var("Anopheles stephensi", impacts_stephensi_ci)
+impacts_gambiae_ci_plot <- plot_impact_var("Anopheles gambiae", impacts_gambiae_ci)
+impacts_stephensi_ci_plot <- plot_impact_var("Anopheles stephensi", impacts_stephensi_ci)
+impacts_ci <- ggarrange(plotlist = list(impacts_gambiae_ci_plot, impacts_stephensi_ci_plot), ncol = 2, nrow = 1)
+impacts_ci
 
 
 #### DECAY OF INTERVENTION EFFECTS ####
@@ -252,7 +256,4 @@ p_vc <- ggplot(LLIN_impact_df, aes(x = intervention_coverage, y = intervention_i
 # Plot.
 p_decay <- ggarrange(plotlist = list(p_effects, p_vc), ncol = 1, nrow = 2, labels = c("A", "B"))
 p_decay
-
-
-
 
