@@ -6,10 +6,10 @@
 #### SETUP ####
 
 
-# Clear working space.
+## Clear working space.
 rm(list = ls())
 
-# Load packages.
+## Load packages.
 library(AnophelesModel)
 library(dplyr)
 library(ggplot2)
@@ -26,11 +26,10 @@ vec_p_stephensi <- def_vector_params(mosquito_species = "Anopheles stephensi")
 #### SETUP CUSTOM ACTIVITY PATTERN LISTS ####
 
 
-# The activity patterns consist of the mosquito and human activity.
-# The mosquito activity is represented by the indoor and outdoor biting of humans (HBI and HBO).
-# The human activity is represented by the time they spend sleeping (humans_in_bed) and indoors (humans_indoors).
-
-# The following defines an activity pattern object with custom values for HBI, HBO, humans_in_bed, and humans_indoors.
+## The activity patterns consist of the mosquito and human activity.
+## The mosquito activity is represented by the indoor and outdoor biting of humans (HBI and HBO).
+## The human activity is represented by the time they spend sleeping (humans_in_bed) and indoors (humans_indoors).
+## The following defines an activity pattern object with custom values for HBI, HBO, humans_in_bed, and humans_indoors.
 
 # Define an empty list which will contain the activity patterns for each species.
 activity_p_gambiae <- def_activity_patterns(activity = "default_Anopheles_gambiae")

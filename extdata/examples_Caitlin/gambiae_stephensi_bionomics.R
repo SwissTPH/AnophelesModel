@@ -1,7 +1,7 @@
 #### SETUP ####
 
 
-# Clear working space.
+## Clear working space.
 rm(list = ls())
 
 ## Load packages.
