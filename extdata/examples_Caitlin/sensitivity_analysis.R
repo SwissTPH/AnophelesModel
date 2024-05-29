@@ -16,6 +16,7 @@ library(sensitivity)
 library(multisensi)
 
 # Create a matrix of vector parameters.
+# Missing upper and lower bounds for zeta.3 (availability of non-human hosts) and to (oocyst development time).
 stephensi_params <- data.frame(
     param = c("M", "M.sd", "Chi", "A0", "A0.sd", "zeta.3", "td", "tau", "ts", "to",
               "endophily", "endophily.sd", "endophagy", "endophagy.sd", "exposure"),
