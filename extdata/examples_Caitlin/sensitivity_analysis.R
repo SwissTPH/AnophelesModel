@@ -30,24 +30,24 @@ stephensi_params <- data.frame(
 
 
 # Calculate the main and total effects for global sensitivity analysis.
-calc_sobol_idx = function(GP_model, param_spec, num_points = 10){
-    S_mat = T_mat = NULL
+calc_sobol_idx <- function(GP_model, param_spec, num_points = 10){
+    S_mat <- T_mat <- NULL
 
     # Define wrapper for the GP_model prediction to be called by Sobol analysis.
-    GP_f = function(X){
+    GP_f <- function(X) {
         out = predict(x = as.matrix(X), object = GP_model)
         return(out$mean)
     }
 
     # Construct the two random LHS samples.
-    X1 = lhs(num_ip_points, as.matrix(param_spec))
-    X2 = lhs(num_ip_points, as.matrix(param_spec))
+    X1 <- lhs(num_ip_points, as.matrix(param_spec))
+    X2 <- lhs(num_ip_points, as.matrix(param_spec))
 
     # Compute the Sobol indices.
-    SA = soboljansen(model = GP_f, as.data.frame(X1), as.data.frame(X2), nboot = 2000)
-    S_eff = SA$S$original
-    S_eff[S_eff < 0] = 0
-    T_eff = SA$T$original
+    SA <- soboljansen(model = GP_f, as.data.frame(X1), as.data.frame(X2), nboot = 2000)
+    S_eff <- SA$S$original
+    S_eff[S_eff < 0] <- 0
+    T_eff <- SA$T$original
     return(list(S_eff = S_eff, T_eff = T_eff))
 }
 
@@ -57,5 +57,6 @@ calc_sobol_idx = function(GP_model, param_spec, num_points = 10){
 
 # Run the calc_sobol_idx function.
 # calc_sobol_idx(GP_model = my_default_model_stephensi, param_spec = stephensi_params, num_points = 10)
+
 
 
