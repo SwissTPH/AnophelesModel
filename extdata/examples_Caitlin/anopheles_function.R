@@ -16,8 +16,7 @@ library(sensitivity)
 library(multisensi)
 library(tgp)
 
-# Create a matrix of vector parameters.
-# Missing upper and lower bounds for zeta.3 (availability of non-human hosts) and to (oocyst development time).
+# Create a dataframe of vector parameters.
 vec_params <- data.frame(
     param = c("M", "M.sd", "Chi", "A0", "A0.sd", "zeta.3", "td", "tau", "ts", "to",
               "endophily", "endophily.sd", "endophagy", "endophagy.sd", "exposure"),
@@ -35,7 +34,7 @@ vec_params <- data.frame(
 calc_vc <- function(param_spec) {
 
     # Initialise results.
-    results <- numeric(nrow(param_spec))
+    results <- NULL
 
     # Loop for each combination of vector parameters (i.e., each row of vec_param).
     for (i in 1:nrow(param_spec)) {
@@ -70,7 +69,7 @@ calc_vc <- function(param_spec) {
         # Define hosts parameters.
         hosts_p <- def_host_params(mosquito_species = "Anopheles gambiae")
 
-        # Build the model object based on the vector, host, and activity parameters for each species.
+        # Build the model object based on the vector, host, and activity parameters.
         my_default_model <- build_model_obj(vec_p = vec_p, hosts_p = hosts_p,
                                             activity = activity_p, total_pop = 2000)
 
@@ -80,20 +79,23 @@ calc_vc <- function(param_spec) {
                                                           num_ip_points = 100, verbose = TRUE,
                                                           specified_multiplier = param_spec[i, "exposure"])
 
-        # Calculate and the impact of interventions using the custom biting patterns.
+        # Calculate and the impact of interventions.
         impacts <- calculate_impact(interventions_vec = intervention_effects,
                                     coverage_vec = seq(0, 1, by = 0.1),
                                     model_p = my_default_model,
                                     Nv0 = 10000, num_ip_points = 100)
 
-        # Calculate and store the mean reduction in vectorial capacity.
-        mean_vc_reduction <- mean(impacts$reduction, na.rm = TRUE)
-        results[i] <- mean_reduction
-        impacts
+        # Store the mean reduction in vectorial capacity for each intervention as results.
+        impact_LLINs <- impacts$interventions_vec$LLINs_example$effects$avg_impact
+        impact_IRS <- impacts$interventions_vec$IRS_example$effects$avg_impact
+        impact_Screening <- impacts$interventions_vec$Screening_example$effects$avg_impact
+        combined_impact <- rbind(results, cbind(impact_LLINs, impact_IRS, impact_Screening))
+        results[[i]] <- combined_impact
     }
 
     # Return the results.
-    return(results)
+    results_matrix <- do.call(rbind, results)
+    return(as.matrix(results))
 
 }
 
