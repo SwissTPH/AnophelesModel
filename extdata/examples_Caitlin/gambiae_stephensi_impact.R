@@ -110,7 +110,7 @@ intervention_effects_vec_stephensi <- def_interventions_effects(intervention_lis
 impacts_gambiae <- calculate_impact(interventions_vec = intervention_effects_vec_gambiae,
                                     coverage_vec = coverages,
                                     model_p = my_default_model_gambiae,
-                                    Nv0= vec_pop,
+                                    Nv0 = vec_pop,
                                     num_ip_points = n_ip)
 impacts_stephensi <- calculate_impact(interventions_vec = intervention_effects_vec_stephensi,
                                       coverage_vec = coverages,
