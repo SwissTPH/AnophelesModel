@@ -142,5 +142,3 @@ ggplot(sensitivity_df, aes(x = reorder(Parameter, -TotalOrder.T_eff), y = TotalO
     labs(title = "Total-Order Sensitivity Indices", x = "Parameter", y = "Total-Order Sensitivity Index") +
     theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-
-
