@@ -15,6 +15,7 @@ library(dplyr)
 library(sensitivity)
 library(multisensi)
 library(tgp)
+library(ggplot2)
 
 # Create a dataframe of vector parameters.
 vec_params <- data.frame(
@@ -118,4 +119,28 @@ T_eff <- SA$T$original
 list(S_eff = S_eff, T_eff = T_eff)
 
 
+#### SENSITVITY PLOTS ####
+
+
+# Create a data frame for plotting.
+S_eff <- as.data.frame(S_eff)
+T_eff <- as.data.frame(T_eff)
+S_eff$Parameter <- vec_params$param
+T_eff$Parameter <- vec_params$param
+sensitivity_df <- data.frame(Parameter = S_eff$Parameter,
+                             FirstOrder = S_eff, TotalOrder = T_eff)
+
+# First-Order Sensitivity Bar Plot
+ggplot(sensitivity_df, aes(x = reorder(Parameter, -FirstOrder.S_eff), y = FirstOrder.S_eff)) +
+    geom_bar(stat = "identity", fill = "steelblue") +
+    labs(title = "First-Order Sensitivity Indices", x = "Parameter", y = "First-Order Sensitivity Index") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Total-Order Sensitivity Bar Plot
+ggplot(sensitivity_df, aes(x = reorder(Parameter, -TotalOrder.T_eff), y = TotalOrder.T_eff)) +
+    geom_bar(stat = "identity", fill = "darkred") +
+    labs(title = "Total-Order Sensitivity Indices", x = "Parameter", y = "Total-Order Sensitivity Index") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
