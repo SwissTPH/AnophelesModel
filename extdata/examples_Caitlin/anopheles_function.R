@@ -112,7 +112,8 @@ X1 <- create_lhs_samples(num_points, vec_params)
 X2 <- create_lhs_samples(num_points, vec_params)
 
 # Compute the Sobol indices (main and total effects).
-SA <- soboljansen(model = calc_vc, X1, X2, nboot = 10)
+SA <- soboljansen(model = calc_vc, X1, X2, nboot = 1000000)
+ggplot(SA)
 S_eff <- SA$S$original
 S_eff[S_eff < 0] <- 0
 T_eff <- SA$T$original
