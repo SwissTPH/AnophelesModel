@@ -18,12 +18,12 @@ library(tgp)
 
 # Create a dataframe of vector parameters.
 vec_params <- data.frame(
-    param = c("M", "M.sd", "Chi", "A0", "A0.sd", "zeta.3", "td", "tau", "ts", "to",
-              "endophily", "endophily.sd", "endophagy", "endophagy.sd", "exposure"),
-    value = c(0.613499, 0.003819127, 0.7947577, 0.6419328, 0.07280429, 1,
-              0.33, 3, 10, 5, 0.7743085, 0.01233146, 0.5604133, 0.00505659, 0.9),
-    lower_bound = c(0, 0, 0, 0, 0, 1, 0, 0, 10, 5, 0, 0, 0, 0, 0),
-    upper_bound = c(1, 1, 1, 1, 1, 1, 1, 45, 10, 5, 1, 1, 1, 1, 1)
+    param = c("M", "Chi", "A0", "zeta.3", "td", "tau", "ts",
+              "to", "endophily", "endophagy", "exposure"),
+    value = c(0.613499, 0.7947577, 0.6419328, 1, 0.33,
+              3, 10, 5, 0.7743085, 0.5604133, 0.9),
+    lower_bound = c(0, 0, 0, 1, 0.33, 3, 10, 5, 0, 0, 0),
+    upper_bound = c(1, 1, 1, 1, 0.33, 3, 10, 5, 1, 1, 1)
 )
 
 
@@ -41,19 +41,15 @@ calc_vc <- function(param_spec) {
 
         # Define vector parameters.
         vec_p <- list(M = param_spec[i, "M"],
-                      M_sd = param_spec[i, "M.sd"],
                       Chi = param_spec[i, "Chi"],
                       A0 = param_spec[i, "A0"],
-                      A0_sd = param_spec[i, "A0.sd"],
-                      zeta_3 = param_spec[i, "zeta.3"],
+                      zeta.3 = param_spec[i, "zeta.3"],
                       td = param_spec[i, "td"],
                       tau = param_spec[i, "tau"],
                       ts = param_spec[i, "ts"],
                       to = param_spec[i, "to"],
                       endophily = param_spec[i, "endophily"],
-                      endophily_sd = param_spec[i, "endophily.sd"],
                       endophagy = param_spec[i, "endophagy"],
-                      endophagy_sd = param_spec[i, "endophagy.sd"],
                       exposure = param_spec[i, "exposure"])
 
         # Define activity patterns.
@@ -85,42 +81,41 @@ calc_vc <- function(param_spec) {
                                     model_p = my_default_model,
                                     Nv0 = 10000, num_ip_points = 100)
 
-        # Store the mean reduction in vectorial capacity for each intervention as results.
-        impact_LLINs <- impacts$interventions_vec$LLINs_example$effects$avg_impact
-        impact_IRS <- impacts$interventions_vec$IRS_example$effects$avg_impact
-        impact_Screening <- impacts$interventions_vec$Screening_example$effects$avg_impact
-        combined_impact <- rbind(results, cbind(impact_LLINs, impact_IRS, impact_Screening))
-        results[[i]] <- combined_impact
+        # Store the mean reduction in vectorial capacity for 50% coverage of LLINs as results.
+        results[i] <- impacts$interventions_vec$LLINs_example$effects$avg_impact[6]
     }
 
     # Return the results.
-    results_matrix <- do.call(rbind, results)
-    return(as.matrix(results))
+    return(results)
 
 }
 
 
-#### MAIN AND TOTAL EFFECTS FOR GLOBAL SENSITIVITY ANALYSIS ####
+#### GLOBAL SENSITIVITY ANALYSIS ####
 
 
 # Set up.
 S_mat <- T_mat <- NULL
 
+# Define the create_lhs_samples function to create LHS samples.
+create_lhs_samples <- function(num_points, vec_params) {
+    lhs_samples <- lhs(num_points, as.matrix(vec_params %>% select(lower_bound, upper_bound)))
+    lhs_samples <- as.data.frame(lhs_samples)
+    colnames(lhs_samples) <- vec_params$param
+    return(lhs_samples)
+}
+
 # Construct the two random LHS samples.
 num_points <- 10
-X1 <- lhs(num_points, as.matrix(vec_params %>% select(lower_bound, upper_bound)))
-X1 <- as.data.frame(X1)
-colnames(X1) <- vec_params$param
-X2 <- lhs(num_points, as.matrix(vec_params %>% select(lower_bound, upper_bound)))
-X2 <- as.data.frame(X2)
-colnames(X2) <- vec_params$param
+X1 <- create_lhs_samples(num_points, vec_params)
+X2 <- create_lhs_samples(num_points, vec_params)
 
-# Compute the Sobol indices.
+# Compute the Sobol indices (main and total effects).
 SA <- soboljansen(model = calc_vc, X1, X2, nboot = 10)
 S_eff <- SA$S$original
 S_eff[S_eff < 0] <- 0
 T_eff <- SA$T$original
-return(list(S_eff = S_eff, T_eff = T_eff))
+list(S_eff = S_eff, T_eff = T_eff)
 
 
 
