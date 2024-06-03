@@ -82,7 +82,7 @@ calc_vc <- function(param_spec) {
                                     model_p = my_default_model,
                                     Nv0 = 10000, num_ip_points = 100)
 
-        # Store the mean reduction in vectorial capacity for 50% coverage of LLINs as results.
+        # Store the mean reduction in vectorial capacity given 50% coverage of LLINs as results.
         results[i] <- impacts$interventions_vec$LLINs_example$effects$avg_impact[6]
     }
 
