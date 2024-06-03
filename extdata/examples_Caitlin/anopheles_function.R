@@ -128,22 +128,19 @@ S_eff <- as.data.frame(S_eff)
 T_eff <- as.data.frame(T_eff)
 S_eff$Parameter <- vec_params$param
 T_eff$Parameter <- vec_params$param
-sensitivity_df <- data.frame(Parameter = S_eff$Parameter,
-                             FirstOrder = S_eff, TotalOrder = T_eff)
+sensitivity_df <- data.frame(Parameter = S_eff$Parameter, FirstOrder = S_eff, TotalOrder = T_eff)
 
 # Create the first-order sensitivity bar plot.
 ggplot(sensitivity_df, aes(x = reorder(Parameter, -FirstOrder.S_eff), y = FirstOrder.S_eff)) +
     geom_bar(stat = "identity", fill = "steelblue") +
     labs(title = "First-Order Sensitivity Indices", x = "Parameter", y = "First-Order Sensitivity Index") +
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # Create the total-order sensitivity bar plot.
 ggplot(sensitivity_df, aes(x = reorder(Parameter, -TotalOrder.T_eff), y = TotalOrder.T_eff)) +
     geom_bar(stat = "identity", fill = "darkred") +
     labs(title = "Total-Order Sensitivity Indices", x = "Parameter", y = "Total-Order Sensitivity Index") +
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
 
