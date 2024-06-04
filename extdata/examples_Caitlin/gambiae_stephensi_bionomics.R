@@ -47,6 +47,7 @@ p_bio <- ggplot(df_bionomics, aes(x = value)) + geom_histogram(bins = 20) +
     theme_bw(base_size = 16) +
     labs( x = "Value", y = "Number of \nAnopheles Species") +
     scale_color_discrete("Mosquito\nSpecies",
+                         values = c("Anopheles stephensi" = "royalblue", "Anopheles gambiae" = "hotpink"),
                          labels = c(expression(italic("An. stephensi")), expression(italic("An. gambiae")))) +
     theme(strip.background = element_rect(colour = "white", fill = "white")) +
     theme(legend.text.align = 0)
