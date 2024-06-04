@@ -53,3 +53,4 @@ p_bio <- ggplot(df_bionomics, aes(x = value)) + geom_histogram(bins = 20) +
     theme(legend.text.align = 0)
 p_bio
 
+
