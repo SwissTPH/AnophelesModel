@@ -20,22 +20,29 @@ library(ggplot2)
 # Create a dataframe of vector parameters.
 vec_params <- data.frame(
     param = c("M", "Chi", "A0", "zeta.3", "td", "tau", "ts",
-              "to", "endophily", "endophagy", "exposure"),
+              "to", "endophily", "endophagy", "exposure", "coverage"),
     value = c(0.613499, 0.7947577, 0.6419328, 1, 0.33,
-              3, 10, 5, 0.7743085, 0.5604133, 0.9),
-    lower_bound = c(0, 0, 0, 1, 0.33, 3, 10, 5, 0, 0, 0),
-    upper_bound = c(1, 1, 1, 1, 0.33, 3, 10, 5, 1, 1, 1)
+              3, 10, 5, 0.7743085, 0.5604133, 0.9, 0.8),
+    lower_bound = c(0, 0, 0, 1, 0.33, 3, 10, 5, 0, 0, 0, 0),
+    upper_bound = c(1, 1, 1, 1, 0.33, 3, 10, 5, 1, 1, 1, 1)
 )
+
+# Initialise tracking of iterations.
+total_iterations <- 0
+current_iteration <- 0
 
 
 #### CALC_VC FUNCTION ####
 
 
-# Create the calc_vc function.
+# Create the calc_vc function for LLINs.
 calc_vc <- function(param_spec) {
 
     # Initialise results.
     results <- NULL
+
+    # Update the number of iterations.
+    total_iterations <<- total_iterations + nrow(param_spec)
 
     # Loop for each combination of vector parameters (i.e., each row of vec_param).
     for (i in 1:nrow(param_spec)) {
@@ -78,12 +85,18 @@ calc_vc <- function(param_spec) {
 
         # Calculate and the impact of interventions.
         impacts <- calculate_impact(interventions_vec = intervention_effects,
-                                    coverage_vec = seq(0, 1, by = 0.1),
+                                    coverage_vec = c(0, param_spec[i, "coverage"]),
                                     model_p = my_default_model,
                                     Nv0 = 10000, num_ip_points = 100)
 
-        # Store the mean reduction in vectorial capacity given 50% coverage of LLINs as results.
-        results[i] <- impacts$interventions_vec$LLINs_example$effects$avg_impact[6]
+        # Store the mean reduction in vectorial capacity under the intervention of interest as results.
+        # results[i] <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
+        # results[i] <- impacts$interventions_vec$IRS_example$effects$avg_impact[2]
+        results[i] <- impacts$interventions_vec$Screening_example$effects$avg_impact[2]
+
+        # Update and print progress.
+        current_iteration <<- current_iteration + 1
+        cat("Current iteration:", current_iteration, "/", total_iterations, "\n")
     }
 
     # Return the results.
@@ -107,12 +120,12 @@ create_lhs_samples <- function(num_points, vec_params) {
 }
 
 # Construct the two random LHS samples.
-num_points <- 10
+num_points <- 50000
 X1 <- create_lhs_samples(num_points, vec_params)
 X2 <- create_lhs_samples(num_points, vec_params)
 
 # Compute the Sobol indices (main and total effects).
-SA <- soboljansen(model = calc_vc, X1, X2, nboot = 1000000)
+SA <- soboljansen(model = calc_vc, X1, X2, nboot = 5000)
 ggplot(SA)
 S_eff <- SA$S$original
 S_eff[S_eff < 0] <- 0
@@ -133,12 +146,13 @@ sensitivity_df <- data.frame(Parameter = S_eff$Parameter, FirstOrder = S_eff, To
 # Create the first-order sensitivity bar plot.
 ggplot(sensitivity_df, aes(x = reorder(Parameter, -FirstOrder.S_eff), y = FirstOrder.S_eff)) +
     geom_bar(stat = "identity", fill = "steelblue") +
-    labs(title = "First-Order Sensitivity Indices", x = "Parameter", y = "First-Order Sensitivity Index") +
+    labs(title = "Main Sensitivity Indices", x = "Parameter", y = "Main Sensitivity Index") +
     theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # Create the total-order sensitivity bar plot.
 ggplot(sensitivity_df, aes(x = reorder(Parameter, -TotalOrder.T_eff), y = TotalOrder.T_eff)) +
     geom_bar(stat = "identity", fill = "darkred") +
-    labs(title = "Total-Order Sensitivity Indices", x = "Parameter", y = "Total-Order Sensitivity Index") +
+    labs(title = "Total Sensitivity Indices", x = "Parameter", y = "Total Sensitivity Index") +
     theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 
