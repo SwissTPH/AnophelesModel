@@ -56,12 +56,15 @@
 
       
 
-      </header><script src="AnophelesModel_files/accessible-code-block-0.0.1/empty-anchor.js"></script><script src="AnophelesModel_files/htmlwidgets-1.6.2/htmlwidgets.js"></script><script src="AnophelesModel_files/viz-1.8.2/viz.js"></script><link href="AnophelesModel_files/DiagrammeR-styles-0.2/styles.css" rel="stylesheet">
-<script src="AnophelesModel_files/grViz-binding-1.0.11/grViz.js"></script><div class="row">
+      </header><script src="AnophelesModel_files/htmlwidgets-1.6.2/htmlwidgets.js"></script><script src="AnophelesModel_files/viz-1.8.2/viz.js"></script><link href="AnophelesModel_files/DiagrammeR-styles-0.2/styles.css" rel="stylesheet">
+<script src="AnophelesModel_files/grViz-binding-1.0.10/grViz.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>AnophelesModel Documentation</h1>
-                        <h4 data-toc-skip class="author">Monica Golumbeanu, Olivier Briët, Clara Champagne, Jeanne Lemant, Barnabas Zogo, Maximilian Gerhards, Marianne Sinka, Nakul Chitnis, Melissa Penny, Emilie Pothin, Tom Smith</h4>
+                        <h4 data-toc-skip class="author">Monica
+Golumbeanu, Olivier Briët, Clara Champagne, Jeanne Lemant, Barnabas
+Zogo, Maximilian Gerhards, Marianne Sinka, Nakul Chitnis, Melissa Penny,
+Emilie Pothin, Tom Smith</h4>
             
             <h4 data-toc-skip class="date">2024-06-11</h4>
       
@@ -82,20 +85,75 @@ color: grey
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p>The <code>AnophelesModel</code> package can be used to parameterize a model of the mosquito feeding cycle using data about mosquito bionomics (entomological characteristics) and biting patterns, as well as human activity and intervention effects. The different types of data have been extracted from field studies and are included in the package. The model infers the species-specific impact of various vector control interventions on the vectorial capacity. The package can be used to compare the impact of interventions for different mosquito species and to generate parameterizations for the entomological and vector control components of more complex models of malaria transmission dynamics.</p>
-<p>The <code>AnophelesModel</code> package is based on a state transition model of the feeding dynamics of a mosquito population biting a population of hosts defined in <span class="citation">(Chitnis, Smith, and Steketee 2008)</span>. The model consists of a system of three difference equations describing the dynamics in the numbers of not-infected, infected, and infective mosquitoes, respectively. The transitions between the individual steps of the cycle for a host <em>i</em> are modeled through probabilities and summarized as follows:</p>
-<div class="figure">
-<img src="../reference/figures/Fig1.png" style="width:90.0%" alt=""><p class="caption"><strong>Figure 1: Overview of the <code>AnophelesModel</code> R package and its components.</strong> The package integrates various types of input data (first panel) to parameterize an existing model of the mosquito feeding cycle (middle panel, schematic adapted from <span class="citation">(Chitnis, Smith, and Steketee 2008)</span>). This model represents the feeding cycle states with letters A through E and transition probabilities <span class="math inline">\(P_{A^i}\)</span> – <span class="math inline">\(P_{E^i}\)</span> between consecutive states for a host of type i (human, animal hosts). The dotted grey arrows indicate that mosquitoes can die at each stage. Blue lightning symbols indicate the transition probabilities affected by the vector control interventions included in the package</p>
+<p>The <code>AnophelesModel</code> package can be used to parameterize a
+model of the mosquito feeding cycle using data about mosquito bionomics
+(entomological characteristics) and biting patterns, as well as human
+activity and intervention effects. The different types of data have been
+extracted from field studies and are included in the package. The model
+infers the species-specific impact of various vector control
+interventions on the vectorial capacity. The package can be used to
+compare the impact of interventions for different mosquito species and
+to generate parameterizations for the entomological and vector control
+components of more complex models of malaria transmission dynamics.</p>
+<p>The <code>AnophelesModel</code> package is based on a state
+transition model of the feeding dynamics of a mosquito population biting
+a population of hosts defined in <span class="citation">(Chitnis, Smith,
+and Steketee 2008)</span>. The model consists of a system of three
+difference equations describing the dynamics in the numbers of
+not-infected, infected, and infective mosquitoes, respectively. The
+transitions between the individual steps of the cycle for a host
+<em>i</em> are modeled through probabilities and summarized as
+follows:</p>
+<div class="float">
+<img src="../reference/figures/Fig1.png" style="width:90.0%" alt="Figure 1: Overview of the AnophelesModel R package and its components. The package integrates various types of input data (first panel) to parameterize an existing model of the mosquito feeding cycle (middle panel, schematic adapted from (Chitnis, Smith, and Steketee 2008)). This model represents the feeding cycle states with letters A through E and transition probabilities P_{A^i} – P_{E^i} between consecutive states for a host of type i (human, animal hosts). The dotted grey arrows indicate that mosquitoes can die at each stage. Blue lightning symbols indicate the transition probabilities affected by the vector control interventions included in the package"><div class="figcaption">
+<strong>Figure 1: Overview of the
+<code>AnophelesModel</code> R package and its components.</strong> The
+package integrates various types of input data (first panel) to
+parameterize an existing model of the mosquito feeding cycle (middle
+panel, schematic adapted from <span class="citation">(Chitnis, Smith,
+and Steketee 2008)</span>). This model represents the feeding cycle
+states with letters A through E and transition probabilities <span class="math inline">\(P_{A^i}\)</span> – <span class="math inline">\(P_{E^i}\)</span> between consecutive states for a
+host of type i (human, animal hosts). The dotted grey arrows indicate
+that mosquitoes can die at each stage. Blue lightning symbols indicate
+the transition probabilities affected by the vector control
+interventions included in the package</div>
 </div>
-<p>These probabilities (represented by the arrows in the diagram above) are in turn affected by mosquito ecology, human behavior and interventions as described in the following sections of this vignette.</p>
-<p>This documentation provides information about the various use-cases of the package with examples. First, it gives an overview of the general analysis workflow. Next, it presents the contents of the package database and its data objects. Finally, it provides more detailed example use cases of the package functions. These examples include how to parameterize the embedded entomological model and evaluate the impact of various vector control interventions for different mosquito species and geographical locations. In addition, examples are shown about how to produce formatted inputs for downstream analyses with the <a href="https://github.com/SwissTPH/openmalaria/wiki" class="external-link">OpenMalaria</a> <span class="citation">(Smith et al. 2006)</span> individual-based model of malaria transmission dynamics.</p>
+<p>These probabilities (represented by the arrows in the diagram above)
+are in turn affected by mosquito ecology, human behavior and
+interventions as described in the following sections of this
+vignette.</p>
+<p>This documentation provides information about the various use-cases
+of the package with examples. First, it gives an overview of the general
+analysis workflow. Next, it presents the contents of the package
+database and its data objects. Finally, it provides more detailed
+example use cases of the package functions. These examples include how
+to parameterize the embedded entomological model and evaluate the impact
+of various vector control interventions for different mosquito species
+and geographical locations. In addition, examples are shown about how to
+produce formatted inputs for downstream analyses with the <a href="https://github.com/SwissTPH/openmalaria/wiki" class="external-link">OpenMalaria</a>
+<span class="citation">(Smith et al. 2006)</span> individual-based model
+of malaria transmission dynamics.</p>
 </div>
 <div class="section level2">
 <h2 id="general-workflow">General workflow<a class="anchor" aria-label="anchor" href="#general-workflow"></a>
 </h2>
-<p>With the main <code><a href="../reference/AnophelesModel.html">AnophelesModel()</a></code> package function, the user can run in one go the main analysis steps for parameterizing the model of the mosquito feeding cycle <span class="citation">(Chitnis, Smith, and Steketee 2008)</span> and estimate the reduction on the vectorial capacity for various vector control interventions. These steps are summarized in the diagram below, alongside the corresponding functions:</p>
-<div id="htmlwidget-dddc463d376d2eb4e8fb" style="width:720px;height:432.632880098888px;" class="grViz html-widget "></div>
-<script type="application/json" data-for="htmlwidget-dddc463d376d2eb4e8fb">{"x":{"diagram":"digraph {\n  graph [layout = dot, rankdir = LR]\n  \n  node [shape = rectangle]        \n  rec1 [label = <Define entomological <BR/> parameters <BR/><B>def_vector_params()<\/B>>]\n  rec2 [label = <Define mosquito and <BR/> human activity patterns <BR/> <B>def_activity_patterns()<\/B>>]\n  rec3 [label = <Define human host <BR/> parameters <BR/><B>def_host_params()<\/B>>]\n  rec4 [label = <Initialize entomological model <BR/><B>build_model_obj()<\/B>>]\n  rec5 [label = <Define interventions effects <BR/><B>def_interventions_effects()<\/B>>]\n  rec6 [label = <Calculate impact on <BR/> vectorial capacity <BR/><B>calculate_impact()<\/B>>]\n  \n  # edge definitions with the node IDs\n  rec1 -> rec4 \n  rec2 -> rec4 \n  rec3 -> rec4\n  rec4 -> rec5\n  rec5 -> rec6\n  }","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script><p>The user can directly run the <code><a href="../reference/AnophelesModel.html">AnophelesModel()</a></code> function as an initial test run with a default analysis. By default, the <code><a href="../reference/AnophelesModel.html">AnophelesModel()</a></code> function performs the above steps considering the parameters for <em>An. gambiae</em> in a Kenyan setting and with default activity patterns for mosquitoes and humans. It calibrates the entomological model, estimates the impact of indoor residual spraying (IRS), long-lasting insecticide-treated nets (LLINs) and house screening, then plots the average vectorial capacity for a range of intervention coverages:</p>
+<p>With the main <code><a href="../reference/AnophelesModel.html">AnophelesModel()</a></code> package function, the
+user can run in one go the main analysis steps for parameterizing the
+model of the mosquito feeding cycle <span class="citation">(Chitnis,
+Smith, and Steketee 2008)</span> and estimate the reduction on the
+vectorial capacity for various vector control interventions. These steps
+are summarized in the diagram below, alongside the corresponding
+functions:</p>
+<div id="htmlwidget-df6843c6c5ce0519cd0b" style="width:720px;height:432.632880098888px;" class="grViz html-widget "></div>
+<script type="application/json" data-for="htmlwidget-df6843c6c5ce0519cd0b">{"x":{"diagram":"digraph {\n  graph [layout = dot, rankdir = LR]\n  \n  node [shape = rectangle]        \n  rec1 [label = <Define entomological <BR/> parameters <BR/><B>def_vector_params()<\/B>>]\n  rec2 [label = <Define mosquito and <BR/> human activity patterns <BR/> <B>def_activity_patterns()<\/B>>]\n  rec3 [label = <Define human host <BR/> parameters <BR/><B>def_host_params()<\/B>>]\n  rec4 [label = <Initialize entomological model <BR/><B>build_model_obj()<\/B>>]\n  rec5 [label = <Define interventions effects <BR/><B>def_interventions_effects()<\/B>>]\n  rec6 [label = <Calculate impact on <BR/> vectorial capacity <BR/><B>calculate_impact()<\/B>>]\n  \n  # edge definitions with the node IDs\n  rec1 -> rec4 \n  rec2 -> rec4 \n  rec3 -> rec4\n  rec4 -> rec5\n  rec5 -> rec6\n  }","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script><p>The user can directly run the <code><a href="../reference/AnophelesModel.html">AnophelesModel()</a></code> function
+as an initial test run with a default analysis. By default, the
+<code><a href="../reference/AnophelesModel.html">AnophelesModel()</a></code> function performs the above steps
+considering the parameters for <em>An. gambiae</em> in a Kenyan setting
+and with default activity patterns for mosquitoes and humans. It
+calibrates the entomological model, estimates the impact of indoor
+residual spraying (IRS), long-lasting insecticide-treated nets (LLINs)
+and house screening, then plots the average vectorial capacity for a
+range of intervention coverages:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># load the AnophelesModel package</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">AnophelesModel</span><span class="op">)</span></span>
@@ -136,32 +194,67 @@ color: grey
 <span><span class="co">#&gt; [1] "Calculating interventions impact ..."</span></span></code></pre></div>
 <div class="figure">
 <img src="AnophelesModel_files/figure-html/unnamed-chunk-3-1.png" alt="Output figure generated with the standard call of the AnophelesModel() function" width="1093.75"><p class="caption">
-Output figure generated with the standard call of the AnophelesModel() function
+Output figure generated with the standard call of the AnophelesModel()
+function
 </p>
 </div>
-<p>In the section <a href="#estimating-the-impact-of-vector-control-interventions">Estimating the impact of vector control interventions</a>, we describe in detail how the user can access the functionalities of the package to customize the call to this function or set up their own workflow to run the analysis within the settings of interest.</p>
+<p>In the section <a href="#estimating-the-impact-of-vector-control-interventions">Estimating
+the impact of vector control interventions</a>, we describe in detail
+how the user can access the functionalities of the package to customize
+the call to this function or set up their own workflow to run the
+analysis within the settings of interest.</p>
 </div>
 <div class="section level2">
 <h2 id="anophelesmodel-database">AnophelesModel database<a class="anchor" aria-label="anchor" href="#anophelesmodel-database"></a>
 </h2>
-<p>The package includes a comprehensive, curated database describing mosquito, human and intervention characteristics extracted after processing publicly available field data and organized into multiple data objects. Precisely, these objects include entomological (or bionomics) parameters characterizing various <em>Anopheles</em> species, their transitions in the mosquito feeding cycle, activity cycles of humans and mosquitoes, as well as parameters estimated from experimental hut studies describing the effects of various interventions. These parameters are used together within the entomological model included in the package to estimate the impact of interventions on the vectorial capacity. All the data objects are directly accessible to the user after loading the <code>AnophelesModel</code> package.</p>
+<p>The package includes a comprehensive, curated database describing
+mosquito, human and intervention characteristics extracted after
+processing publicly available field data and organized into multiple
+data objects. Precisely, these objects include entomological (or
+bionomics) parameters characterizing various <em>Anopheles</em> species,
+their transitions in the mosquito feeding cycle, activity cycles of
+humans and mosquitoes, as well as parameters estimated from experimental
+hut studies describing the effects of various interventions. These
+parameters are used together within the entomological model included in
+the package to estimate the impact of interventions on the vectorial
+capacity. All the data objects are directly accessible to the user after
+loading the <code>AnophelesModel</code> package.</p>
 <div class="section level3">
 <h3 id="host-specific-entomological-parameters">Host-specific entomological parameters<a class="anchor" aria-label="anchor" href="#host-specific-entomological-parameters"></a>
 </h3>
-<p>The entomological model in the <code>AnophelesModel</code> package considers three classes of hosts (denoted with subscript i): humans protected by interventions, non-protected humans, and animal hosts. Each type of host determines specific transition probabilities between the consecutive stages of the mosquito feeding cycle (e.g., interventions such as nets will affect the probability of mosquito feeding on protected humans). The object <code>host_ent_param</code> in the package database contains, in absence of interventions, for human and animal hosts, default probabilities that a mosquito completes the consecutive stages of the feeding cycle in one night, conditional on having reached each stage:</p>
+<p>The entomological model in the <code>AnophelesModel</code> package
+considers three classes of hosts (denoted with subscript i): humans
+protected by interventions, non-protected humans, and animal hosts. Each
+type of host determines specific transition probabilities between the
+consecutive stages of the mosquito feeding cycle (e.g., interventions
+such as nets will affect the probability of mosquito feeding on
+protected humans). The object <code>host_ent_param</code> in the package
+database contains, in absence of interventions, for human and animal
+hosts, default probabilities that a mosquito completes the consecutive
+stages of the feeding cycle in one night, conditional on having reached
+each stage:</p>
 <ul>
 <li>
 <code>PBi</code>: Probability that a mosquito bites the host</li>
 <li>
-<code>PCi</code>: Probability that a mosquito finds a resting place after biting</li>
+<code>PCi</code>: Probability that a mosquito finds a resting place
+after biting</li>
 <li>
-<code>PDi</code>: Probability that a mosquito survives the resting phase</li>
+<code>PDi</code>: Probability that a mosquito survives the resting
+phase</li>
 <li>
-<code>PEi</code>: Probability that a mosquito lays eggs and returns to host-seeking</li>
+<code>PEi</code>: Probability that a mosquito lays eggs and returns
+to host-seeking</li>
 <li>
-<code>Kvi</code>: Proportion of susceptible mosquitoes that become infected after biting</li>
+<code>Kvi</code>: Proportion of susceptible mosquitoes that become
+infected after biting</li>
 </ul>
-<p>The <code>host_ent_param</code> object contains default values of these probabilities in absence of interventions for the major mosquito species <em>Anopheles gambiae</em>, <em>Anopheles funestus</em> and <em>Anopheles arabiensis</em> as proposed by <span class="citation">(Chitnis, Smith, and Steketee 2008)</span> and <span class="citation">(Briët et al. 2019)</span>. The <code>host_ent_param</code> object can be directly used after loading the <code>AnophelesModel</code> package:</p>
+<p>The <code>host_ent_param</code> object contains default values of
+these probabilities in absence of interventions for the major mosquito
+species <em>Anopheles gambiae</em>, <em>Anopheles funestus</em> and
+<em>Anopheles arabiensis</em> as proposed by <span class="citation">(Chitnis, Smith, and Steketee 2008)</span> and <span class="citation">(Briët et al. 2019)</span>. The
+<code>host_ent_param</code> object can be directly used after loading
+the <code>AnophelesModel</code> package:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Print the object</span></span>
 <span><span class="va">host_ent_param</span></span>
@@ -176,38 +269,56 @@ Output figure generated with the standard call of the AnophelesModel() function
 <div class="section level3">
 <h3 id="mosquito-bionomics">Mosquito bionomics<a class="anchor" aria-label="anchor" href="#mosquito-bionomics"></a>
 </h3>
-<p>The object <code>vec_ent_param</code> contains bionomic parameterizations for 57 <em>Anopheles</em> mosquito species and 17 complexes (families of species). These parameters have been estimated using a Bayesian hierarchical model <span class="citation">(Lemant et al. 2021)</span> accounting for the phylogeny of the <em>Anopheles</em> genus and informed by previously published entomological data <span class="citation">(Massey et al. 2016)</span>, <span class="citation">(Briët et al. 2019)</span>. Below, we provide an exhaustive list of these parameters, their names reflecting the notations used in <span class="citation">(Chitnis, Smith, and Steketee 2008)</span>:</p>
+<p>The object <code>vec_ent_param</code> contains bionomic
+parameterizations for 57 <em>Anopheles</em> mosquito species and 17
+complexes (families of species). These parameters have been estimated
+using a Bayesian hierarchical model <span class="citation">(Lemant et
+al. 2021)</span> accounting for the phylogeny of the <em>Anopheles</em>
+genus and informed by previously published entomological data <span class="citation">(Massey et al. 2016)</span>, <span class="citation">(Briët et al. 2019)</span>. Below, we provide an
+exhaustive list of these parameters, their names reflecting the
+notations used in <span class="citation">(Chitnis, Smith, and Steketee
+2008)</span>:</p>
 <ul>
 <li>
 <code>species_name</code>: name of the mosquito species</li>
 <li>
-<code>M</code>: parous rate (proportion of host seeking mosquitoes that have laid eggs at least once)</li>
+<code>M</code>: parous rate (proportion of host seeking mosquitoes
+that have laid eggs at least once)</li>
 <li>
 <code>M.sd</code>: standard deviation of the parous rate</li>
 <li>
-<code>Chi</code>: human blood index (proportion of mosquito blood meals obtained from humans)</li>
+<code>Chi</code>: human blood index (proportion of mosquito blood
+meals obtained from humans)</li>
 <li>
-<code>A0</code>: sac rate (proportion of mosquitoes who laid eggs the same day)</li>
+<code>A0</code>: sac rate (proportion of mosquitoes who laid eggs
+the same day)</li>
 <li>
 <code>A0.sd</code>: standard deviation of the sac rate</li>
 <li>
-<code>zeta.3</code>: relative availability of different non-human hosts</li>
+<code>zeta.3</code>: relative availability of different non-human
+hosts</li>
 <li>
-<code>td</code>: proportion of a day that a mosquito actively seeks a host</li>
+<code>td</code>: proportion of a day that a mosquito actively seeks
+a host</li>
 <li>
-<code>tau</code>: time required for a mosquito that has encountered a host to return to host seeking</li>
+<code>tau</code>: time required for a mosquito that has encountered
+a host to return to host seeking</li>
 <li>
-<code>ts</code>: duration of the extrinsic incubation period (time required for sporozoites to develop in mosquitoes)</li>
+<code>ts</code>: duration of the extrinsic incubation period (time
+required for sporozoites to develop in mosquitoes)</li>
 <li>
 <code>endophily</code>: proportion of indoor resting mosquitoes</li>
 <li>
-<code>endophily.sd</code>: standard deviation of the proportion of indoor resting mosquitoes</li>
+<code>endophily.sd</code>: standard deviation of the proportion of
+indoor resting mosquitoes</li>
 <li>
 <code>endophagy</code>: proportion of indoor feeding mosquitoes</li>
 <li>
-<code>endophagy.sd</code>: standard deviation of the proportion of indoor feeding mosquitoes</li>
+<code>endophagy.sd</code>: standard deviation of the proportion of
+indoor feeding mosquitoes</li>
 </ul>
-<p>The <code>vec_ent_param</code> object is available upon loading the <code>AnophelesModel</code> package and can be directly used:</p>
+<p>The <code>vec_ent_param</code> object is available upon loading the
+<code>AnophelesModel</code> package and can be directly used:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># print the first entries of the vec_ent_param object</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">vec_ent_param</span><span class="op">)</span></span>
@@ -225,14 +336,25 @@ Output figure generated with the standard call of the AnophelesModel() function
 <span><span class="co">#&gt; 4      1 0.33   3 10  5 0.6944887   0.13455023 0.3439954  0.024569634</span></span>
 <span><span class="co">#&gt; 5      1 0.33   3 10  5 0.6944887   0.13455023 0.3996990  0.042303792</span></span>
 <span><span class="co">#&gt; 6      1 0.33   3 10  5 0.7743085   0.01233146 0.4920965  0.002755030</span></span></code></pre></div>
-<p>For example, to retrieve the parameters for <em>Anopheles albimanus</em>:</p>
+<p>For example, to retrieve the parameters for <em>Anopheles
+albimanus</em>:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">vec_ent_param</span><span class="op">[</span><span class="va">vec_ent_param</span><span class="op">$</span><span class="va">species_name</span> <span class="op">==</span> <span class="st">"Anopheles albimanus"</span>, <span class="op">]</span></span>
 <span><span class="co">#&gt;           species_name         M      M.sd       Chi        A0      A0.sd</span></span>
 <span><span class="co">#&gt; 10 Anopheles albimanus 0.5577161 0.0322432 0.4223199 0.4951913 0.05195866</span></span>
 <span><span class="co">#&gt;    zeta.3   td tau ts to endophily endophily.sd endophagy endophagy.sd</span></span>
 <span><span class="co">#&gt; 10      1 0.33   3 10  5 0.6944887    0.1345502 0.2293868   0.01502506</span></span></code></pre></div>
-<p>The data object  includes estimated bionomics parameters for individual Anopheles mosquito species, but also for complexes regrouping several species. For example, “Gambiae complex” refers to the Gambiae complex, while <em>Anopheles gambiae</em> refers to the mosquito species. The Gambiae complex includes <em>Anopheles gambiae</em>, <em>Anopheles arabiensis</em>, <em>Anopheles melas</em>, <em>Anopheles merus</em>, and other mosquitoes whose exact species was not identified but belong to the complex. Therefore, it is expected that the bionomics parameters will differ between the individual species and the corresponding complex. For example, to retrieve the parameters for the Gambiae complex:</p>
+<p>The data object includes estimated bionomics parameters for
+individual Anopheles mosquito species, but also for complexes regrouping
+several species. For example, “Gambiae complex” refers to the Gambiae
+complex, while <em>Anopheles gambiae</em> refers to the mosquito
+species. The Gambiae complex includes <em>Anopheles gambiae</em>,
+<em>Anopheles arabiensis</em>, <em>Anopheles melas</em>, <em>Anopheles
+merus</em>, and other mosquitoes whose exact species was not identified
+but belong to the complex. Therefore, it is expected that the bionomics
+parameters will differ between the individual species and the
+corresponding complex. For example, to retrieve the parameters for the
+Gambiae complex:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">vec_ent_param</span><span class="op">[</span><span class="va">vec_ent_param</span><span class="op">$</span><span class="va">species_name</span> <span class="op">==</span> <span class="st">"Gambiae complex"</span>, <span class="op">]</span></span>
 <span><span class="co">#&gt;       species_name        M        M.sd       Chi       A0      A0.sd zeta.3</span></span>
@@ -243,36 +365,52 @@ Output figure generated with the standard call of the AnophelesModel() function
 <div class="section level3">
 <h3 id="human-and-mosquito-activity-patterns">Human and mosquito activity patterns<a class="anchor" aria-label="anchor" href="#human-and-mosquito-activity-patterns"></a>
 </h3>
-<p>The table <code>activity_patterns</code> contains mosquito biting patterns as well as human sleeping activity information extracted from <span class="citation">(Sherrard-Smith et al. 2019)</span> and <span class="citation">(Briët et al. 2019)</span>. Each entry has the following attributes:</p>
+<p>The table <code>activity_patterns</code> contains mosquito biting
+patterns as well as human sleeping activity information extracted from
+<span class="citation">(Sherrard-Smith et al. 2019)</span> and <span class="citation">(Briët et al. 2019)</span>. Each entry has the
+following attributes:</p>
 <ul>
 <li>
 <code>id</code>: entry ID</li>
 <li>
-<code>species</code>: can be “Homo sapiens” when the entries reflect human activity, or names of mosquito species (e.g., “Anopheles gambiae”) for mosquito biting patterns</li>
+<code>species</code>: can be “Homo sapiens” when the entries reflect
+human activity, or names of mosquito species (e.g., “Anopheles gambiae”)
+for mosquito biting patterns</li>
 <li>
 <code>sampling</code>: can be one of the following:</li>
 <li>
-<code>IND</code>: for entries representing the proportion of humans indoors</li>
+<code>IND</code>: for entries representing the proportion of humans
+indoors</li>
 <li>
-<code>BED</code>: for entries representing the proportion of humans in bed</li>
+<code>BED</code>: for entries representing the proportion of humans
+in bed</li>
 <li>
-<code>HBI</code>: for entries representing the proportion of indoors human biting</li>
+<code>HBI</code>: for entries representing the proportion of indoors
+human biting</li>
 <li>
-<code>HBO</code>: for entries representing the proportion of outdoors human biting</li>
+<code>HBO</code>: for entries representing the proportion of
+outdoors human biting</li>
 <li>
-<code>ABO</code>: for entries representing the proportion of outdoors animal biting</li>
+<code>ABO</code>: for entries representing the proportion of
+outdoors animal biting</li>
 <li>
-<code>HB</code>: for entries corresponding to the proportion of human biting</li>
+<code>HB</code>: for entries corresponding to the proportion of
+human biting</li>
 <li>
 <code>country</code>: country where the measurements were taken</li>
 <li>
-<code>site</code>: name of the geographical site where the measurements were taken</li>
+<code>site</code>: name of the geographical site where the
+measurements were taken</li>
 <li>
-<code>hour</code>: hour of the day for which the sampling is reported, ranging from 4pm until 8am, format: hh:mm_hh:mm (e.g., 16:00_17:00)</li>
+<code>hour</code>: hour of the day for which the sampling is
+reported, ranging from 4pm until 8am, format: hh:mm_hh:mm (e.g.,
+16:00_17:00)</li>
 <li>
 <code>value</code>: measurement value</li>
 </ul>
-<p>The object can be directly examined and its components retrieved for various purposes. For example, to retrieve all the human activity patterns collected from Kenya:</p>
+<p>The object can be directly examined and its components retrieved for
+various purposes. For example, to retrieve all the human activity
+patterns collected from Kenya:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">select_idx</span> <span class="op">=</span> <span class="va">activity_patterns</span><span class="op">$</span><span class="va">species</span> <span class="op">==</span> <span class="st">"Homo sapiens"</span> <span class="op">&amp;</span></span>
 <span>    <span class="va">activity_patterns</span><span class="op">$</span><span class="va">country</span> <span class="op">==</span> <span class="st">"Kenya"</span></span>
@@ -285,7 +423,8 @@ Output figure generated with the standard call of the AnophelesModel() function
 <span><span class="co">#&gt; 20  2 Homo sapiens      IND   Kenya Rachuonyo 19.00_20.00 1.0000000</span></span>
 <span><span class="co">#&gt; 21  2 Homo sapiens      IND   Kenya Rachuonyo 20.00_21.00 1.0000000</span></span>
 <span><span class="co">#&gt; 22  2 Homo sapiens      IND   Kenya Rachuonyo 21.00_22.00 1.0000000</span></span></code></pre></div>
-<p>A pattern of interest can then be selected and displayed, for example:</p>
+<p>A pattern of interest can then be selected and displayed, for
+example:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span><span class="va">Rachuonyo_human_rhythms</span> <span class="op">=</span> <span class="va">Kenya_human_rhythms</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">Kenya_human_rhythms</span><span class="op">$</span><span class="va">id</span> <span class="op">==</span> <span class="fl">2</span><span class="op">)</span>,<span class="op">]</span></span>
@@ -306,10 +445,13 @@ Output figure generated with the standard call of the AnophelesModel() function
 <span><span class="co">#&gt; <span style="color: #555555;">generated.</span></span></span></code></pre></div>
 <div class="figure">
 <img src="AnophelesModel_files/figure-html/unnamed-chunk-9-1.png" alt="Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans indoors (labeled IND) out of the total human population is displayed." width="1093.75"><p class="caption">
-Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans indoors (labeled IND) out of the total human population is displayed.
+Example of human activity patterns in Rachuonyo, Kenya. The proportion
+of humans indoors (labeled IND) out of the total human population is
+displayed.
 </p>
 </div>
-<p>Another example extracting all the available biting behavior for <em>Anopheles gambiae</em> in Kenya:</p>
+<p>Another example extracting all the available biting behavior for
+<em>Anopheles gambiae</em> in Kenya:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">select_idx</span> <span class="op">=</span> <span class="va">activity_patterns</span><span class="op">$</span><span class="va">species</span> <span class="op">==</span> <span class="st">"Anopheles gambiae"</span> <span class="op">&amp;</span></span>
 <span>    <span class="va">activity_patterns</span><span class="op">$</span><span class="va">country</span> <span class="op">==</span> <span class="st">"Kenya"</span></span>
@@ -326,29 +468,71 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <div class="section level3">
 <h3 id="intervention-parameters">Intervention parameters<a class="anchor" aria-label="anchor" href="#intervention-parameters"></a>
 </h3>
-<p>The <code>AnophelesModel</code> package includes parameterisations for estimating the effects of various vector control interventions. These effects include reducing host availability, killing mosquitoes over time since spraying, insecticidal and deterrent effects as functions of insecticide content. The interventions modeled in the package consist of different types of long lasting insecticide treated nets (LLINs), indoor residual spraying (IRS), and house screening. All the parameters for calculating these effects are provided within the <code>interventions_param</code> object which consists of three components, namely:</p>
+<p>The <code>AnophelesModel</code> package includes parameterisations
+for estimating the effects of various vector control interventions.
+These effects include reducing host availability, killing mosquitoes
+over time since spraying, insecticidal and deterrent effects as
+functions of insecticide content. The interventions modeled in the
+package consist of different types of long lasting insecticide treated
+nets (LLINs), indoor residual spraying (IRS), and house screening. All
+the parameters for calculating these effects are provided within the
+<code>interventions_param</code> object which consists of three
+components, namely:</p>
 <ul>
 <li>
-<code>interventions_param$interventions_summary</code>: an overview and general information for all available intervention parameterisations; this includes information about the active agent (insecticide) used, the mosquito species for which the effects were assessed in the experimental trials, the duration of the intervention and details about the method and references</li>
+<code>interventions_param$interventions_summary</code>: an overview
+and general information for all available intervention
+parameterisations; this includes information about the active agent
+(insecticide) used, the mosquito species for which the effects were
+assessed in the experimental trials, the duration of the intervention
+and details about the method and references</li>
 <li>
-<code>interventions_param$LLINs_params</code>: an object including parameterisations for various types of LLINs</li>
+<code>interventions_param$LLINs_params</code>: an object including
+parameterisations for various types of LLINs</li>
 <li>
-<code>interventions_param$IRS_params</code>: a table containing estimated insecticide decay for various types of IRS</li>
+<code>interventions_param$IRS_params</code>: a table containing
+estimated insecticide decay for various types of IRS</li>
 </ul>
-<p>The effects of LLINs are parameterized in terms of effectiveness in reducing the availability of humans, and both pre- and post-prandial killing of mosquitoes respectively. The effects are based on estimates from experimental hut studies from <span class="citation">(Randriamaherijaona et al. 2015)</span>. The decay of these effects over time, in terms of attrition, use, physical and chemical integrity is parameterized through a series of logistic models described in <span class="citation">(Briët et al. 2013)</span>, <span class="citation">(Briët et al. 2019)</span>, and <span class="citation">(Briet et al. 2020)</span> using the data of President Malaria Initiative (PMI) net durability studies (7 countries, 8 net types, 23 combinations in all), and also from <span class="citation">(Morgan et al. 2015)</span>. The object <code>interventions_param$LLINs_params</code> contains all this information and is composed of three tables:</p>
+<p>The effects of LLINs are parameterized in terms of effectiveness in
+reducing the availability of humans, and both pre- and post-prandial
+killing of mosquitoes respectively. The effects are based on estimates
+from experimental hut studies from <span class="citation">(Randriamaherijaona et al. 2015)</span>. The decay of
+these effects over time, in terms of attrition, use, physical and
+chemical integrity is parameterized through a series of logistic models
+described in <span class="citation">(Briët et al. 2013)</span>, <span class="citation">(Briët et al. 2019)</span>, and <span class="citation">(Briet et al. 2020)</span> using the data of President
+Malaria Initiative (PMI) net durability studies (7 countries, 8 net
+types, 23 combinations in all), and also from <span class="citation">(Morgan et al. 2015)</span>. The object
+<code>interventions_param$LLINs_params</code> contains all this
+information and is composed of three tables:</p>
 <ul>
 <li>
-<code>interventions_param$LLINs_params$model_coeff</code>: values for coefficients of regression models estimating LLINs effects; these models have been defined in <span class="citation">(Briët et al. 2013)</span>, <span class="citation">(Briët et al. 2019)</span> and <span class="citation">(Briet et al. 2020)</span>
+<code>interventions_param$LLINs_params$model_coeff</code>: values
+for coefficients of regression models estimating LLINs effects; these
+models have been defined in <span class="citation">(Briët et al.
+2013)</span>, <span class="citation">(Briët et al. 2019)</span> and
+<span class="citation">(Briet et al. 2020)</span>
 </li>
 <li>
-<code>interventions_param$LLINs_params$insecticide_c</code>: insecticide content for various types of nets summarized in <span class="citation">(Briet et al. 2020)</span>
+<code>interventions_param$LLINs_params$insecticide_c</code>:
+insecticide content for various types of nets summarized in <span class="citation">(Briet et al. 2020)</span>
 </li>
 <li>
-<code>interventions_param$LLINs_params$durability_estim</code>: information about the durability of LLINs (holed area, survival) across time in different geographical locations also summarized in <span class="citation">(Briet et al. 2020)</span>.</li>
+<code>interventions_param$LLINs_params$durability_estim</code>:
+information about the durability of LLINs (holed area, survival) across
+time in different geographical locations also summarized in <span class="citation">(Briet et al. 2020)</span>.</li>
 </ul>
-<p>Similarly, for IRS, a table with time series of effects in reducing human availability and killing of mosquitoes as well as parameters describing decay of effects over time is provided in <code>interventions_param$IRS_params</code>.</p>
-<p>The parameterization for House screening is based on the estimates from <span class="citation">(Kirby et al. 2009)</span> and described in <span class="citation">(Briët et al. 2019)</span>, assuming a house entry reduction of 59%.</p>
-<p>The data objects for interventions described above are directly accessible upon loading the <code>AnophelesModel</code> package. For example, for obtaining an overview of all LLINs interventions provided with the <code>AnophelesModel</code> package:</p>
+<p>Similarly, for IRS, a table with time series of effects in reducing
+human availability and killing of mosquitoes as well as parameters
+describing decay of effects over time is provided in
+<code>interventions_param$IRS_params</code>.</p>
+<p>The parameterization for House screening is based on the estimates
+from <span class="citation">(Kirby et al. 2009)</span> and described in
+<span class="citation">(Briët et al. 2019)</span>, assuming a house
+entry reduction of 59%.</p>
+<p>The data objects for interventions described above are directly
+accessible upon loading the <code>AnophelesModel</code> package. For
+example, for obtaining an overview of all LLINs interventions provided
+with the <code>AnophelesModel</code> package:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">interventions_param</span><span class="op">$</span><span class="va">interventions_summary</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">interventions_param</span><span class="op">$</span><span class="va">interventions_summary</span><span class="op">$</span><span class="va">Intervention</span> <span class="op">==</span> <span class="st">"LLINs"</span><span class="op">)</span>,<span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    Parameterisation Intervention       Active_agent             Species</span></span>
@@ -380,21 +564,33 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <div class="section level3">
 <h3 id="functions-querying-the-package-database">Functions querying the package database<a class="anchor" aria-label="anchor" href="#functions-querying-the-package-database"></a>
 </h3>
-<p>The package additionally contains helper functions for listing an overview of the different data objects to help the user populate the input arguments of the key functions in the general workflow (e.g., for the <code><a href="../reference/AnophelesModel.html">AnophelesModel()</a></code> function). These are:</p>
+<p>The package additionally contains helper functions for listing an
+overview of the different data objects to help the user populate the
+input arguments of the key functions in the general workflow (e.g., for
+the <code><a href="../reference/AnophelesModel.html">AnophelesModel()</a></code> function). These are:</p>
 <ul>
 <li>
-<code><a href="../reference/list_all_species.html">list_all_species()</a></code>: prints all the mosquito species for which bionomic parameters are provided in the package database</li>
+<code><a href="../reference/list_all_species.html">list_all_species()</a></code>: prints all the mosquito species for
+which bionomic parameters are provided in the package database</li>
 <li>
-<code><a href="../reference/list_activity.html">list_activity()</a></code>: prints all the available activity patterns</li>
+<code><a href="../reference/list_activity.html">list_activity()</a></code>: prints all the available activity
+patterns</li>
 <li>
-<code>list_interventions()</code>: prints the available vector control interventions</li>
+<code>list_interventions()</code>: prints the available vector
+control interventions</li>
 <li>
-<code><a href="../reference/list_intervention_models.html">list_intervention_models()</a></code>: prints the available intervention parameterisation IDs</li>
+<code><a href="../reference/list_intervention_models.html">list_intervention_models()</a></code>: prints the available
+intervention parameterisation IDs</li>
 <li>
-<code><a href="../reference/get_net_types.html">get_net_types()</a></code>: prints the available net types and the countries where the studies have been conducted</li>
+<code><a href="../reference/get_net_types.html">get_net_types()</a></code>: prints the available net types and the
+countries where the studies have been conducted</li>
 </ul>
-<p>Furthermore, the package allows extracting more specific information about the durability of different types of LLINs such as holed area, survival and decay. These parameteres were estimated in the PMI net durability studies.</p>
-<p>For example, to retrieve the decay characteristics for the DuraNet LLIN in Kenya:</p>
+<p>Furthermore, the package allows extracting more specific information
+about the durability of different types of LLINs such as holed area,
+survival and decay. These parameteres were estimated in the PMI net
+durability studies.</p>
+<p>For example, to retrieve the decay characteristics for the DuraNet
+LLIN in Kenya:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># load the necesary packages</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://had.co.nz/reshape" class="external-link">reshape</a></span><span class="op">)</span></span>
@@ -425,11 +621,19 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <div class="section level2">
 <h2 id="estimating-the-impact-of-vector-control-interventions">Estimating the impact of vector control interventions<a class="anchor" aria-label="anchor" href="#estimating-the-impact-of-vector-control-interventions"></a>
 </h2>
-<p>The mosquito bionomics, feeding cycle transitions, activity patterns and intervention effects accessible from the <code>AnophelesModel</code> database can be used to parameterise the model of the mosquito feeding cycle and estimate the impact of interventions on the vectorial capacity.</p>
+<p>The mosquito bionomics, feeding cycle transitions, activity patterns
+and intervention effects accessible from the <code>AnophelesModel</code>
+database can be used to parameterise the model of the mosquito feeding
+cycle and estimate the impact of interventions on the vectorial
+capacity.</p>
 <div class="section level3">
 <h3 id="step-1-defining-entomological-parameters">Step 1: Defining entomological parameters<a class="anchor" aria-label="anchor" href="#step-1-defining-entomological-parameters"></a>
 </h3>
-<p>To define the mosquito specific entomological parameters in absence of interventions, the user can either select existing parameterisations from the <code>AnophelesModel</code> database, or provide a set of custom values. For example, to choose an existing parameterisation for <em>Anopheles nili</em>:</p>
+<p>To define the mosquito specific entomological parameters in absence
+of interventions, the user can either select existing parameterisations
+from the <code>AnophelesModel</code> database, or provide a set of
+custom values. For example, to choose an existing parameterisation for
+<em>Anopheles nili</em>:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nili_ent_params</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_vector_params.html">def_vector_params</a></span><span class="op">(</span>mosquito_species <span class="op">=</span> <span class="st">"Anopheles nili"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">nili_ent_params</span><span class="op">)</span></span>
@@ -450,7 +654,9 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $A0.sd</span></span>
 <span><span class="co">#&gt; [1] 0.05195866</span></span></code></pre></div>
-<p>To use a different parameterisation, first all the entomological parameter values need to be provided in a data frame with the same column names as the <code>vec_ent_param</code> object:</p>
+<p>To use a different parameterisation, first all the entomological
+parameter values need to be provided in a data frame with the same
+column names as the <code>vec_ent_param</code> object:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Use own parameterisation</span></span>
 <span><span class="va">species_name</span> <span class="op">=</span> <span class="st">"Anopheles example"</span></span>
@@ -471,7 +677,8 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <span><span class="va">custom_ent_params_table</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind.data.frame</a></span><span class="op">(</span><span class="va">species_name</span>, <span class="va">M</span>, <span class="va">M.sd</span>, <span class="va">Chi</span>,</span>
 <span>                                                         <span class="va">A0</span>, <span class="va">A0.sd</span>, <span class="va">zeta.3</span>, <span class="va">td</span>,</span>
 <span>                                                         <span class="va">tau</span>, <span class="va">ts</span>, <span class="va">to</span>, <span class="va">endophily</span>, <span class="va">endophily.sd</span>, <span class="va">endophagy</span>, <span class="va">endophagy.sd</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>Then, the data frame is provided to the function defining the vector parameters:</p>
+<p>Then, the data frame is provided to the function defining the vector
+parameters:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">custom_ent_params</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_vector_params.html">def_vector_params</a></span><span class="op">(</span>mosquito_species <span class="op">=</span> <span class="va">species_name</span>, vector_table <span class="op">=</span> <span class="va">custom_ent_params_table</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "Object with vector entomological parameters defined using values provided by the user."</span></span>
@@ -497,7 +704,13 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <div class="section level3">
 <h3 id="step-2-defining-host-specific-entomological-parameters">Step 2: Defining host-specific entomological parameters<a class="anchor" aria-label="anchor" href="#step-2-defining-host-specific-entomological-parameters"></a>
 </h3>
-<p>Objects for host-specific entomological parameters (e.g., biting of human versus animal hosts, for details or other parameters see section <a href="#host-specific-entomological-parameters">Host-specific entomological parameters</a>) in absence of interventions can be defined in a similar way as for the mosquito bionomics. To choose the default parameterisation from <span class="citation">(Chitnis, Smith, and Steketee 2008)</span>:</p>
+<p>Objects for host-specific entomological parameters (e.g., biting of
+human versus animal hosts, for details or other parameters see section
+<a href="#host-specific-entomological-parameters">Host-specific
+entomological parameters</a>) in absence of interventions can be defined
+in a similar way as for the mosquito bionomics. To choose the default
+parameterisation from <span class="citation">(Chitnis, Smith, and
+Steketee 2008)</span>:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">default_host_params</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_host_params.html">def_host_params</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">default_host_params</span><span class="op">)</span></span>
@@ -521,7 +734,9 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $Kvi</span></span>
 <span><span class="co">#&gt; [1] 0.03 0.00</span></span></code></pre></div>
-<p>For using a different, custom parameterisation, first we need to build a data frame with the same structure as <code>host_ent_params</code>:</p>
+<p>For using a different, custom parameterisation, first we need to
+build a data frame with the same structure as
+<code>host_ent_params</code>:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">species_name</span> <span class="op">=</span> <span class="st">"Anopheles example"</span> </span>
 <span><span class="va">host</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"human"</span>, <span class="st">"animal"</span><span class="op">)</span> </span>
@@ -531,7 +746,8 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <span><span class="va">PEi</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.972</span>, <span class="fl">0.84</span><span class="op">)</span></span>
 <span><span class="va">Kvi</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.52</span>, <span class="fl">0.314</span><span class="op">)</span></span>
 <span><span class="va">custom_params_tab</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind.data.frame</a></span><span class="op">(</span><span class="va">species_name</span>, <span class="va">host</span>, <span class="va">PBi</span>, <span class="va">PCi</span>, <span class="va">PDi</span>, <span class="va">PEi</span>, <span class="va">Kvi</span><span class="op">)</span></span></code></pre></div>
-<p>Afterwards, we can provide this data frame to the relevant function for defining the host parameters:</p>
+<p>Afterwards, we can provide this data frame to the relevant function
+for defining the host parameters:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">custom_host_params</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_host_params.html">def_host_params</a></span><span class="op">(</span>mosquito_species <span class="op">=</span> <span class="va">species_name</span>, </span>
 <span>                                     vec_params <span class="op">=</span> <span class="va">custom_ent_params</span>, </span>
@@ -558,9 +774,29 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $Kvi</span></span>
 <span><span class="co">#&gt; [1] 0.520 0.314</span></span></code></pre></div>
-<p>When defining custom values for these probabilities in absence of interventions, users must ensure that the resulting feeding cycle dynamics is in agreement with the mosquito bionomics parameters specified with <code>def_vec_params()</code>. This constraint is due to the relationship derived in <span class="citation">(Chitnis, Smith, and Steketee 2008)</span> where <span class="math inline">\(M\)</span> is equivalent to the probability <span class="math inline">\(P_f\)</span> that a mosquito survives an entire feeding cycle: <span class="math inline">\(M = P_f = \frac{\sum_{i=1}^nP_{A^i}P_{B^i}P_{C^i}P_{D^i}P_{E^i}}{1-P_A}\)</span> where <span class="math inline">\(P_A\)</span> is the probability that the mosquito stays in the host seeking stage (more details are provided in the paper supplement).</p>
-<p>This relationship is used to derive <span class="math inline">\(P_{A^i}\)</span> for human and animal hosts. Precisely, for human hosts: <span class="math inline">\(P_{A^1} = \frac{A_0M\xi\zeta_2P_{B^2}P_{C^2}}{P_{B^1}P_{C^1}(\xi P_{D^1}P_{E^1}+(1-\xi)P_{D^2}P_{E^2})\zeta_2P_{B^2}P_{C^2}}\)</span> and for animal hosts: <span class="math inline">\(P_{A^1} = \frac{A_0M(1-\xi)}{(\xi P_{D^1}P_{E^1}+(1-\xi)P_{D^2}P_{E^2})\zeta_2P_{B^2}P_{C^2}}\)</span></p>
-<p>If the user-entered values for <span class="math inline">\(P_{B^i}, P_{C^i}, P_{D^i}, and P_{E^i}\)</span> are too low, a special case arises when there are no solutions for the probabilities <span class="math inline">\(P_{A^i}\)</span> defined above and the package produces an error as in the example below:</p>
+<p>When defining custom values for these probabilities in absence of
+interventions, users must ensure that the resulting feeding cycle
+dynamics is in agreement with the mosquito bionomics parameters
+specified with <code>def_vec_params()</code>. This constraint is due to
+the relationship derived in <span class="citation">(Chitnis, Smith, and
+Steketee 2008)</span> where <span class="math inline">\(M\)</span> is
+equivalent to the probability <span class="math inline">\(P_f\)</span>
+that a mosquito survives an entire feeding cycle: <span class="math inline">\(M = P_f =
+\frac{\sum_{i=1}^nP_{A^i}P_{B^i}P_{C^i}P_{D^i}P_{E^i}}{1-P_A}\)</span>
+where <span class="math inline">\(P_A\)</span> is the probability that
+the mosquito stays in the host seeking stage (more details are provided
+in the paper supplement).</p>
+<p>This relationship is used to derive <span class="math inline">\(P_{A^i}\)</span> for human and animal hosts.
+Precisely, for human hosts: <span class="math inline">\(P_{A^1} =
+\frac{A_0M\xi\zeta_2P_{B^2}P_{C^2}}{P_{B^1}P_{C^1}(\xi
+P_{D^1}P_{E^1}+(1-\xi)P_{D^2}P_{E^2})\zeta_2P_{B^2}P_{C^2}}\)</span> and
+for animal hosts: <span class="math inline">\(P_{A^1} =
+\frac{A_0M(1-\xi)}{(\xi
+P_{D^1}P_{E^1}+(1-\xi)P_{D^2}P_{E^2})\zeta_2P_{B^2}P_{C^2}}\)</span></p>
+<p>If the user-entered values for <span class="math inline">\(P_{B^i},
+P_{C^i}, P_{D^i}, and P_{E^i}\)</span> are too low, a special case
+arises when there are no solutions for the probabilities <span class="math inline">\(P_{A^i}\)</span> defined above and the package
+produces an error as in the example below:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">species_name</span> <span class="op">=</span> <span class="st">"Anopheles example"</span> </span>
 <span><span class="va">host</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"human"</span>, <span class="st">"animal"</span><span class="op">)</span> </span>
@@ -589,13 +825,26 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <span><span class="co">#&gt; Here is the original error message:</span></span>
 <span><span class="co">#&gt; Simulated mosquito dynamics during the feeding cycle is not reflected by the mosquito bionomics parameters!</span></span>
 <span><span class="co">#&gt;         Consider increasing the values for PBi, PCi, PDi, PEi in the def_host_param() function call.</span></span></code></pre></div>
-<p>Kvi should be set to 0 for animal hosts for Plasmodium falciparum. However, this does not generally apply, e.g. for Plasmodium knowlesi. Since the package is not exclusively focused on Plasmodium falciparum, we allow the user to define this value as appropriate for their specific use case. We have added a note to this effect in the documentation (section “Defining host-specific entomological parameters”).</p>
+<p>Kvi should be set to 0 for animal hosts for Plasmodium falciparum.
+However, this does not generally apply, e.g. for Plasmodium knowlesi.
+Since the package is not exclusively focused on Plasmodium falciparum,
+we allow the user to define this value as appropriate for their specific
+use case. We have added a note to this effect in the documentation
+(section “Defining host-specific entomological parameters”).</p>
 </div>
 <div class="section level3">
 <h3 id="step-3-defining-mosquito-and-human-activity-patterns">Step 3: Defining mosquito and human activity patterns<a class="anchor" aria-label="anchor" href="#step-3-defining-mosquito-and-human-activity-patterns"></a>
 </h3>
-<p>To facilitate definition of human and mosquito activity patterns, the <code>AnophelesModel</code> package comes with inbuilt default values for <em>Anopheles gambiae</em> in Kenya and <em>Anopheles albimanus</em> in Haiti. The user can choose other patterns from the package database (344 entries) by using the entry ID of each time series (<code>id</code> column of object <code>activity_patterns</code>). Furthermore, customized patterns can be defined by directly providing the time series values. Here are some examples for these different use cases:</p>
-<p>To use default activity patterns from Kenya (human activity measured in the Rachuonyo and Rarieda districts):</p>
+<p>To facilitate definition of human and mosquito activity patterns, the
+<code>AnophelesModel</code> package comes with inbuilt default values
+for <em>Anopheles gambiae</em> in Kenya and <em>Anopheles albimanus</em>
+in Haiti. The user can choose other patterns from the package database
+(344 entries) by using the entry ID of each time series (<code>id</code>
+column of object <code>activity_patterns</code>). Furthermore,
+customized patterns can be defined by directly providing the time series
+values. Here are some examples for these different use cases:</p>
+<p>To use default activity patterns from Kenya (human activity measured
+in the Rachuonyo and Rarieda districts):</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">activity_p</span> <span class="op">=</span> <span class="fu"><a href="../reference/def_activity_patterns.html">def_activity_patterns</a></span><span class="op">(</span>activity <span class="op">=</span> <span class="st">"default_Anopheles_gambiae"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">activity_p</span><span class="op">)</span></span>
@@ -618,7 +867,8 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <span><span class="co">#&gt;  [1] 0.0000000 0.0000000 0.0000000 0.2271333 0.6666333 1.0000000 1.0000000</span></span>
 <span><span class="co">#&gt;  [8] 1.0000000 1.0000000 1.0000000 1.0000000 1.0000000 0.8833167 0.2006667</span></span>
 <span><span class="co">#&gt; [15] 0.0000000 0.0000000</span></span></code></pre></div>
-<p>To select activity patterns from the database based on the entry IDs for <em>Anopheles arabiensis</em> in Kenya, Ahero disctrict:</p>
+<p>To select activity patterns from the database based on the entry IDs
+for <em>Anopheles arabiensis</em> in Kenya, Ahero disctrict:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">activity_list</span> <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="va">activity_list</span><span class="op">$</span><span class="va">HBI</span> <span class="op">=</span> <span class="fl">34</span></span>
@@ -646,7 +896,9 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <span><span class="co">#&gt;  [1] 0.0000000 0.0000000 0.0000000 0.2271333 0.6666333 1.0000000 1.0000000</span></span>
 <span><span class="co">#&gt;  [8] 1.0000000 1.0000000 1.0000000 1.0000000 1.0000000 0.8833167 0.2006667</span></span>
 <span><span class="co">#&gt; [15] 0.0000000 0.0000000</span></span></code></pre></div>
-<p>To use custom activity patterns by specifying the different time series, for example for <em>An. albimanus</em> in Haiti available from <span class="citation">(Briët et al. 2019)</span>:</p>
+<p>To use custom activity patterns by specifying the different time
+series, for example for <em>An. albimanus</em> in Haiti available from
+<span class="citation">(Briët et al. 2019)</span>:</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Briet et al 2019, Table S5. Biting rhythm of An. albimanus in Haiti, Dame Marie</span></span>
 <span><span class="va">HBI</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.22</span>, <span class="fl">0.21</span>, <span class="fl">0.22</span>, <span class="fl">0.10</span>, <span class="fl">0.13</span>, <span class="fl">0.17</span>, <span class="fl">0.08</span>, <span class="fl">0.12</span>, <span class="fl">0.03</span>, <span class="fl">0.12</span>, <span class="fl">0.17</span>, <span class="fl">0.18</span>, <span class="fl">0.25</span><span class="op">)</span></span>
@@ -676,13 +928,20 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <div class="section level3">
 <h3 id="step-4-initializing-the-entomological-model">Step 4: Initializing the entomological model<a class="anchor" aria-label="anchor" href="#step-4-initializing-the-entomological-model"></a>
 </h3>
-<p>Once the vector, host and activity parameters have been defined, the entomological model can be initialized and calibrated accordingly. In this step, the death rate and the availability to mosquitoes for each host type are estimated. For a description of how these two parameters are estimated, see <span class="citation">(Chitnis, Smith, and Steketee 2008)</span>.</p>
-<p>First, the sizes of the host and mosquito populations need to be defined:</p>
+<p>Once the vector, host and activity parameters have been defined, the
+entomological model can be initialized and calibrated accordingly. In
+this step, the death rate and the availability to mosquitoes for each
+host type are estimated. For a description of how these two parameters
+are estimated, see <span class="citation">(Chitnis, Smith, and Steketee
+2008)</span>.</p>
+<p>First, the sizes of the host and mosquito populations need to be
+defined:</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Define size of the host and mosquito population </span></span>
 <span><span class="va">host_pop</span> <span class="op">=</span> <span class="fl">2000</span></span>
 <span><span class="va">vec_pop</span> <span class="op">=</span> <span class="fl">10000</span></span></code></pre></div>
-<p>Then, to initialize the entomological model and build the model object:</p>
+<p>Then, to initialize the entomological model and build the model
+object:</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">model_params</span> <span class="op">=</span> <span class="fu"><a href="../reference/build_model_obj.html">build_model_obj</a></span><span class="op">(</span><span class="fu"><a href="../reference/def_vector_params.html">def_vector_params</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="../reference/def_host_params.html">def_host_params</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">custom_activity_obj</span>, <span class="va">host_pop</span><span class="op">)</span></span>
 <span><span class="co"># Print the calculated mosquito death rate</span></span>
@@ -695,9 +954,23 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <div class="section level3">
 <h3 id="step-5-defining-interventions-effects">Step 5: Defining interventions effects<a class="anchor" aria-label="anchor" href="#step-5-defining-interventions-effects"></a>
 </h3>
-<p>In the <code>AnophelesModel</code> package, the interventions and their characteristics are specified through a list of intervention objects. A detailed description of how the intervention objects are specified can be obtained by using the command <code><a href="../reference/def_interventions_effects.html">?def_interventions_effects</a></code>. To facilitate definition of these objects, the package contains a list of intervention object examples for each intervention type included in the <code>intervention_obj_examples</code> list.</p>
-<p>Several intervention parameterizations available in the package are derived from locations where mosquitoes presented insecticide resistance, therefore resistance is accounted for in the effects. This information is included in the <code>interventions_param$interventions_summary</code> object (column <code>Resistance</code>).</p>
-<p>The <code>intervention_obj_examples</code> list contains three examples of interventions : LLIN, IRS and House screening, respectively:</p>
+<p>In the <code>AnophelesModel</code> package, the interventions and
+their characteristics are specified through a list of intervention
+objects. A detailed description of how the intervention objects are
+specified can be obtained by using the command
+<code><a href="../reference/def_interventions_effects.html">?def_interventions_effects</a></code>. To facilitate definition of
+these objects, the package contains a list of intervention object
+examples for each intervention type included in the
+<code>intervention_obj_examples</code> list.</p>
+<p>Several intervention parameterizations available in the package are
+derived from locations where mosquitoes presented insecticide
+resistance, therefore resistance is accounted for in the effects. This
+information is included in the
+<code>interventions_param$interventions_summary</code> object (column
+<code>Resistance</code>).</p>
+<p>The <code>intervention_obj_examples</code> list contains three
+examples of interventions : LLIN, IRS and House screening,
+respectively:</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">intervention_obj_examples</span><span class="op">)</span></span>
 <span><span class="co">#&gt; $LLINs_example</span></span>
@@ -740,15 +1013,30 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $Screening_example$parameterisation</span></span>
 <span><span class="co">#&gt; [1] "Screening01"</span></span></code></pre></div>
-<p>Except for the house screening where only the <code>id</code> and <code>description</code> attributes are required, to use the IRS and LLIN interventions included in the package, the user needs to provide the parameterisation ID (e.g., LLINs01, IRS01). A list of all package intervention parameterisations and their IDs can be obtained with the <code><a href="../reference/list_intervention_models.html">list_intervention_models()</a></code> command. The examples from <code>intervention_obj_examples</code> can be adapted to the user’s needs to pick other available parameterisations and intervention characteristics available within the package. For example, to select a different IRS parameterisation, we can modify the <code>parameterisation</code> attribute of the IRS example:</p>
+<p>Except for the house screening where only the <code>id</code> and
+<code>description</code> attributes are required, to use the IRS and
+LLIN interventions included in the package, the user needs to provide
+the parameterisation ID (e.g., LLINs01, IRS01). A list of all package
+intervention parameterisations and their IDs can be obtained with the
+<code><a href="../reference/list_intervention_models.html">list_intervention_models()</a></code> command. The examples from
+<code>intervention_obj_examples</code> can be adapted to the user’s
+needs to pick other available parameterisations and intervention
+characteristics available within the package. For example, to select a
+different IRS parameterisation, we can modify the
+<code>parameterisation</code> attribute of the IRS example:</p>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">new_IRS</span> <span class="op">=</span> <span class="va">intervention_obj_examples</span><span class="op">$</span><span class="va">IRS_example</span></span>
 <span><span class="va">new_IRS</span><span class="op">$</span><span class="va">description</span> <span class="op">=</span> <span class="st">"Actellic CS IRS"</span></span>
 <span><span class="va">new_IRS</span><span class="op">$</span><span class="va">parameterisation</span> <span class="op">=</span> <span class="st">"IRS03"</span></span></code></pre></div>
-<p>then we can concatenate the new intervention object to the list with intervention examples:</p>
+<p>then we can concatenate the new intervention object to the list with
+intervention examples:</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">new_intervention_list</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">intervention_obj_examples</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>new_IRS <span class="op">=</span> <span class="va">new_IRS</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>Once the intervention parameterisations have been defined, the user needs to specify the intervention deployment coverages and a number of time points. The duration of each intervention will be evenly split across the time points and the intervention effects will be calculated at each time point.</p>
+<p>Once the intervention parameterisations have been defined, the user
+needs to specify the intervention deployment coverages and a number of
+time points. The duration of each intervention will be evenly split
+across the time points and the intervention effects will be calculated
+at each time point.</p>
 <div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">list_interv</span> <span class="op">=</span> <span class="va">new_intervention_list</span></span>
 <span><span class="va">coverages</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span><span class="op">)</span></span>
@@ -786,7 +1074,9 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <span><span class="co">#&gt; Selected intervention parameterisation: IRS03</span></span>
 <span><span class="co">#&gt; Reference for the selected parameterisation: Tchicaya et al. 2014: https://malariajournal.biomedcentral.com/articles/10.1186/1475-2875-13-332</span></span>
 <span><span class="co">#&gt; Previous validation for the selected parameterisation: Korenromp et al. 2016: https://malariajournal.biomedcentral.com/articles/10.1186/s12936-016-1461-9</span></span></code></pre></div>
-<p>The effects of the interventions are adjusted according to indoor and outdoor human exposure to mosquitoes. The user can calculate the human exposure parameters using the following function:</p>
+<p>The effects of the interventions are adjusted according to indoor and
+outdoor human exposure to mosquitoes. The user can calculate the human
+exposure parameters using the following function:</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">in_out_exp</span> <span class="op">=</span> <span class="fu"><a href="../reference/get_in_out_exp.html">get_in_out_exp</a></span><span class="op">(</span>activity_cycles <span class="op">=</span> <span class="va">custom_activity_obj</span>, vec_p <span class="op">=</span> <span class="va">custom_ent_params</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">in_out_exp</span><span class="op">)</span></span>
@@ -808,11 +1098,15 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 <div class="section level3">
 <h3 id="step-6-calculating-intervention-impact-on-vectorial-capacity">Step 6: Calculating intervention impact on vectorial capacity<a class="anchor" aria-label="anchor" href="#step-6-calculating-intervention-impact-on-vectorial-capacity"></a>
 </h3>
-<p>Once all the intervention effects have been defined, their impact on the vectorial capacity can be estimated (using equation 20 from <span class="citation">(Chitnis, Smith, and Steketee 2008)</span>) :</p>
+<p>Once all the intervention effects have been defined, their impact on
+the vectorial capacity can be estimated (using equation 20 from <span class="citation">(Chitnis, Smith, and Steketee 2008)</span>) :</p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">impacts</span> <span class="op">=</span> <span class="fu"><a href="../reference/calculate_impact.html">calculate_impact</a></span><span class="op">(</span><span class="va">intervention_vec</span>, <span class="va">coverages</span>, <span class="va">model_params</span>,</span>
 <span>                           <span class="va">vec_pop</span>, <span class="va">n_ip</span><span class="op">)</span></span></code></pre></div>
-<p>The resulting vectorial capacity is calculated and aggregated across the previously-specified time points which are uniformly-distributed across the duration of an intervention. To display the average vectorial capacity for various coverages:</p>
+<p>The resulting vectorial capacity is calculated and aggregated across
+the previously-specified time points which are uniformly-distributed
+across the duration of an intervention. To display the average vectorial
+capacity for various coverages:</p>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p</span> <span class="op">=</span> <span class="fu"><a href="../reference/plot_impact_species.html">plot_impact_species</a></span><span class="op">(</span><span class="va">impacts</span>, <span class="st">"VC_red"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span></code></pre></div>
@@ -821,10 +1115,27 @@ Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans
 Impact of interventions on vectorial capacity.
 </p>
 </div>
-The variability in the entomological parameters for each mosquito species can be accounted for when calculating the impact of interventions on the vectorial capacity. To do so, the standard deviation values of the entomological parameters (namely parameters <code>M.sd</code>, <code>A0.sd</code>, <code>endophily.sd</code> and <code>endophagy.sd</code> in the <code>vec_ent_param</code> object) are used to create a confidence interval defined as the mean value +/- two standard deviations. Using latin hypercube sampling <span class="citation">(Stein 1987)</span>, a set of samples are uniformly drawn from the multi-dimensional parameter space defined by the confidence intervals. Then, the average vectorial capacity is computed for each of these samples and the resulting confidence interval for the vectorial capacity is represented by the mean value +/- two standard deviations. This sampling-based approach is included in the <code><a href="../reference/calculate_impact_var.html">calculate_impact_var()</a></code> function to estimate the confidence interval for the reported mean vectorial capacity. In the example below, in the interest of execution time, only 10 samples have been used to estimate the confidence intervals of the vectorial capacity:
+The variability in the entomological parameters for each mosquito
+species can be accounted for when calculating the impact of
+interventions on the vectorial capacity. To do so, the standard
+deviation values of the entomological parameters (namely parameters
+<code>M.sd</code>, <code>A0.sd</code>, <code>endophily.sd</code> and
+<code>endophagy.sd</code> in the <code>vec_ent_param</code> object) are
+used to create a confidence interval defined as the mean value +/- two
+standard deviations. Using latin hypercube sampling <span class="citation">(Stein 1987)</span>, a set of samples are uniformly
+drawn from the multi-dimensional parameter space defined by the
+confidence intervals. Then, the average vectorial capacity is computed
+for each of these samples and the resulting confidence interval for the
+vectorial capacity is represented by the mean value +/- two standard
+deviations. This sampling-based approach is included in the
+<code><a href="../reference/calculate_impact_var.html">calculate_impact_var()</a></code> function to estimate the confidence
+interval for the reported mean vectorial capacity. In the example below,
+in the interest of execution time, only 10 samples have been used to
+estimate the confidence intervals of the vectorial capacity:
 <div class="figure">
 <img src="AnophelesModel_files/figure-html/unnamed-chunk-33-1.png" alt="Impact of interventions on vectorial capacity including the variability in the entomological parameters specific to the mosquito species." width="1093.75"><p class="caption">
-Impact of interventions on vectorial capacity including the variability in the entomological parameters specific to the mosquito species.
+Impact of interventions on vectorial capacity including the variability
+in the entomological parameters specific to the mosquito species.
 </p>
 </div>
 </div>
@@ -832,14 +1143,24 @@ Impact of interventions on vectorial capacity including the variability in the e
 <div class="section level2">
 <h2 id="generating-vector-parameterisations-for-openmalaria">Generating vector parameterisations for OpenMalaria<a class="anchor" aria-label="anchor" href="#generating-vector-parameterisations-for-openmalaria"></a>
 </h2>
-<p>The package <code>AnophelesModel</code> can be used to create XML snippets containing parameterisations for the entomology and generic vector control interventions (GVI) components of OpenMalaria experiments. These snippets can then be incorporated in the base XML files describing the setup for OpenMalaria individual-based simulations. There are two main categories of XML snippets that can be generated with the package:</p>
+<p>The package <code>AnophelesModel</code> can be used to create XML
+snippets containing parameterisations for the entomology and generic
+vector control interventions (GVI) components of OpenMalaria
+experiments. These snippets can then be incorporated in the base XML
+files describing the setup for OpenMalaria individual-based simulations.
+There are two main categories of XML snippets that can be generated with
+the package:</p>
 <ul>
 <li>
-<code>&lt;mosq&gt;</code> and <code>&lt;nonHumanHosts&gt;</code> snippets containing entomological parameters</li>
+<code>&lt;mosq&gt;</code> and <code>&lt;nonHumanHosts&gt;</code>
+snippets containing entomological parameters</li>
 <li>
-<code>&lt;GVI&gt;</code> snippets with parameters describing the effects of interventions</li>
+<code>&lt;GVI&gt;</code> snippets with parameters describing the
+effects of interventions</li>
 </ul>
-<p>For example, to generate the <code>&lt;mosq&gt;</code> and <code>&lt;nonHumanHosts&gt;</code> snippets for <em>Anopheles nili</em>:</p>
+<p>For example, to generate the <code>&lt;mosq&gt;</code> and
+<code>&lt;nonHumanHosts&gt;</code> snippets for <em>Anopheles
+nili</em>:</p>
 <div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">entomology_xml</span> <span class="op">=</span> <span class="fu"><a href="../reference/get_OM_ento_snippet.html">get_OM_ento_snippet</a></span><span class="op">(</span><span class="va">nili_ent_params</span>, <span class="va">default_host_params</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">entomology_xml</span><span class="op">)</span></span>
@@ -865,7 +1186,14 @@ Impact of interventions on vectorial capacity including the variability in the e
 <span><span class="co">#&gt;   &lt;mosqProbFindRestSite value="0.95"/&gt;</span></span>
 <span><span class="co">#&gt;   &lt;mosqProbResting value="0.99"/&gt;</span></span>
 <span><span class="co">#&gt; &lt;/nonHumanHosts&gt;</span></span></code></pre></div>
-<p>To generate the <code>&lt;GVI&gt;</code> snippets with deterrency, pre- and post-prandial effects of interventions, a set of 7 decay functions are fitted to the time series with intervention effects calculated previously with <code><a href="../reference/def_interventions_effects.html">def_interventions_effects()</a></code> and the best fit is chosen. The package also produces visualizations of the different decay fits. For a detailed description of the fitted decay functions, check the <a href="https://github.com/SwissTPH/openmalaria/wiki/ModelDecayFunctions" class="external-link">description in the OpenMalaria wiki</a>.</p>
+<p>To generate the <code>&lt;GVI&gt;</code> snippets with deterrency,
+pre- and post-prandial effects of interventions, a set of 7 decay
+functions are fitted to the time series with intervention effects
+calculated previously with <code><a href="../reference/def_interventions_effects.html">def_interventions_effects()</a></code> and
+the best fit is chosen. The package also produces visualizations of the
+different decay fits. For a detailed description of the fitted decay
+functions, check the <a href="https://github.com/SwissTPH/openmalaria/wiki/ModelDecayFunctions" class="external-link">description
+in the OpenMalaria wiki</a>.</p>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
 <span><span class="va">GVI_snippets</span> <span class="op">=</span> <span class="fu"><a href="../reference/get_OM_GVI_snippet.html">get_OM_GVI_snippet</a></span><span class="op">(</span><span class="st">"Anopheles example"</span>, <span class="va">impacts</span><span class="op">$</span><span class="va">interventions_vec</span><span class="op">$</span><span class="va">LLINs_example</span>,</span>
@@ -927,7 +1255,11 @@ Impact of interventions on vectorial capacity including the variability in the e
 <div class="section level2">
 <h2 id="combinations-of-interventions">Combinations of interventions<a class="anchor" aria-label="anchor" href="#combinations-of-interventions"></a>
 </h2>
-<p>The <code>AnophelesModel</code> package provides functionality to combine two interventions available in the package database, using the function <code><a href="../reference/calculate_combined_impact_var.html">calculate_combined_impact_var()</a></code>. To include a combination of LLIN and IRS interventions in the example shown above:</p>
+<p>The <code>AnophelesModel</code> package provides functionality to
+combine two interventions available in the package database, using the
+function <code><a href="../reference/calculate_combined_impact_var.html">calculate_combined_impact_var()</a></code>. To include a
+combination of LLIN and IRS interventions in the example shown
+above:</p>
 <div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">impact_gambiae</span> <span class="op">=</span> <span class="fu"><a href="../reference/calculate_impact_var.html">calculate_impact_var</a></span><span class="op">(</span>mosquito_species <span class="op">=</span> <span class="st">"Anopheles gambiae"</span>,</span>
 <span>                                      activity_patterns <span class="op">=</span> <span class="st">"default_Anopheles_gambiae"</span>,</span>
@@ -967,49 +1299,99 @@ Impact of interventions on vectorial capacity including the variability in the e
 <span><span class="va">p</span></span></code></pre></div>
 <div class="figure">
 <img src="AnophelesModel_files/figure-html/unnamed-chunk-36-1.png" alt="Impact of a combination of LLIN and IRS on vectorial capacity including the variability in the entomological parameters specific to the mosquito species." width="4375"><p class="caption">
-Impact of a combination of LLIN and IRS on vectorial capacity including the variability in the entomological parameters specific to the mosquito species.
+Impact of a combination of LLIN and IRS on vectorial capacity including
+the variability in the entomological parameters specific to the mosquito
+species.
 </p>
 </div>
 </div>
 <div class="section level2 unnumbered">
-<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+<h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
-<div id="refs" class="references">
-<div id="ref-briet2020">
-<p>Briet, Olivier, Hannah Koenker, Laura Norris, Ryan Wiegand, Jodi Vanden Eng, Alex Thackeray, John Williamson, et al. 2020. “Attrition, Physical Integrity and Insecticidal Activity of Long-Lasting Insecticidal Nets in Sub-Saharan Africa and Modelling of Their Impact on Vectorial Capacity.” <em>Malaria Journal</em> 19 (1): 1–15.</p>
+<div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-briet2020" class="csl-entry">
+Briet, Olivier, Hannah Koenker, Laura Norris, Ryan Wiegand, Jodi Vanden
+Eng, Alex Thackeray, John Williamson, et al. 2020. <span>“Attrition,
+Physical Integrity and Insecticidal Activity of Long-Lasting
+Insecticidal Nets in Sub-Saharan Africa and Modelling of Their Impact on
+Vectorial Capacity.”</span> <em>Malaria Journal</em> 19 (1): 1–15.
 </div>
-<div id="ref-briet2019">
-<p>Briët, Olivier JT, Daniel E Impoinvil, Nakul Chitnis, Emilie Pothin, Jean Frantz Lemoine, Joseph Frederic, and Thomas A Smith. 2019. “Models of Effectiveness of Interventions Against Malaria Transmitted by Anopheles Albimanus.” <em>Malaria Journal</em> 18 (1): 263.</p>
+<div id="ref-briet2019" class="csl-entry">
+Briët, Olivier JT, Daniel E Impoinvil, Nakul Chitnis, Emilie Pothin,
+Jean Frantz Lemoine, Joseph Frederic, and Thomas A Smith. 2019.
+<span>“Models of Effectiveness of Interventions Against Malaria
+Transmitted by Anopheles Albimanus.”</span> <em>Malaria Journal</em> 18
+(1): 263.
 </div>
-<div id="ref-briet2013">
-<p>Briët, Olivier JT, Melissa A Penny, Diggory Hardy, Taiwo S Awolola, Wim Van Bortel, Vincent Corbel, Roch K Dabiré, et al. 2013. “Effects of Pyrethroid Resistance on the Cost Effectiveness of a Mass Distribution of Long-Lasting Insecticidal Nets: A Modelling Study.” <em>Malaria Journal</em> 12 (1): 1–12.</p>
+<div id="ref-briet2013" class="csl-entry">
+Briët, Olivier JT, Melissa A Penny, Diggory Hardy, Taiwo S Awolola, Wim
+Van Bortel, Vincent Corbel, Roch K Dabiré, et al. 2013. <span>“Effects
+of Pyrethroid Resistance on the Cost Effectiveness of a Mass
+Distribution of Long-Lasting Insecticidal Nets: A Modelling
+Study.”</span> <em>Malaria Journal</em> 12 (1): 1–12.
 </div>
-<div id="ref-Chitnis2008">
-<p>Chitnis, Nakul, Thomas Smith, and Richard Steketee. 2008. “A Mathematical Model for the Dynamics of Malaria in Mosquitoes Feeding on a Heterogeneous Host Population.” <em>Journal of Biological Dynamics</em> 2 (3): 259–85. <a href="https://doi.org/10.1080/17513750701769857" class="external-link">https://doi.org/10.1080/17513750701769857</a>.</p>
+<div id="ref-Chitnis2008" class="csl-entry">
+Chitnis, Nakul, Thomas Smith, and Richard Steketee. 2008. <span>“A
+Mathematical Model for the Dynamics of Malaria in Mosquitoes Feeding on
+a Heterogeneous Host Population.”</span> <em>Journal of Biological
+Dynamics</em> 2 (3): 259–85. <a href="https://doi.org/10.1080/17513750701769857" class="external-link">https://doi.org/10.1080/17513750701769857</a>.
 </div>
-<div id="ref-kirby2009">
-<p>Kirby, Matthew J, David Ameh, Christian Bottomley, Clare Green, Musa Jawara, Paul J Milligan, Paul C Snell, David J Conway, and Steve W Lindsay. 2009. “Effect of Two Different House Screening Interventions on Exposure to Malaria Vectors and on Anaemia in Children in the Gambia: A Randomised Controlled Trial.” <em>The Lancet</em> 374 (9694): 998–1009.</p>
+<div id="ref-kirby2009" class="csl-entry">
+Kirby, Matthew J, David Ameh, Christian Bottomley, Clare Green, Musa
+Jawara, Paul J Milligan, Paul C Snell, David J Conway, and Steve W
+Lindsay. 2009. <span>“Effect of Two Different House Screening
+Interventions on Exposure to Malaria Vectors and on Anaemia in Children
+in the Gambia: A Randomised Controlled Trial.”</span> <em>The
+Lancet</em> 374 (9694): 998–1009.
 </div>
-<div id="ref-lemant2021">
-<p>Lemant, Jeanne, Barnabas Zogo, Thomas A Smith, Clara Champagne, Monica Golumbeanu, and Emilie Pothin. 2021. “Estimating the Variability of Anopheles Bionomics and Its Impact on Transmission with a Hierarchical Bayesian Model.” In <em>American Journal of Tropical Medicine and Hygiene</em>, 105:84–84. 5. Amer Soc Trop Med &amp; Hygiene 8000 Westpark DR, STE 130, McLean, VA 22101 USA.</p>
+<div id="ref-lemant2021" class="csl-entry">
+Lemant, Jeanne, Barnabas Zogo, Thomas A Smith, Clara Champagne, Monica
+Golumbeanu, and Emilie Pothin. 2021. <span>“Estimating the Variability
+of Anopheles Bionomics and Its Impact on Transmission with a
+Hierarchical Bayesian Model.”</span> In <em>American Journal of Tropical
+Medicine and Hygiene</em>, 105:84–84. 5. Amer Soc Trop Med &amp; Hygiene
+8000 Westpark DR, STE 130, McLean, VA 22101 USA.
 </div>
-<div id="ref-Massey2016">
-<p>Massey, N Claire, Gala Garrod, Antoinette Wiebe, Andrew J Henry, Zhi Huang, Catherine L Moyes, and Marianne E Sinka. 2016. “A global bionomic database for the dominant vectors of human malaria.” <em>Scientific Data</em> 3 (1): 160014. <a href="https://doi.org/10.1038/sdata.2016.14" class="external-link">https://doi.org/10.1038/sdata.2016.14</a>.</p>
+<div id="ref-Massey2016" class="csl-entry">
+Massey, N Claire, Gala Garrod, Antoinette Wiebe, Andrew J Henry, Zhi
+Huang, Catherine L Moyes, and Marianne E Sinka. 2016. <span>“<span class="nocase">A global bionomic database for the dominant vectors of
+human malaria</span>.”</span> <em>Scientific Data</em> 3 (1): 160014. <a href="https://doi.org/10.1038/sdata.2016.14" class="external-link">https://doi.org/10.1038/sdata.2016.14</a>.
 </div>
-<div id="ref-morgan2015">
-<p>Morgan, Juliette, Ana Paula Abı́lio, Maria do Rosario Pondja, Dulcisária Marrenjo, Jacinta Luciano, Guilhermina Fernandes, Samira Sabindy, et al. 2015. “Physical Durability of Two Types of Long-Lasting Insecticidal Nets (Llins) Three Years After a Mass Llin Distribution Campaign in Mozambique, 2008–2011.” <em>The American Journal of Tropical Medicine and Hygiene</em> 92 (2): 286.</p>
+<div id="ref-morgan2015" class="csl-entry">
+Morgan, Juliette, Ana Paula Abı́lio, Maria do Rosario Pondja, Dulcisária
+Marrenjo, Jacinta Luciano, Guilhermina Fernandes, Samira Sabindy, et al.
+2015. <span>“Physical Durability of Two Types of Long-Lasting
+Insecticidal Nets (LLINs) Three Years After a Mass LLIN Distribution
+Campaign in Mozambique, 2008–2011.”</span> <em>The American Journal of
+Tropical Medicine and Hygiene</em> 92 (2): 286.
 </div>
-<div id="ref-randriamaherijaona2015">
-<p>Randriamaherijaona, Sanjiarizaha, Olivier JT Briët, Sébastien Boyer, Aziz Bouraima, Raphael N’Guessan, Christophe Rogier, and Vincent Corbel. 2015. “Do Holes in Long-Lasting Insecticidal Nets Compromise Their Efficacy Against Pyrethroid Resistant Anopheles Gambiae and Culex Quinquefasciatus? Results from a Release–Recapture Study in Experimental Huts.” <em>Malaria Journal</em> 14 (1): 1–22.</p>
+<div id="ref-randriamaherijaona2015" class="csl-entry">
+Randriamaherijaona, Sanjiarizaha, Olivier JT Briët, Sébastien Boyer,
+Aziz Bouraima, Raphael N’Guessan, Christophe Rogier, and Vincent Corbel.
+2015. <span>“Do Holes in Long-Lasting Insecticidal Nets Compromise Their
+Efficacy Against Pyrethroid Resistant Anopheles Gambiae and Culex
+Quinquefasciatus? Results from a Release–Recapture Study in Experimental
+Huts.”</span> <em>Malaria Journal</em> 14 (1): 1–22.
 </div>
-<div id="ref-Sherrard-Smith15086">
-<p>Sherrard-Smith, Ellie, Janetta E. Skarp, Andrew D. Beale, Christen Fornadel, Laura C. Norris, Sarah J. Moore, Selam Mihreteab, et al. 2019. “Mosquito Feeding Behavior and How It Influences Residual Malaria Transmission Across Africa.” <em>Proceedings of the National Academy of Sciences</em> 116 (30): 15086–95. <a href="https://doi.org/10.1073/pnas.1820646116" class="external-link">https://doi.org/10.1073/pnas.1820646116</a>.</p>
+<div id="ref-Sherrard-Smith15086" class="csl-entry">
+Sherrard-Smith, Ellie, Janetta E. Skarp, Andrew D. Beale, Christen
+Fornadel, Laura C. Norris, Sarah J. Moore, Selam Mihreteab, et al. 2019.
+<span>“Mosquito Feeding Behavior and How It Influences Residual Malaria
+Transmission Across Africa.”</span> <em>Proceedings of the National
+Academy of Sciences</em> 116 (30): 15086–95. <a href="https://doi.org/10.1073/pnas.1820646116" class="external-link">https://doi.org/10.1073/pnas.1820646116</a>.
 </div>
-<div id="ref-Smith2006">
-<p>Smith, Thomas, Gerry F Killeen, Nicolas Maire, Amanda Ross, Louis Molineaux, Fabrizio Tediosi, Guy Hutton, Jurg Utzinger, Klaus Dietz, and Marcel Tanner. 2006. “Mathematical Modeling of the Impact of Malaria Vaccines on the Clinical Epidemiology and Natural History of Plasmodium Falciparum Malaria: Overview.” <em>The American Journal of Tropical Medicine and Hygiene</em> 75 (2_suppl): 1–10.</p>
+<div id="ref-Smith2006" class="csl-entry">
+Smith, Thomas, Gerry F Killeen, Nicolas Maire, Amanda Ross, Louis
+Molineaux, Fabrizio Tediosi, Guy Hutton, Jurg Utzinger, Klaus Dietz, and
+Marcel Tanner. 2006. <span>“Mathematical Modeling of the Impact of
+Malaria Vaccines on the Clinical Epidemiology and Natural History of
+Plasmodium Falciparum Malaria: Overview.”</span> <em>The American
+Journal of Tropical Medicine and Hygiene</em> 75 (2_suppl): 1–10.
 </div>
-<div id="ref-stein1987">
-<p>Stein, Michael. 1987. “Large Sample Properties of Simulations Using Latin Hypercube Sampling.” <em>Technometrics</em> 29 (2): 143–51.</p>
+<div id="ref-stein1987" class="csl-entry">
+Stein, Michael. 1987. <span>“Large Sample Properties of Simulations
+Using Latin Hypercube Sampling.”</span> <em>Technometrics</em> 29 (2):
+143–51.
 </div>
 </div>
 </div>
