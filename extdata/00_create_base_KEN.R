@@ -28,10 +28,10 @@ library(OMAddons)
 library(stringr)
 library(AnophelesModel)
 
-# Function that creates a list with all the elements which are specific for the 
+# Function that creates a list with all the elements which are specific for the
 # base xml (placeholders, interventions, etc.)
 create_baseList = function(country_name, sim_start, versionnum) {
-  
+
   ## Basic xml skeleton
   baseList = list(
     # Mandatory
@@ -50,7 +50,7 @@ create_baseList = function(country_name, sim_start, versionnum) {
     # diagnostics = list(),
     model = list()
   )
-  
+
   # Create demography
   baseList = defineDemography(baseList,
                               name = country_name,
@@ -76,7 +76,7 @@ create_baseList = function(country_name, sim_start, versionnum) {
                                              0.004809187,
                                              0.00332171),
                               upperbound = c(1, seq(5, 85, by = 5)))
-  
+
   ## Create monitoring snippet
   baseList[["monitoring"]] = list(
     name = "Yearly Surveys",
@@ -100,13 +100,13 @@ create_baseList = function(country_name, sim_start, versionnum) {
       )
     ),
     surveys = monitoringSurveyTimesGen(detectionLimit = 100, startDate = "1999-01-01", #sim_start
-                                       endDate = "2025-01-01", 
-                                       interval = list(days = c(5), months = c(1:12), years = c(1998:2025)), 
+                                       endDate = "2025-01-01",
+                                       interval = list(days = c(5), months = c(1:12), years = c(1998:2025)),
                                        simStart = sim_start),
     ## surveyAgeGroupsGen will write thirdDimension table to cache, important for postprocessing
     ageGroup = surveyAgeGroupsGen(lowerbound = 0, upperbounds = c(1, 2, 5, 10, 100))
   )
-  
+
   ## Entomology section: MANDATORY
   seasonalityParameters = list(`Anopheles gambiae` = list(annualEIR="15",
                                                           input="EIR",
@@ -127,32 +127,32 @@ create_baseList = function(country_name, sim_start, versionnum) {
   # Define vector species in the simulation
   vectorSpecies = c("Anopheles gambiae")
   mosquitoParameters = mosquitoParameterization(vectorSpecies)
-  
+
   baseList$entomology$vector=list()
-  baseList = defineEntomology(baseList, seasonalityParameters, 
+  baseList = defineEntomology(baseList, seasonalityParameters,
                               mosquitoParameters)
-  
+
   # Begin interventions for humans
-  interventionList = list(LLIN_interv = list(id="LLINs", 
+  interventionList = list(LLIN_interv = list(id="LLINs",
                                              description="test LLIN",
                                              parameterisation="LLINs01",
                                              LLIN_type="Default",
                                              LLIN_insecticide="Default",
                                              LLIN_country="Kenya"))
-  
+
   vectorControlParameters = vectorControlParameterization(vectorSpecies,
                                                           interventionList)
   # Define LLIN intervention
   baseList$interventions$human = list()
   baseList = define_vector_control(baseList, vectorControlParameters)
-  
+
   ## Deployment section
-  
+
   # ITN deployment:
-  
+
   # At the moment the workflow is not flexible enough to allow custom GVI values.
   # So we need to replace the GVI effect values directly in the base xml with:
-  
+
   # $deterrency_snippet$GVI_xml_snippet
     # <GVI>
     #   <anophelesParams mosquito="Anopheles gambiae" propActive="1"/>
@@ -161,7 +161,7 @@ create_baseList = function(country_name, sim_start, versionnum) {
     #   <preprandialKillingEffect value="0"/>
     #   <postprandialKillingEffect value="0"/>
     # </GVI>
-  
+
   # $preprandial_snippet$GVI_xml_snippet
   # <GVI name="GVI_LLINs" id="GVI_LLINs_1">
   #   <anophelesParams mosquito="Anopheles gambiae" propActive="1"/>
@@ -169,8 +169,8 @@ create_baseList = function(country_name, sim_start, versionnum) {
   #   <deterrency value="0"/>
   #   <preprandialKillingEffect value="0.826069186265107"/>
   #   <postprandialKillingEffect value="0"/>
-  #   </GVI> 
-  
+  #   </GVI>
+
   # $postprandial_snippet$GVI_xml_snippet
   # <GVI name="GVI_LLINs" id="GVI_LLINs_1">
   #   <anophelesParams mosquito="Anopheles gambiae" propActive="1"/>
@@ -178,29 +178,29 @@ create_baseList = function(country_name, sim_start, versionnum) {
   #   <deterrency value="0"/>
   #   <preprandialKillingEffect value="0"/>
   #   <postprandialKillingEffect value="0.548152586557366"/>
-  #   </GVI> 
-    
-  baseList = deploy_IT(baseList = baseList, component = "LLIN_interv", 
-                       effects=c("deterrency", "preprandialKillingEffect", 
+  #   </GVI>
+
+  baseList = deploy_IT(baseList = baseList, component = "LLIN_interv",
+                       effects=c("deterrency", "preprandialKillingEffect",
                                  "postprandialKillingEffect"),
-                       coverage = 0.6, dates = c("2000-01-01"))
-  
+                       coverage = 0.4, dates = c("2000-01-01", "2002-01-01"))
+
   # Importation: MANDATORY
   baseList = define_importedInfections_compat(baseList = baseList, 10, time = 0)
-  
+
   # Health system
   # Write health system: MANDATORY
-  baseList = define_health_system(baseList = baseList, 
+  baseList = define_health_system(baseList = baseList,
                                   pSeekOfficialCareUncomplicated1 = 0.5,
                                   pSeekOfficialCareUncomplicated2 = 0.5)
-  
+
   ## Specify seed: MANDATORY
-  baseList = write_end_compat(baseList = baseList, 
+  baseList = write_end_compat(baseList = baseList,
                               seed = "@seed@", modelname = "base")
-  
+
   return(baseList)
 }
 
 # For testing
-# a = create_baseList("Kenya", "1918-01-01", 44L) 
+# a = create_baseList("Kenya", "1918-01-01", 44L)
 

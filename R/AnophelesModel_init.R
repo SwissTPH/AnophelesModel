@@ -116,6 +116,10 @@ def_vector_params = function(mosquito_species = "Anopheles gambiae",
 #' match one of the Anopheles species provided in the package.
 #' To see all available Anopheles species, use the function
 #' \code{list_all_species()}.
+#' @param vec_params list object created with the \code{def_vector_params()}
+#' function. The mosquito species attribute of this object needs to match the
+#' previously defined \code{mosquito_species} argument to this function.
+#' Default value is equal to the default \code{def_vector_params()}.
 #' @param host_table data frame with custom host-specific values.
 #' Must be provided if custom parameter values should be used instead of
 #' the ones in the package database.
@@ -158,7 +162,17 @@ def_vector_params = function(mosquito_species = "Anopheles gambiae",
 #' @export
 #'
 def_host_params = function(mosquito_species = "Anopheles gambiae",
+                           vec_params = def_vector_params(),
                            host_table = NULL, verbose = TRUE) {
+    # Check if the mosquito species is the same as the one in the vec_params
+    # First check if the given mosquito species is in the package database
+    if(mosquito_species != vec_params$species_name) {
+        err_msg = paste("Mosquito species name" , mosquito_species,
+                         "does not match with the species name from vec_params:",
+                         vec_params$species_name)
+        stop(err_msg)
+    }
+
     # Parameters specified by the user
     if(!is.null(host_table)) {
         # Check if input is correct
@@ -167,7 +181,7 @@ def_host_params = function(mosquito_species = "Anopheles gambiae",
         checkmate::assertDataFrame(host_table, any.missing = FALSE,
                                    col.names = "named", nrows = 2,
                                    add = assertCol)
-        # with the same column names as vec_ent_params
+        # with the same column names as host_ent_param
         checkmate::assertSubset(colnames(host_table), colnames(host_ent_param),
                                 empty.ok = FALSE, fmatch = FALSE)
         # and numeric, positive entries less than 1 except for the name of
@@ -201,6 +215,9 @@ def_host_params = function(mosquito_species = "Anopheles gambiae",
                                     mosquito_species,]
         host_param = as.list(host_p)
     }
+
+    # Check if the host parameters are well defined
+    hosts_p = calc_hosts_ent_params(vec_params, host_param, maxpop = 1000)
 
     return(host_param)
 }
@@ -334,6 +351,14 @@ def_activity_patterns = function(activity = "default_Anopheles_gambiae") {
 #' @export
 #'
 build_model_obj = function(vec_p, hosts_p, activity, total_pop) {
+    # Check if the mosquito species is the same in the vec_p and hosts_p
+    if(vec_p$species_name != unique(hosts_p$species_name)) {
+        err_msg = paste("Mosquito species name", vec_p$species_name,
+                        "from argument vec_p does not match with the species name from hosts_p",
+                        unique(hosts_p$species_name))
+        stop(err_msg)
+    }
+
     # Calculate the mosquito death rate for biting each host type and the host
     # availability rate
     assertNumeric(total_pop, lower = 1)
@@ -455,9 +480,7 @@ build_model_obj = function(vec_p, hosts_p, activity, total_pop) {
 #' LLIN insecticide type
 #' \item \code{LLIN_country:} only for LLINs, a string containing the country
 #' where the LLIN characteristics were measured
-#' \item \code{effects:} List of intervention survival and effects on the
-#' mosquito oviposition cycle (same format as defined above for the input
-#' attributes)
+#' \item \code{model_p:} model object provided as input
 #' }
 #'
 #' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}

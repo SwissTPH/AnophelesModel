@@ -112,9 +112,7 @@ intervention parameterisation
 LLIN insecticide type
 \item \code{LLIN_country:} only for LLINs, a string containing the country
 where the LLIN characteristics were measured
-\item \code{effects:} List of intervention survival and effects on the
-mosquito oviposition cycle (same format as defined above for the input
-attributes)
+\item \code{model_p:} model object provided as input
 }
 }
 \description{

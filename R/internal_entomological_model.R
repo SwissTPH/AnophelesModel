@@ -29,6 +29,7 @@ calc_hosts_ent_params = function(vec_p, h_p, maxpop) {
     m = 1; n = 2
     zetai = c(rep(NA, m),rep(vec_p$zeta.3,n-m))
     PA = 1 - vec_p$A0
+
     # Assuming that there are only unprotected humans and non-human hosts
     # in the absence of interventions (eq. 14&15 Chitnis et al 2010) :
     PA1 = vec_p$A0 * vec_p$M * vec_p$Chi *
@@ -57,6 +58,11 @@ calc_hosts_ent_params = function(vec_p, h_p, maxpop) {
     # in the absence of interventions (eq. 27 Chitnis et al 2010)
     muvA = ((1 - (PA + sum(PAi[m:n]))) / (1 - PA)) * (-log(PA) / vec_p$td)
 
+    if(muvA < 0) {
+        stop("Simulated mosquito dynamics during the feeding cycle is not reflected by the mosquito bionomics parameters!
+        Consider increasing the values for PBi, PCi, PDi, PEi in the def_host_param() function call.",
+             call. = FALSE)
+    }
     h_p$muvA = muvA
     h_p$alphai = alphai
     return(h_p)

@@ -437,3 +437,16 @@ prepare_GVI_snippet = function(species, best_fit, param_name, id) {
     return(GVI_result)
 }
 
+# functions used for the combination of interventions
+thin_and_truncate = function(vec_in, thin, nips, redeploy = 1) {
+    vec_out = vec_in[c(TRUE, rep(FALSE, times = (thin - 1)))]
+    vec_out = rep(vec_out, redeploy)
+    return(vec_out[seq(1:nips)])
+}
+
+replace_effect = function(col1, df0, thin, nips) {
+    col2 = thin_and_truncate(t(df0[,2]), thin = thin, nips = nips)
+    col3 = thin_and_truncate(t(df0[,3]), thin = thin, nips = nips)
+    df1 = unname(cbind(col1, col2, col3))
+    return(df1)
+}

@@ -1,7 +1,7 @@
 #################################
 # Main running script of the workflow, executes the following steps
 # for each country:
-# 1. Generates the simulation scenarios 
+# 1. Generates the simulation scenarios
 # 2. Runs OpenMalaria simulations
 # 3. Postprocessing
 #
@@ -27,7 +27,7 @@ library(RSQLite)
 # Define root directory with all the experiments according to the user
 print(paste("User: ", Sys.getenv("USER")))
 if (Sys.getenv("USER") == "golmon00") {
-  root_dir_path = "/scicore/home/pothin/golmon00/OpenMalaria/AnophelesModel/"
+  root_dir_path = "/scicore/home/pothin/golmon00/OpenMalaria/AnophelesModel2/"
 } else {
   print("Please specify the paths to the necessary folders!")
 }

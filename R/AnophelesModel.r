@@ -55,7 +55,7 @@ calculate_impact = function(interventions_vec, coverage_vec,
         for (ip in c(1:num_ip_points)) {
             # calculate proportion of protected and unprotected people
             Ni1 = coverage_vec * nhuman *
-                                    interventions_vec[[i]]$effects$survival[ip]
+                interventions_vec[[i]]$effects$survival[ip]
             Ni2 = nhuman - Ni1
             Ni3 = model_p$total_pop - Ni1 - Ni2
             Ni = cbind(Ni1, Ni2, Ni3)
@@ -75,12 +75,12 @@ calculate_impact = function(interventions_vec, coverage_vec,
                 rbind(interventions_vec[[i]]$effects$vc, ent_params$vc_all)
             interventions_vec[[i]]$effects$impact =
                 rbind(interventions_vec[[i]]$effects$impact,
-                                1 - ent_params$vc_all/ent_params$vc_all[1])
+                      1 - ent_params$vc_all/ent_params$vc_all[1])
         }
         interventions_vec[[i]]$effects$avg_vc =
-                                    colMeans(interventions_vec[[i]]$effects$vc)
+            colMeans(interventions_vec[[i]]$effects$vc)
         interventions_vec[[i]]$effects$avg_impact =
-                                colMeans(interventions_vec[[i]]$effects$impact)
+            colMeans(interventions_vec[[i]]$effects$impact)
     }
 
     return(list(vec_p = model_p$vec_p, host_p = model_p$host_p,
@@ -138,7 +138,7 @@ calculate_impact = function(interventions_vec, coverage_vec,
 #'
 calculate_impact_ip = function(intervention_obj, model_obj, n_vec, Ni) {
     impact_ip = f_eval_ent_quant(intervention_obj, model_obj$vec_params,
-                     model_obj$host_params, n_vec, Ni, FALSE)
+                                 model_obj$host_params, n_vec, Ni, FALSE)
     return(impact_ip)
 }
 
@@ -221,12 +221,17 @@ calculate_impact_var = function(mosquito_species = "Anopheles gambiae",
                                 plot_result = TRUE) {
 
     # Define the vector bionomics parameters
+    mosq_param = def_vector_params(
+        mosquito_species = mosquito_species,
+        vector_table = vec_ent_table,
+        verbose = FALSE)
     mosq_param_vals = as.data.frame(def_vector_params(
-                                            mosquito_species = mosquito_species,
-                                            vector_table = vec_ent_table,
-                                            verbose = FALSE))
+        mosquito_species = mosquito_species,
+        vector_table = vec_ent_table,
+        verbose = FALSE))
     # Define the host specific parameters
-    host_obj = def_host_params(verbose = FALSE)
+    host_obj = def_host_params(mosquito_species = mosquito_species,
+                               host_table = host_table, vec_params = mosq_param)
     # Define the activity patterns
     activity_obj = def_activity_patterns(activity_patterns)
 
@@ -234,11 +239,11 @@ calculate_impact_var = function(mosquito_species = "Anopheles gambiae",
     M = c(mosq_param_vals$M - 2*mosq_param_vals$M.sd,
           mosq_param_vals$M + 2*mosq_param_vals$M.sd)
     A0 = c(mosq_param_vals$A0 - 2*mosq_param_vals$A0.sd,
-          mosq_param_vals$A0 + 2*mosq_param_vals$A0.sd)
+           mosq_param_vals$A0 + 2*mosq_param_vals$A0.sd)
     endophily = c(mosq_param_vals$endophily - 2*mosq_param_vals$endophily.sd,
-           mosq_param_vals$endophily + 2*mosq_param_vals$endophily.sd)
+                  mosq_param_vals$endophily + 2*mosq_param_vals$endophily.sd)
     endophagy = c(mosq_param_vals$endophagy - 2*mosq_param_vals$endophagy.sd,
-           mosq_param_vals$endophagy + 2*mosq_param_vals$endophagy.sd)
+                  mosq_param_vals$endophagy + 2*mosq_param_vals$endophagy.sd)
     mosq_param_ranges = rbind(M, A0, endophily, endophagy)
     sampled_points = as.data.frame(lhs(n_sample_points, mosq_param_ranges))
 
@@ -258,7 +263,7 @@ calculate_impact_var = function(mosquito_species = "Anopheles gambiae",
         model_obj = build_model_obj(vec_obj, host_obj, activity_obj, total_pop)
         # Define interventions array
         interventions_vec = def_interventions_effects(interventions, model_obj,
-                                                     n_time_points, FALSE)
+                                                      n_time_points, FALSE)
         # Calculate impact
         impact_obj = calculate_impact(interventions_vec, coverage_vec,
                                       model_obj, n_vec, n_time_points)
@@ -269,9 +274,9 @@ calculate_impact_var = function(mosquito_species = "Anopheles gambiae",
             intervention_impact = round(interv_imp$effects$avg_impact, digits = 3)
             run_no = i
             impact_entry = cbind.data.frame(intervention_name,
-                                        intervention_coverage,
-                                        intervention_impact,
-                                        run_no)
+                                            intervention_coverage,
+                                            intervention_impact,
+                                            run_no)
             impact_tab = rbind.data.frame(impact_tab, impact_entry)
         }
     }
@@ -283,6 +288,151 @@ calculate_impact_var = function(mosquito_species = "Anopheles gambiae",
         plot(p)
     }
 
+    return(impact_tab)
+}
+
+#########calculate_combined_impact_var#####
+#' @title calculate intervention impact on the vectorial capacity
+#' for a combination of two interventions from the package database
+#' and assess its variation accounting for the variation of input parameters
+#' @description \code{calc_impact_var} calculates the
+#' proportion by which vectorial capacity is reduced for by two interventions
+#' when deployed to a cohort of humans
+#' @param mosquito_species string corresponding to the name of the mosquito
+#' species to load the bionomic parameters for. This argument is case
+#' sensitive and must be one of the species provided with the package:
+#' \emph{Anopheles gambiae}, \emph{Anopheles albimanus}, etc.
+#' To see the available mosquito species in th package,
+#' you can use the function \code{list_all_species()}.
+#' Default value is Anopheles gambiae.
+#' @param vec_ent_table data frame with custom vector entomological values.
+#' Must be provided if custom parameter values should be used instead of
+#' the ones in the package database corresponding to the
+#' provided moquito species.
+#' The data frame should have the same structure (column names) as the database
+#' object \code{vec_ent_param} (see Data documentation). Default value is NULL.
+#' @param host_table data frame with custom host-specific values.
+#' Must be provided if custom parameter values should be used instead of
+#' the ones in the package database.
+#' The provided data frame should have the same structure as the database
+#' object \code{host_ent_param} (see Data documentation). Default value is NULL.
+#' @param activity can be either a string corresponding to default entries:
+#' "default_Anopheles_gambiae", "default_Anopheles_albimanus"
+#' or a list object with the following attributes:
+#' \itemize{
+#' \item \code{HBI}: proportion of human biting indoors
+#' \item \code{HBO}: propotion human biting outdoors
+#' \item \code{humans_indoors}: proportion of humans indoor
+#' \item \code{humans_in_bed}:proportion of humans in bed
+#' }
+#' These attribues can be either time series with the corresponding values at
+#' each time point, or characters indicating an entry ID in the package
+#' database. The function list_rhythms() can be used to retrieve the
+#' available entries for all geographical locations.
+#' @param interventions vector of intervention names
+#' @param coverage_vec vector of coverages to consider for each intervention
+#' @param total_pop total population size of human and animal hosts
+#' @param n_vec number of mosquitoes born and entering the host-seeking state
+#' per day
+#' @param n_time_points number of time points to be considered
+#' @param n_sample_points number of samples to select for assessing variance
+#' @param plot_result if TRUE, the function plots the reduction of the vectorial
+#' capacity for each intervention in the \code{interventions} list
+#'
+#' @return list object with the following attributes:
+#' \itemize{
+#' \item \code{vec_p}: list of vector-specific entomological parameters (see
+#' description of output from function \code{get_vector_params})
+#' \item \code{host_p}: list of host-specific entomological parameters (see
+#' description of output from function \code{get_host_params})
+#' \item \code{interventions_vec}: vector of intervention-specific entomological
+#' parameters and impact (vectorial capacity) values
+#' }
+#'
+#' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
+#'
+#'
+#' @importFrom tgp "lhs"
+#' @importFrom dplyr "between"
+#'
+#' @examples
+#'
+#' @export
+#'
+calculate_combined_impact_var = function(mosquito_species = "Anopheles gambiae",
+                                vec_ent_table = NULL,
+                                host_table = NULL,
+                                activity_patterns = "default_Anopheles_gambiae",
+                                interventions = intervention_obj_examples,
+                                coverage_vec = c(seq(0, 0.9, by = 0.1), 0.95, 0.99),
+                                total_pop = 2000, n_vec = 10000,
+                                n_time_points = 100, n_sample_points = 100) {
+
+    # Define the vector bionomics parameters
+    mosq_param = def_vector_params(
+        mosquito_species = mosquito_species,
+        vector_table = vec_ent_table,
+        verbose = FALSE)
+    mosq_param_vals = as.data.frame(def_vector_params(
+        mosquito_species = mosquito_species,
+        vector_table = vec_ent_table,
+        verbose = FALSE))
+    # Define the host specific parameters
+    host_obj = def_host_params(mosquito_species = mosquito_species,
+                               host_table = host_table, vec_params = mosq_param)
+    # Define the activity patterns
+    activity_obj = def_activity_patterns(activity_patterns)
+
+    # For the parameters where sd is provided, sample from [-2sd, 2sd]
+    M = c(mosq_param_vals$M - 2*mosq_param_vals$M.sd,
+          mosq_param_vals$M + 2*mosq_param_vals$M.sd)
+    A0 = c(mosq_param_vals$A0 - 2*mosq_param_vals$A0.sd,
+           mosq_param_vals$A0 + 2*mosq_param_vals$A0.sd)
+    endophily = c(mosq_param_vals$endophily - 2*mosq_param_vals$endophily.sd,
+                  mosq_param_vals$endophily + 2*mosq_param_vals$endophily.sd)
+    endophagy = c(mosq_param_vals$endophagy - 2*mosq_param_vals$endophagy.sd,
+                  mosq_param_vals$endophagy + 2*mosq_param_vals$endophagy.sd)
+    mosq_param_ranges = rbind(M, A0, endophily, endophagy)
+    sampled_points = as.data.frame(lhs(n_sample_points, mosq_param_ranges))
+
+    # Build a table with the sampled parameter values and additional attributes
+    colnames(sampled_points) = rownames(mosq_param_ranges)
+    constant_col = setdiff(colnames(mosq_param_vals), colnames(sampled_points))
+    sampled_points[, constant_col] = mosq_param_vals[, constant_col]
+
+    # Calculate impact for each set of sampled parameter values
+    impact_tab = NULL
+    for (i in 1:nrow(sampled_points)) {
+        for (cov_i in coverage_vec) {
+            # Define the vector object
+            vec_obj = def_vector_params(mosquito_species = mosquito_species,
+                                        vector_table = sampled_points[i,],
+                                        verbose = FALSE)
+            # Define the model object
+            model_obj = build_model_obj(vec_obj, host_obj, activity_obj, total_pop)
+            # Define interventions array
+            interventions_vec = def_interventions_effects(interventions, model_obj,
+                                                          n_time_points, FALSE)
+            # Calculate impact
+            impact_vc = calculate_combined_impact(combination_name = "combination",
+                                                  intervention1 = interventions_vec[[1]],
+                                                  intervention2 = interventions_vec[[2]],
+                                                  cov_intervention1 = cov_i,
+                                                  cov_intervention2 = cov_i,
+                                                  cov_combination = cov_i,
+                                                  N_vec = n_vec)
+            intervention_name = "combination"
+            intervention_coverage = cov_i
+            intervention_impact = impact_vc
+            run_no = i
+            # Construct the impacts element
+            impact_entry = cbind.data.frame(intervention_name,
+                                            intervention_coverage,
+                                            intervention_impact,
+                                            run_no)
+            impact_tab = rbind.data.frame(impact_tab, impact_entry)
+        }
+    }
     return(impact_tab)
 }
 
@@ -490,7 +640,7 @@ AnophelesModel = function(mosquito_species = "Anopheles gambiae",
     # Initialize entomological model-specific parameters
     print("Initializing entomological model ...")
     model_params = build_model_obj(vec_params, hosts_params,
-                                     activity, total_pop)
+                                   activity, total_pop)
 
     # Define intervention effects on the transition probabilities between
     # consecutive stages of the mosquito oviposition cycle
@@ -514,3 +664,214 @@ AnophelesModel = function(mosquito_species = "Anopheles gambiae",
 }
 
 
+#########calculate_combined_impact#########
+#' @title calculates the combined effects and impact for two interventions
+#'
+#' @description \code{calculate_combined_impact} This function calculates the
+#' proportion by which vectorial capacity is reduced when a combination of
+#' two interventions is deployed. The user has the possibility to specify
+#' differing coverage for each intervention and the coverage of the combination.
+#' @param combination_name: name of the intervention combination
+#' @param intervention1: intervention object generated with
+#' \code{def_intervection_effects()}
+#' @param intervention2: intervention object generated with
+#' \code{def_intervection_effects()}
+#' @param cov_intervention1: coverage of intervention 1
+#' @param cov_intervention2: coverage of intervention 2
+#' @param cov_combination: coverage of the combination
+#' @param N_vec number of daily emerging mosquitoes
+#'
+#' @return mean reduction in the vectorial capacity following application of the
+#' combination of interventions.
+#' }
+#'
+#' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
+#' @author Tom Smith, \email{thomas.smith@swisstph.ch}
+#' @author Clara Champagne, \email{clara.champagne@swisstph.ch}
+#'
+#'
+#' @examples
+#'
+#' @export
+#'
+calculate_combined_impact = function(combination_name = "combination",
+                                     intervention1, intervention2,
+                                     cov_intervention1, cov_intervention2,
+                                     cov_combination = NULL, N_vec) {
+    # Initialization, not needed
+    # vec_param = def_vector_params()
+    # host_param = def_host_params()
+    # activity = def_activity_patterns()
+    # model_obj = build_model_obj(vec_p = vec_param, hosts_p = host_param, activity = activity, total_pop = 1000)
+    # intervention_vec = def_interventions_effects(intervention_obj_examples, model_obj, 100)
+
+    # Intervention 1 and 2
+    # intervention1 = intervention_vec$LLINs_example
+    # intervention2 = intervention_vec$IRS_example
+    # intervention1$duration = 3
+    # intervention2$duration = 1
+
+    if ((!identical(intervention1$model_p$vec_params, intervention2$model_p$vec_params)) |
+        (!identical(intervention1$model_p$host_params, intervention2$model_p$host_params)) |
+        (!identical(intervention1$model_p$activity, intervention2$model_p$activity))) {
+        stop("Both interventions must have the same vector, host, and activity parameters.")
+    }
+
+    description = list(description1 = intervention1$description,
+                       description2 = intervention2$description)
+
+    # Coverages
+    C_i = cov_intervention1
+    C_j = cov_intervention2
+    if (is.null(cov_combination)) {
+        C_ij = C_i * C_j
+    } else {
+        C_ij = cov_combination
+    }
+    #The coverage vector is then:
+    #1-C_i-C_j-C_ij
+    Cov = c(1-C_i-C_j+C_ij, C_i-C_ij, C_j-C_ij, C_ij)
+    # TO DO: add checks on coverage values
+    cat('Assigned coverages: ', Cov, '\n')
+    if (min(Cov) < 0) {
+        stop("\nCoverage of combination must be between ", max((C_i + C_j - 1), 0), " and ", min(C_i, C_j))
+    }
+
+
+    ## Align duration and interpolation points between the two interventions
+    # Calculate the intervals between interpolation points
+    interval1 = intervention1$duration/length(intervention1$effects$alphai[, 1])
+    interval2 = intervention2$duration/length(intervention2$effects$alphai[, 1])
+    # Calculate the ratio of the intervals for the two interventions
+    intervalratio = interval1/interval2
+
+    # Check for compatibility
+    if (!identical(round(intervalratio), intervalratio) &
+        !identical(round(1/intervalratio), 1/intervalratio)) {
+        stop("Interpolation points of intervention effects are not compatible!
+         Intervals between interpolation points from the two interventions must be in an integral ratio.")
+    }
+
+    # Calculate the correspondence between the interpolation points
+    if (intervalratio >= 1) {
+        thin1 = intervalratio
+        thin2 = 1
+    } else {
+        thin1 = 1/intervalratio
+        thin2 = 1
+    }
+    # Define the duration of the combination and the number of interpolation points
+    # TO DO: add feature to allow for different duration
+    duration = NULL
+    if (is.null(duration)) {
+        duration = min(intervention1$duration, intervention2$duration)
+    }
+    nips = duration/max(interval1, interval2)
+
+    # Calculate the effects of the combination
+    # The unintervened effects are those of intervention 1
+    alphau = thin_and_truncate(intervention1$effects$alphai[,2], thin = thin1, nips = nips)
+    P_Bu = thin_and_truncate(intervention1$effects$PBi[,2], thin = thin1, nips = nips)
+    P_Cu = thin_and_truncate(intervention1$effects$PCi[,2], thin = thin1, nips = nips)
+    P_Du = thin_and_truncate(intervention1$effects$PDi[,2], thin = thin1, nips = nips)
+    P_Eu = thin_and_truncate(intervention1$effects$PEi[,2], thin = thin1, nips = nips)
+
+    # For intervention, i, deployed at time t=0 and at coverage C_i,
+    # the intervention effects at subsequent times, t>0  are depend on the values
+    # of the model parameters alphai(t), P_Bi(t), P_Ci(t), P_Di(t), P_Ei(t),
+    # which may change over time, (in the case of LLINs because of acquisition
+    # of holes in nets, or decay of insecticidal effect) and on the corresponding
+    # values for non-intervened humans, corresponding to the parameter vector
+    # alphau, P_Bu, P_Cu, P_Du, P_Eu. It follows that efficacies of the intervention
+    # in reducing these parameters are respectively:
+    alphai = thin_and_truncate(intervention1$effects$alphai[,1], thin = thin1, nips = nips)
+    P_Bi = thin_and_truncate(intervention1$effects$PBi[,1], thin = thin1, nips = nips)
+    P_Ci = thin_and_truncate(intervention1$effects$PCi[,1], thin = thin1, nips = nips)
+    P_Di = thin_and_truncate(intervention1$effects$PDi[,1], thin = thin1, nips = nips)
+    P_Ei = thin_and_truncate(intervention1$effects$PEi[,1], thin = thin1, nips = nips)
+    S_i = thin_and_truncate(intervention1$effects$survival, thin = thin1, nips = nips)
+
+    # For the second intervention:
+    alphaj = thin_and_truncate(intervention2$effects$alphai[,1], thin = thin2, nips = nips)
+    P_Bj = thin_and_truncate(intervention2$effects$PBi[,1], thin = thin2, nips = nips)
+    P_Cj = thin_and_truncate(intervention2$effects$PCi[,1], thin = thin2, nips = nips)
+    P_Dj = thin_and_truncate(intervention2$effects$PDi[,1], thin = thin2, nips = nips)
+    P_Ej = thin_and_truncate(intervention2$effects$PEi[,1], thin = thin2, nips = nips)
+    S_j = thin_and_truncate(intervention2$effects$survival, thin = thin2, nips = nips)
+
+    # Calculating relative effects between intervened and unintervened
+    # For intervention 1
+    R_alphai = alphai/alphau
+    R_Bi = P_Bi/P_Bu
+    R_Ci = P_Ci/P_Cu
+    R_Di = P_Di/P_Du
+    R_Ei = P_Ei/P_Eu
+
+    # Calculating relative effects between intervened and unintervened
+    # For intervention 2
+    R_alphaj = alphaj/alphau
+    R_Bj = P_Bj/P_Bu
+    R_Cj = P_Cj/P_Cu
+    R_Dj = P_Dj/P_Du
+    R_Ej = P_Ej/P_Eu
+
+    # For the combination:
+    alphaij= alphau * R_alphai * R_alphaj
+    P_Bij = P_Bu * R_Bi * R_Bj
+    P_Cij = P_Cu * R_Ci * R_Cj
+    P_Dij = P_Du * R_Di * R_Dj
+    P_Eij = P_Eu * R_Ei * R_Ej
+
+    # Assuming the survival of the two interventions to be independent,
+    #  the proportion of the population effectively covered by each intervention and the combination is:
+
+    C_iEff = C_i*S_i
+    C_jEff = C_j*S_j
+    C_ijEff= C_ij*S_i*S_j
+
+    # the effective coverage vector at time t is thus:
+
+    CovEff=  cbind(1-C_iEff-C_jEff+C_ijEff, C_iEff-C_ijEff, C_jEff-C_ijEff, C_ijEff)
+
+    # To implementing the model via the AnophelesModel package (which considers a maximum of two categories of human hosts)
+    # the parameter values for the single intervened category are weighted averages of the values for the four categories
+    # where the weighting captures the different proportions of mosquitoes reaching that stage of the cycle
+    #  (and hence the proportion of mosquitoes exposed to each intervention combination at each stage).
+    # AnophelesModel thus considers both coverage and survival to be unity (with the decays in effect over time captured
+    # by the decays in effective coverage of each component intervention)
+
+    effects = list(survival = rep(1, nips), Kvi = intervention1$effects$Kvi)
+
+
+    #  These weighted parameter estimates are obtained recursively as:
+
+    alphaw = CovEff[,1]*alphau + CovEff[,2]*alphai + CovEff[,3]*alphaj + CovEff[,4]*alphaij
+
+    PBw=(CovEff[,1]*alphau*P_Bu + CovEff[,2]*alphai*P_Bi + CovEff[,3]*alphaj*P_Bj +CovEff[,4]*alphaij*P_Bij)/alphaw
+    PCw=(CovEff[,1]*alphau*P_Bu*P_Cu + CovEff[,2]*alphai*P_Bi*P_Ci+CovEff[,3]*alphaj*P_Bj*P_Cj+CovEff[,4]*alphaij*P_Bij*P_Cij)/(PBw * alphaw)
+    PDw=((CovEff[,1]*alphau*P_Bu*P_Cu*P_Du + CovEff[,2]*alphai*P_Bi*P_Ci*P_Di+CovEff[,3]*alphaj*P_Bj*P_Cj*P_Dj+CovEff[,4]*alphaij*P_Bij*P_Cij*P_Dij)
+         /(PCw * PBw * alphaw))
+    PEw=((CovEff[,1]*alphau*P_Bu*P_Cu*P_Du*P_Eu + CovEff[,2]*alphai*P_Bi*P_Ci*P_Di*P_Ei+CovEff[,3]*alphaj*P_Bj*P_Cj*P_Dj*P_Ej+CovEff[,4]*alphaij*P_Bij*P_Cij*P_Dij*P_Eij)
+         /(PDw * PCw * PBw * alphaw))
+
+    effects$alphai <- replace_effect(col1 = alphaw, df0 = intervention1$effects$alphai, thin =thin1, nips = nips)
+    effects$PBi <- replace_effect(col1 = PBw, df0 = intervention1$effects$PBi, thin =thin1, nips = nips)
+    effects$PCi <- replace_effect(col1 = PCw, df0 = intervention1$effects$PCi, thin =thin1, nips = nips)
+    effects$PDi <- replace_effect(col1 = PDw, df0 = intervention1$effects$PDi, thin =thin1, nips = nips)
+    effects$PEi <- replace_effect(col1 = PEw, df0 = intervention1$effects$PEi, thin =thin1, nips = nips)
+
+    combination_int = list(description = description,
+                        id = combination_name,
+                        parameterisation = combination_name,
+                        vec_p = intervention1$model_p$vec_params,
+                        effects = effects,
+                        coverages = c(0, 1),
+                        duration = duration)
+    interventions_vec = list(combination = combination_int)
+    calculated_impact = AnophelesModel::calculate_impact(interventions_vec = interventions_vec,
+                                                         coverage_vec = c(0,1),
+                                                         model_p = intervention1$model_p,
+                                                         Nv0 = N_vec,
+                                                         num_ip_points = nips)
+    return(calculated_impact$interventions_vec$combination$effects$avg_impact[2])
+}

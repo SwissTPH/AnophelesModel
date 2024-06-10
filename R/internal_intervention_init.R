@@ -97,6 +97,7 @@ init_intervention_effects = function(h_params, ni) {
 #   Kvi: proportion of susceptible mosquitoes that become infected
 #           after biting any host of type i
 #   alphai: availability to mosquitoes for host of type i
+#   model_p: parameters of the entomological model
 calc_interv_effects_db = function(interv_obj, model_p, ip) {
 
     # Initialize intervention object effects values
@@ -106,6 +107,13 @@ calc_interv_effects_db = function(interv_obj, model_p, ip) {
     db_interventions = list_intervention_models()
     if (interv_obj$id != "No intervention") {
         if (interv_obj$id %in% db_interventions$Intervention) {
+            # Extract the reference and the validation for the model
+            summary_tab = interventions_param$interventions_summary
+            interv_reference = summary_tab[which(summary_tab$Parameterisation == interv_obj$parameterisation), "Reference"]
+            interv_validation = summary_tab[which(summary_tab$Parameterisation == interv_obj$parameterisation), "Validation_ref"]
+            message(paste("Selected intervention parameterisation:", interv_obj$parameterisation))
+            message(paste("Reference for the selected parameterisation:", interv_reference))
+            message(paste("Previous validation for the selected parameterisation:", interv_validation))
             f_name = paste("calc_", interv_obj$id, "_p", sep="")
             # update the parameters by calling the intervention function
             interv_obj = do.call(f_name,
@@ -113,6 +121,7 @@ calc_interv_effects_db = function(interv_obj, model_p, ip) {
                                            vec_params = model_p$vec_params,
                                            activity_cycles = model_p$activity,
                                            nips = ip))
+            interv_obj$model_p = model_p
         } else {
             err_msg = paste0("No intervention model available for",
                              interv_obj$id, ". To check available interventions

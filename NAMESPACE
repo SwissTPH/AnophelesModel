@@ -2,6 +2,8 @@
 
 export(AnophelesModel)
 export(build_model_obj)
+export(calculate_combined_impact)
+export(calculate_combined_impact_var)
 export(calculate_impact)
 export(calculate_impact_ip)
 export(calculate_impact_var)

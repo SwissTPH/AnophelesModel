@@ -10,7 +10,6 @@
 # but differs from the original implementation (for the Albimanus paper) in not
 # making use of the vector_specific_parameter vector or Pii
 calc_IRS_p = function(int_obj, vec_params, int_host, activity_cycles, nips) {
-    print("IRS")
     IRS_models_params = interventions_param$IRS_params
     int_summary = interventions_param$interventions_summary
     parameter_set = IRS_models_params[IRS_models_params$Parameterisation ==
@@ -67,6 +66,7 @@ calc_IRS_p = function(int_obj, vec_params, int_host, activity_cycles, nips) {
         }
         int_obj$effects[[paste0(name, "_decay")]] = points[[name]]
     }
+    int_obj$duration = duration
     return(int_obj)
 }
 
@@ -276,6 +276,7 @@ calc_LLINs_p = function(int_obj, vec_params, activity_cycles, nips) {
     int_obj$effects$PBi_decay = ip_vecs$PBi_decay
     int_obj$effects$PCi_decay = ip_vecs$PCi_decay
     int_obj$effects$survival = net_demog$survival
+    int_obj$duration = duration
     return(int_obj)
 }
 
@@ -287,6 +288,11 @@ calc_House_screening_p = function(int_obj, vec_params, activity_cycles, nips) {
     int_obj$effects$alphai[,1] = int_obj$effects$alphai[,2] *
         (1 - adjustment_for_location("alphai", indoor_outdoor,
                                      "House_screening") * 0.59)
+    d_idx = which(interventions_param$interventions_summary$Parameterisation ==
+                      int_obj$parameterisation)
+    duration = as.double(interventions_param$interventions_summary[d_idx,
+                                                                   "Duration"])
+    int_obj$duration = duration
     return(int_obj)
 }
 

@@ -6,6 +6,7 @@
 \usage{
 def_host_params(
   mosquito_species = "Anopheles gambiae",
+  vec_params = def_vector_params(),
   host_table = NULL,
   verbose = TRUE
 )
@@ -17,6 +18,11 @@ To be able to use the parameters from the package database, this name must
 match one of the Anopheles species provided in the package.
 To see all available Anopheles species, use the function
 \code{list_all_species()}.}
+
+\item{vec_params}{list object created with the \code{def_vector_params()}
+function. The mosquito species attribute of this object needs to match the
+previously defined \code{mosquito_species} argument to this function.
+Default value is equal to the default \code{def_vector_params()}.}
 
 \item{host_table}{data frame with custom host-specific values.
 Must be provided if custom parameter values should be used instead of

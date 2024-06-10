@@ -15,18 +15,18 @@ bibliography: references.bib
 
 <style>
 p.caption {
-  font-size: 0.85em;
-  font-style: italic;
-  color: grey
+font-size: 0.85em;
+font-style: italic;
+color: grey
 }
 </style>
 
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
-  echo = TRUE,
-  collapse = TRUE,
-  comment = "#>"
+    echo = TRUE,
+    collapse = TRUE,
+    comment = "#>"
 )
 ```
 
@@ -52,25 +52,28 @@ cycle for a host *i* are modeled through probabilities and
 summarized as follows:
 
 ```{r, echo=FALSE, results='asis'}
-DiagrammeR::grViz("digraph {
-  graph [layout = dot, rankdir = LR]
-  
-  node [shape = circle, fixedsize=TRUE, fontsize=7]        
-  rec1 [label = <Host<BR/>seeking>]
-  rec2 [label = <Host<BR/>found>]
-  rec3 [label = <Fed>]
-  rec4 [label = <Resting>]
-  rec5 [label = <Ovipositing>]
-  
-  # edge definitions with the node IDs
-  rec1 -> rec2 [label= <P<SUB>Ai</SUB><BR/> >,fontsize=7]
-  rec2 -> rec3 [label= <P<SUB>Bi</SUB><BR/> >,fontsize=7]
-  rec3 -> rec4 [label= <P<SUB>Ci</SUB><BR/> >,fontsize=7]
-  rec4 -> rec5 [label= <P<SUB>Di</SUB><BR/> >,fontsize=7]
-  rec5 -> rec1 [label= <P<SUB>Ei</SUB><BR/> >,fontsize=7]
-  }",
-  width = 700)
+# DiagrammeR::grViz("digraph {
+  # graph [layout = dot, rankdir = LR]
+  # 
+  # node [shape = circle, fixedsize=TRUE, fontsize=7]        
+  # rec1 [label = <Host<BR/>seeking>]
+  # rec2 [label = <Host<BR/>found>]
+  # rec3 [label = <Fed>]
+  # rec4 [label = <Resting>]
+  # rec5 [label = <Ovipositing>]
+  # 
+  # # edge definitions with the node IDs
+  # rec1 -> rec2 [label= <P<SUB>Ai</SUB><BR/> >,fontsize=7]
+  # rec2 -> rec3 [label= <P<SUB>Bi</SUB><BR/> >,fontsize=7]
+  # rec3 -> rec4 [label= <P<SUB>Ci</SUB><BR/> >,fontsize=7]
+  # rec4 -> rec5 [label= <P<SUB>Di</SUB><BR/> >,fontsize=7]
+  # rec5 -> rec1 [label= <P<SUB>Ei</SUB><BR/> >,fontsize=7]
+  # }",
+  # width = 700)
 ```
+
+![**Figure 1: Overview of the `AnophelesModel` R package and its components.** The package integrates various types of input data (first panel) to parameterize an existing model of the mosquito feeding cycle (middle panel, schematic adapted from [@Chitnis2008]). This model represents the feeding cycle states with letters A through E and transition probabilities $P_{A^i}$ – $P_{E^i}$ between consecutive states for a host of type i (human, animal hosts). The dotted grey arrows indicate that mosquitoes can die at each stage. Blue lightning symbols indicate the transition probabilities affected by the vector control interventions included in the package](../man/figures/Fig1.png){width=90%}
+
 
 These probabilities (represented by the arrows in the diagram above) 
 are in turn affected by mosquito ecology, human behavior 
@@ -100,18 +103,18 @@ DiagrammeR::grViz("digraph {
   graph [layout = dot, rankdir = LR]
   
   node [shape = rectangle]        
-  rec1 [label = <Define entomological parameters <BR/><B>def_vector_params()</B>>]
-  rec2 [label = <Define mosquito and human activity patterns <BR/><B>def_activity_patterns()</B>>]
-  rec3 [label = <Define human host parameters <BR/><B>def_host_params()</B>>]
-  rec4 [label = <Parameterize entomological model <BR/><B>build_model_obj()</B>>]
+  rec1 [label = <Define entomological <BR/> parameters <BR/><B>def_vector_params()</B>>]
+  rec2 [label = <Define mosquito and <BR/> human activity patterns <BR/> <B>def_activity_patterns()</B>>]
+  rec3 [label = <Define human host <BR/> parameters <BR/><B>def_host_params()</B>>]
+  rec4 [label = <Initialize entomological model <BR/><B>build_model_obj()</B>>]
   rec5 [label = <Define interventions effects <BR/><B>def_interventions_effects()</B>>]
-  rec6 [label = <Calculate impact on vectorial capacity <BR/><B>calculate_impact()</B>>]
+  rec6 [label = <Calculate impact on <BR/> vectorial capacity <BR/><B>calculate_impact()</B>>]
   
   # edge definitions with the node IDs
   rec1 -> rec4 
   rec2 -> rec4 
   rec3 -> rec4
-  rec4 -> rec6
+  rec4 -> rec5
   rec5 -> rec6
   }",
   width = 720)
@@ -174,8 +177,10 @@ conditional on having reached each stage:
 * `PEi`: Probability that a mosquito lays eggs and returns to host-seeking
 * `Kvi`: Proportion of susceptible mosquitoes that become infected after biting
 
-The values of the different probabilities in absence of interventions 
-are those proposed by [@Chitnis2008] and [@briet2019]. 
+The `host_ent_param` object contains default values of these 
+probabilities in absence of interventions for the major mosquito species 
+*Anopheles gambiae*, *Anopheles funestus* and *Anopheles arabiensis* 
+as proposed by [@Chitnis2008] and [@briet2019]. 
 The `host_ent_param` object can be directly 
 used after loading the `AnophelesModel` package: 
 ```{r}
@@ -188,7 +193,7 @@ host_ent_param
 The object `vec_ent_param` contains bionomic parameterizations for
 57 _Anopheles_ mosquito species and 17 complexes (families of species). 
 These parameters have been estimated using 
-a Bayesian hierarchical model (Lemant et al, in preparation) accounting for 
+a Bayesian hierarchical model [@lemant2021] accounting for 
 the phylogeny of 
 the _Anopheles_ genus and informed by previously published entomological data 
 [@Massey2016], [@briet2019]. Below, we provide an exhaustive list of these 
@@ -226,6 +231,20 @@ For example, to retrieve the parameters for *Anopheles albimanus*:
 vec_ent_param[vec_ent_param$species_name == "Anopheles albimanus", ]
 ```
 
+The data object \code{vec_ent_param} includes estimated bionomics parameters 
+for individual Anopheles mosquito species, but also for complexes regrouping 
+several species. For example, "Gambiae complex" refers to the Gambiae complex, 
+while *Anopheles gambiae* refers to the mosquito species. The Gambiae complex 
+includes *Anopheles gambiae*, *Anopheles arabiensis*, *Anopheles melas*, 
+*Anopheles merus*, and other mosquitoes whose exact species was not identified 
+but belong to the complex. Therefore, it is expected that the bionomics 
+parameters will differ between the individual species and the 
+corresponding complex.
+For example, to retrieve the parameters for  the Gambiae complex:
+```{r}
+vec_ent_param[vec_ent_param$species_name == "Gambiae complex", ]
+```
+
 ### Human and mosquito activity patterns
 The table `activity_patterns` contains mosquito biting patterns as well as 
 human sleeping activity information extracted from [@Sherrard-Smith15086] and
@@ -236,15 +255,15 @@ human sleeping activity information extracted from [@Sherrard-Smith15086] and
 or names of mosquito species (e.g., "Anopheles gambiae") for mosquito 
 biting patterns
 * `sampling`: can be one of the following:
-    + `IND`: for entries representing the proportion of humans indoors
-    + `BED`: for entries representing the proportion of humans in bed
-    + `HBI`: for entries representing the proportion of indoors human 
-    biting
-    + `HBO`: for entries representing the proportion of outdoors human 
-    biting
-    + `ABO`: for entries representing the proportion of outdoors 
-    animal biting
-    + `HB`: for entries corresponding to the proportion of human biting
++ `IND`: for entries representing the proportion of humans indoors
++ `BED`: for entries representing the proportion of humans in bed
++ `HBI`: for entries representing the proportion of indoors human 
+biting
++ `HBO`: for entries representing the proportion of outdoors human 
+biting
++ `ABO`: for entries representing the proportion of outdoors 
+animal biting
++ `HB`: for entries corresponding to the proportion of human biting
 * `country`: country where the measurements were taken
 * `site`: name of the geographical site where the measurements were taken
 * `hour`: hour of the day for which the sampling is reported, ranging from 4pm 
@@ -256,7 +275,7 @@ retrieved for various purposes. For example, to retrieve all the human
 activity patterns collected from Kenya:
 ```{r}
 select_idx = activity_patterns$species == "Homo sapiens" &
-                                  activity_patterns$country == "Kenya"
+    activity_patterns$country == "Kenya"
 Kenya_human_rhythms = activity_patterns[select_idx,]
 head(Kenya_human_rhythms)
 ```
@@ -280,7 +299,7 @@ Another example extracting all the available biting behavior for
 *Anopheles gambiae* in Kenya:
 ```{r}
 select_idx = activity_patterns$species == "Anopheles gambiae" &
-                                  activity_patterns$country == "Kenya"
+    activity_patterns$country == "Kenya"
 Kenya_gambiae_biting = activity_patterns[select_idx,]
 head(Kenya_gambiae_biting)
 ```
@@ -428,8 +447,8 @@ endophily.sd = 0
 endophagy = 1
 endophagy.sd = 0
 custom_ent_params_table = as.data.frame(cbind.data.frame(species_name, M, M.sd, Chi,
-                                A0, A0.sd, zeta.3, td,
-                                tau, ts, to, endophily, endophily.sd, endophagy, endophagy.sd))
+                                                         A0, A0.sd, zeta.3, td,
+                                                         tau, ts, to, endophily, endophily.sd, endophagy, endophagy.sd))
 ```
 Then, the data frame is provided to the function defining the vector parameters:
 ```{r}
@@ -454,19 +473,70 @@ data frame with the same structure as `host_ent_params`:
 ```{r}
 species_name = "Anopheles example" 
 host = c("human", "animal") 
-PBi = c(0.67, 0.44)
-PCi = c(0.33, 0.434)
-PDi = c(0.647, 0.344)
-PEi = c(0.672, 0.214)
+PBi = c(0.87, 0.94)
+PCi = c(0.83, 0.84)
+PDi = c(0.947, 0.74)
+PEi = c(0.972, 0.84)
 Kvi = c(0.52, 0.314)
 custom_params_tab = cbind.data.frame(species_name, host, PBi, PCi, PDi, PEi, Kvi)
 ```
 Afterwards, we can provide this data frame to the relevant function for defining 
 the host parameters:
 ```{r}
-custom_host_params = def_host_params(mosquito_species = species_name, host_table = custom_params_tab)
+custom_host_params = def_host_params(mosquito_species = species_name, 
+                                     vec_params = custom_ent_params, 
+                                     host_table = custom_params_tab)
 print(custom_host_params)
 ```
+
+When defining custom values for these probabilities in absence of interventions, 
+users must ensure that the resulting feeding cycle dynamics is in agreement with the 
+mosquito bionomics parameters specified with `def_vec_params()`. This constraint is due to the 
+relationship derived in [@Chitnis2008] where $M$ is equivalent to the 
+probability $P_f$ that a mosquito survives an entire feeding cycle:
+$M = P_f = \frac{\sum_{i=1}^nP_{A^i}P_{B^i}P_{C^i}P_{D^i}P_{E^i}}{1-P_A}$
+where $P_A$ is the probability that the mosquito stays in the host seeking stage 
+(more details are provided in the paper supplement).
+
+This relationship is used to derive $P_{A^i}$ for human and animal hosts. 
+Precisely, for human hosts:
+$P_{A^1} = \frac{A_0M\xi\zeta_2P_{B^2}P_{C^2}}{P_{B^1}P_{C^1}(\xi P_{D^1}P_{E^1}+(1-\xi)P_{D^2}P_{E^2})\zeta_2P_{B^2}P_{C^2}}$
+and for animal hosts:
+$P_{A^1} = \frac{A_0M(1-\xi)}{(\xi P_{D^1}P_{E^1}+(1-\xi)P_{D^2}P_{E^2})\zeta_2P_{B^2}P_{C^2}}$
+
+If the user-entered values for $P_{B^i}, P_{C^i}, P_{D^i}, and P_{E^i}$ are too low, 
+a special case arises when there are no solutions for the probabilities $P_{A^i}$ 
+defined above and the package produces an error as in the example below:
+```{r}
+species_name = "Anopheles example" 
+host = c("human", "animal") 
+PBi = c(0.1, 0.11)
+PCi = c(0.1, 0.1)
+PDi = c(0.1, 0.1)
+PEi = c(0.1, 0.1)
+Kvi = c(0.12, 0.14)
+
+custom_params_tab2 = cbind.data.frame(species_name, host, PBi, PCi, PDi, PEi, Kvi)
+tryCatch(
+    {
+        custom_host_params2 = def_host_params(mosquito_species = species_name, 
+                                             vec_params = custom_ent_params, 
+                                             host_table = custom_params_tab2)
+    }, error = function(cond) {
+        message("The package is expected to throw an error in this case.")
+        message("Here is the original error message:")
+        message(conditionMessage(cond))
+    },
+    finally = {
+        
+    })
+```
+Kvi should be set to 0 for animal hosts for Plasmodium falciparum. However, 
+this does not generally apply, e.g. for Plasmodium knowlesi. Since the package 
+is not exclusively focused on Plasmodium falciparum, we allow the user to 
+define this value as appropriate for their specific use case. We have added a 
+note to this effect in the documentation (section “Defining host-specific 
+entomological parameters”).
 
 ### Step 3: Defining mosquito and human activity patterns
 To facilitate definition of human and mosquito activity patterns, the 
@@ -527,7 +597,7 @@ vec_pop = 10000
 
 Then, to initialize the entomological model and build the model object:
 ```{r}
-model_params = build_model_obj(custom_ent_params, default_host_params, custom_activity_obj, host_pop)
+model_params = build_model_obj(def_vector_params(), def_host_params(), custom_activity_obj, host_pop)
 # Print the calculated mosquito death rate
 print(model_params$host_params$muvA)
 # Print the estimated availability to mosquitoes for each host type
@@ -541,6 +611,11 @@ how the intervention objects are specified can be obtained by using the command
 `?def_interventions_effects`. To facilitate definition of these objects, 
 the package contains a list of intervention object examples 
 for each intervention type included in the `intervention_obj_examples` list. 
+
+Several intervention parameterizations available in the package are derived 
+from locations where mosquitoes presented insecticide resistance, therefore 
+resistance is accounted for in the effects. This information is included in the 
+`interventions_param$interventions_summary` object (column `Resistance`).
 
 The `intervention_obj_examples` list contains three examples of interventions :
 LLIN, IRS and House screening, respectively: 
@@ -560,8 +635,8 @@ different IRS parameterisation, we can modify the `parameterisation` attribute
 of the IRS example:
 ```{r}
 new_IRS = intervention_obj_examples$IRS_example
-new_IRS$description = "Permethrin IRS"
-new_IRS$parameterisation = "IRS16"
+new_IRS$description = "Actellic CS IRS"
+new_IRS$parameterisation = "IRS03"
 ```
 then we can concatenate the new intervention object to the list with 
 intervention examples:
@@ -594,7 +669,7 @@ Once all the intervention effects have been defined, their impact on the
 vectorial capacity can be estimated (using equation 20 from [@Chitnis2008]) :
 ```{r, dpi=150, fig.cap="Output figure with the impact on the vectorial capacity for different species"}
 impacts = calculate_impact(intervention_vec, coverages, model_params,
-vec_pop, n_ip)
+                           vec_pop, n_ip)
 ```
 The resulting vectorial capacity is calculated and aggregated across the 
 previously-specified time points which are uniformly-distributed across the 
@@ -621,12 +696,12 @@ included in the `calculate_impact_var()` function to
 estimate the confidence interval for the reported mean vectorial capacity. 
 In the example below, in the interest of execution time, only 10 samples have 
 been used to estimate the confidence intervals of the vectorial capacity:
-```{r, dpi=150, fig.cap="Impact of interventions on vectorial capacity including the variability in the entomological parameters specific to the mosquito species."}
+```{r, dpi=150, echo=FALSE, message=FALSE, warning=FALSE, results='hide', fig.cap="Impact of interventions on vectorial capacity including the variability in the entomological parameters specific to the mosquito species."}
 impact_gambiae = calculate_impact_var(mosquito_species = "Anopheles gambiae",
-                                        activity_patterns = "default_Anopheles_gambiae",
-                                        interventions = intervention_obj_examples,
-                                        n_sample_points = 10,
-                                        plot_result = FALSE)
+                                      activity_patterns = "default_Anopheles_gambiae",
+                                      interventions = intervention_obj_examples,
+                                      n_sample_points = 10,
+                                      plot_result = FALSE)
 plot_impact_var("Anopheles gambiae", impact_gambiae)
 ```
 
@@ -658,8 +733,54 @@ check the [description in the OpenMalaria wiki](https://github.com/SwissTPH/open
 ```{r, dpi=150}
 
 GVI_snippets = get_OM_GVI_snippet("Anopheles example", impacts$interventions_vec$LLINs_example,
-                    100, plot_f = TRUE)
+                                  100, plot_f = TRUE)
 ```
+
+## Combinations of interventions
+The `AnophelesModel` package provides functionality to combine two interventions 
+available in the package database, using the function `calculate_combined_impact_var()`.
+To include a combination of LLIN and IRS interventions in the example shown above:
+
+```{r, dpi=600, echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.keep='all', fig.cap="Impact of a combination of LLIN and IRS on vectorial capacity including the variability in the entomological parameters specific to the mosquito species."}
+impact_gambiae = calculate_impact_var(mosquito_species = "Anopheles gambiae",
+                                      activity_patterns = "default_Anopheles_gambiae",
+                                      interventions = intervention_obj_examples,
+                                      n_sample_points = 10,
+                                      plot_result = FALSE)
+impact_gambiae_combined = calculate_combined_impact_var(mosquito_species = "Anopheles gambiae",
+                                      activity_patterns = "default_Anopheles_gambiae",
+                                      interventions = intervention_obj_examples,
+                                      n_sample_points = 10)
+impact_all = rbind.data.frame(impact_gambiae, impact_gambiae_combined)
+impact_all$intervention_impact = impact_all$intervention_impact*100
+impact_all$intervention_impact = round(impact_all$intervention_impact, digits = 3)
+# impact_all[which(impact_all$intervention_impact < 0 ), "intervention_impact"] = 0
+
+intervention_colors = intervention_colors_fill =
+    c("#D81B60", "#1E88E5", "#D4A92A", "#004D40", "#de2d26",
+      "#74c476", "#bdbdbd", "#d7b5d8")
+
+p = ggplot(impact_all, aes(x=intervention_coverage, y=intervention_impact,
+                          group = intervention_name,
+                          col = intervention_name,
+                          fill = intervention_name)) +
+    theme_light() + theme_linedraw() + theme_bw(base_size=10) +
+    ylim(c(0, 100)) + theme(legend.position = "bottom", legend.direction = "vertical") +
+    stat_summary(fun.data = mean_sdl, fun.args = list(mult = 2),
+                 geom = "ribbon", alpha = 0.5, colour = NA) +
+    stat_summary(fun = mean, geom = "line", size = 0.5) +
+    scale_color_manual("Interventions", values = intervention_colors) +
+    scale_fill_manual("Interventions", values = intervention_colors) +
+    guides(col="none") +
+    guides(linetype = guide_legend(nrow = 2, byrow = TRUE)) +
+    guides(fill = guide_legend(nrow = 3, byrow = TRUE)) +
+    labs(title = "",
+         x="Coverage", y="Mean reduction in\nvectorial capacity",
+         fill = "")
+p
+
+```
+
 
 ## References
 

@@ -30,7 +30,10 @@ Imports:
 Suggests: 
     knitr,
     rmarkdown,
-    testthat
+    testthat,
+    DiagrammeR, 
+    ggpubr,
+    Hmisc
 VignetteBuilder: knitr
 License: GPL (>=2)
 Encoding: UTF-8

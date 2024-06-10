@@ -3,8 +3,8 @@
 # an analysis directory with all the files and scripts
 # consisting of the following steps:
 # 1. Defining the base xml
-# 1. Defining the simulation settings 
-# 2. Creating the scripts for generating the simulation scenarios 
+# 1. Defining the simulation settings
+# 2. Creating the scripts for generating the simulation scenarios
 # 3. Creating the scripts for running OpenMalaria simulations
 # 4. Creating the scripts for postprocessing
 #
@@ -41,16 +41,18 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 print(paste("Working directory set to ", dirname(rstudioapi::getActiveDocumentContext()$path)))
 
 # Load the base xml list setup function and auxiliary functions
-source("00_create_base_PNG.R")
+# source("00_create_base_PNG.R")
+source("00_create_base_KEN.R")
 
 # Define root directory with all the experiments according to the user
 if (Sys.getenv("USER") == "golmon00") {
-  root_dir_path = "/scicore/home/pothin/golmon00/OpenMalaria/AnophelesModel/"
+  root_dir_path = "/scicore/home/pothin/golmon00/OpenMalaria/AnophelesModel2/"
 } else {
   print("Please specify the paths to the necessary folders!")
 }
 
-iso_code = "PNG"
+# iso_code = "PNG"
+iso_code = "KEN"
 
 #####################################
 # Experiment setup
@@ -93,11 +95,11 @@ storeScenarios(scens)
 #####################################
 # Validate the xml
 #####################################
-if (validateXML(xmlfile = getCache(x = "baseXml"), 
-                schema = paste0(getCache(x = "experimentDir"), "/scenario_44.xsd"), 
+if (validateXML(xmlfile = getCache(x = "baseXml"),
+                schema = paste0(getCache(x = "experimentDir"), "/scenario_44.xsd"),
                 scenarios = scens)) {
   print ("XML definition is valid.")
-} 
+}
 
 #####################################
 # Prepare scripts for creating, running and postprocessing all the scenarios and simulations
@@ -105,23 +107,23 @@ if (validateXML(xmlfile = getCache(x = "baseXml"),
 print ("Generating analysis scripts ...")
 ## 1. Prepare the scripts for creating the scenarios
 # Make sure to adjust the nCPU, memCPU, time and qos if you run larger experiments
-slurmPrepareScenarios(expName = iso_code, scenarios = scens, nCPU = 10, 
+slurmPrepareScenarios(expName = iso_code, scenarios = scens, nCPU = 10,
                       memCPU = "350MB")
 
 ## 2. Prepare the scripts for running OpenMalaria simulations
 # Make sure to adjust the nCPU, memCPU, time and qos if you run larger experiments
-slurmPrepareSimulations(expName = iso_code, scenarios = scens, 
+slurmPrepareSimulations(expName = iso_code, scenarios = scens,
                         memCPU = "100MB", nCPU = 10)
 
 ## 3. Prepare the scripts for post-processing the OpenMalaria outputs
 # Define the age groups of interest for the outputs (including aggregations)
 age_groups_list = c("0-5", "2-10", "0-100")
 
-# Define the OpenMalaria outputs of interest; these will correspond to the 
+# Define the OpenMalaria outputs of interest; these will correspond to the
 # columns of the results table to be stored in the database
 results_columns = c("scenario_id",
-                    "date", "age_group", "date_aggregation", 
-                    "nTreatments1", "nTreatments2", "nTreatments3", 
+                    "date", "age_group", "date_aggregation",
+                    "nTreatments1", "nTreatments2", "nTreatments3",
                     "nHost", "nUncomp", "nSevere",
                     "tUncomp", "tSevere",
                     "incidenceRate", "prevalenceRate")
@@ -139,10 +141,10 @@ if (file.exists(db_file)) {
 slurmPrepareResults(expDir = getCache("experimentDir"), dbName = iso_code,
                     resultsName = "om_results", resultsCols = results_columns,
                     aggrFun = CalcEpiOutputs,
-                    aggrFunArgs = list(indicators = results_columns, 
+                    aggrFunArgs = list(indicators = results_columns,
                                        aggregateByAgeGroup = age_groups_list,
                                        aggregateByDate = "month"),
-                    ntasks = 1, mem = "1GB", nCPU = 10, 
+                    ntasks = 1, mem = "1GB", nCPU = 10,
                     strategy = "batch", indexOn = NULL)
 
 

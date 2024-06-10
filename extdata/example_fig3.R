@@ -36,6 +36,8 @@ calculate_impact_vec = function(tab_activity, mosquito_model_params, host_params
 gambiae_ent_params = def_vector_params(mosquito_species = "Anopheles gambiae")
 farauti_ent_params = def_vector_params(mosquito_species = "Anopheles farauti")
 default_host_params = def_host_params()
+default_host_params_farauti = default_host_params
+default_host_params_farauti$species_name = "Anopheles farauti"
 
 # Define size of the host and mosquito population
 host_pop = 2000
@@ -63,7 +65,7 @@ activity_farauti$HBO[which(is.na(activity_farauti$HBO))] = 0
 
 # Parameterize model for both species
 model_params_gambiae = build_model_obj(gambiae_ent_params, default_host_params, activity_gambiae, host_pop)
-model_params_farauti = build_model_obj(farauti_ent_params, default_host_params, activity_farauti, host_pop)
+model_params_farauti = build_model_obj(farauti_ent_params, default_host_params_farauti, activity_farauti, host_pop)
 
 # Define LLIN intervention
 LLIN_intervention = intervention_obj_examples$LLINs_example
@@ -82,6 +84,7 @@ impact_gambiae = calculate_impact_var(mosquito_species = "Anopheles gambiae",
 impact_gambiae$`Mosquito species` = "Anopheles gambiae"
 
 impact_farauti = calculate_impact_var(mosquito_species = "Anopheles farauti",
+                                      host_table = as.data.frame(default_host_params_farauti),
                                       activity_patterns = activity_farauti,
                                       interventions = LLIN_list,
                                       n_sample_points = 10,
@@ -133,8 +136,9 @@ plot_df_effects$`Mosquito species` = factor(plot_df_effects$`Mosquito species`, 
 p_effects = ggplot(plot_df_effects) +
             geom_line(aes(x = `Time point`, y = value*100, col = `Mosquito species`)) +
             facet_wrap(~ variable) +
+            geom_vline(xintercept = seq(0, 100, 100/6)[2:7], color = "black", lty = "dashed") +
             theme_light() +
-            theme_bw(base_size = 16) +
+            theme_bw(base_size = 14) +
             theme(legend.position = "top") +
             ylim(c(0, 100)) +
             theme(strip.background = element_rect(colour="white", fill="white")) +
@@ -149,7 +153,7 @@ p_vc = ggplot(impact_df, aes(x = intervention_coverage, y = intervention_impact*
                                 group = `Mosquito species`,
                                 col = `Mosquito species`,
                                 fill = `Mosquito species`)) +
-                theme_light() + theme_linedraw() + theme_bw(base_size = 16) +
+                theme_light() + theme_linedraw() + theme_bw(base_size = 14) +
                 ylim(c(0, 100)) + theme(legend.position = "top") +
                 stat_summary(fun.data = mean_sdl, fun.args = list(mult = 2),
                              geom = "ribbon", alpha = 0.5, colour = NA) +
@@ -165,6 +169,6 @@ p_vc = ggplot(impact_df, aes(x = intervention_coverage, y = intervention_impact*
                 labs(x = "Coverage", y="Mean reduction in\nvectorial capacity (%)")
 
 p_fig3 = ggarrange(plotlist = list(p_effects, p_vc), ncol = 1, nrow = 2, labels = c("A", "B"))
-# ggsave("~/paper_AnophelesModel/Figures/Fig3.pdf", width = 8, height = 7)
+ggsave("~/paper_AnophelesModel/Figures/Fig3_revision.pdf", width = 8, height = 7)
 
 
