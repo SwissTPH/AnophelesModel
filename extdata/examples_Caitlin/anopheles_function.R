@@ -90,9 +90,9 @@ calc_vc <- function(param_spec) {
                                     Nv0 = 10000, num_ip_points = 100)
 
         # Store the mean reduction in vectorial capacity under the intervention of interest as results.
-        # results[i] <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
+        results[i] <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
         # results[i] <- impacts$interventions_vec$IRS_example$effects$avg_impact[2]
-        results[i] <- impacts$interventions_vec$Screening_example$effects$avg_impact[2]
+        # results[i] <- impacts$interventions_vec$Screening_example$effects$avg_impact[2]
 
         # Update and print progress.
         current_iteration <<- current_iteration + 1
@@ -154,5 +154,6 @@ ggplot(sensitivity_df, aes(x = reorder(Parameter, -TotalOrder.T_eff), y = TotalO
     geom_bar(stat = "identity", fill = "darkred") +
     labs(title = "Total Sensitivity Indices", x = "Parameter", y = "Total Sensitivity Index") +
     theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 
 
