@@ -35,7 +35,7 @@ current_iteration <- 0
 #### CALC_VC FUNCTION ####
 
 
-# Create the calc_vc function for LLINs.
+# Create the calc_vc function to calculate the impact of vector control interventions on vectorial capacity.
 calc_vc <- function(param_spec) {
 
     # Initialise results.
