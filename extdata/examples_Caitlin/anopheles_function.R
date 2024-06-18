@@ -90,8 +90,8 @@ calc_vc <- function(param_spec) {
                                     Nv0 = 10000, num_ip_points = 100)
 
         # Store the mean reduction in vectorial capacity under the intervention of interest as results.
-        results[i] <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
-        # results[i] <- impacts$interventions_vec$IRS_example$effects$avg_impact[2]
+        # results[i] <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
+        results[i] <- impacts$interventions_vec$IRS_example$effects$avg_impact[2]
         # results[i] <- impacts$interventions_vec$Screening_example$effects$avg_impact[2]
 
         # Update and print progress.
@@ -128,7 +128,7 @@ X2 <- create_lhs_samples(num_points, vec_params)
 # Compute the Sobol indices (main and total effects).
 SA <- soboljansen(model = calc_vc, X1, X2, nboot = 5000)
 
-# Extract and plot the sensitivity indices and their corresponding confidence intervals.
+# Extract and plot the sensitivity indices with their corresponding confidence intervals.
 SA_S <- SA$S
 SA_T <- SA$T
 SA_S_min <- min(SA_S$`min. c.i.`)
