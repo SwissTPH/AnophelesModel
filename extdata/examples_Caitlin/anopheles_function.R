@@ -121,7 +121,7 @@ create_lhs_samples <- function(num_points, vec_params) {
 
 # Construct the two random LHS samples.
 # num_points <- 50000
-num_points <- 1000
+num_points <- 5000
 X1 <- create_lhs_samples(num_points, vec_params)
 X2 <- create_lhs_samples(num_points, vec_params)
 
