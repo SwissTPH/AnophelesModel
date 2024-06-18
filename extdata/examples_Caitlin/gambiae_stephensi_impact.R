@@ -94,11 +94,11 @@ my_default_model_stephensi <- build_model_obj(vec_p = vec_p_stephensi, hosts_p =
 intervention_effects_vec_gambiae <- def_interventions_effects(intervention_list =  intervention_obj_examples,
                                                               model_p = my_default_model_gambiae,
                                                               num_ip_points = 100, verbose = TRUE,
-                                                              specified_multiplier = 0.9)
+                                                              specified_multiplier = NULL)
 intervention_effects_vec_stephensi <- def_interventions_effects(intervention_list = intervention_obj_examples,
                                                                 model_p = my_default_model_stephensi,
                                                                 num_ip_points = 100, verbose = TRUE,
-                                                                specified_multiplier = 0.9)
+                                                                specified_multiplier = NULL)
 
 # Calculate and plot the impact of interventions using the custom biting patterns.
 impacts_gambiae <- calculate_impact(interventions_vec = intervention_effects_vec_gambiae,
