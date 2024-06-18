@@ -90,8 +90,8 @@ calc_vc <- function(param_spec) {
                                     Nv0 = 10000, num_ip_points = 100)
 
         # Store the mean reduction in vectorial capacity under the intervention of interest as results.
-        # results[i] <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
-        results[i] <- impacts$interventions_vec$IRS_example$effects$avg_impact[2]
+        results[i] <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
+        # results[i] <- impacts$interventions_vec$IRS_example$effects$avg_impact[2]
         # results[i] <- impacts$interventions_vec$Screening_example$effects$avg_impact[2]
 
         # Update and print progress.
