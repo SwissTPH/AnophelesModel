@@ -90,9 +90,9 @@ calc_vc <- function(param_spec) {
                                     Nv0 = 10000, num_ip_points = 100)
 
         # Store the mean reduction in vectorial capacity under the intervention of interest as results.
-        # results[i] <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
+        results[i] <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
         # results[i] <- impacts$interventions_vec$IRS_example$effects$avg_impact[2]
-        results[i] <- impacts$interventions_vec$Screening_example$effects$avg_impact[2]
+        # results[i] <- impacts$interventions_vec$Screening_example$effects$avg_impact[2]
 
         # Update and print progress.
         current_iteration <<- current_iteration + 1
@@ -120,21 +120,47 @@ create_lhs_samples <- function(num_points, vec_params) {
 }
 
 # Construct the two random LHS samples.
-num_points <- 50000
+# num_points <- 50000
+num_points <- 5000
 X1 <- create_lhs_samples(num_points, vec_params)
 X2 <- create_lhs_samples(num_points, vec_params)
 
 # Compute the Sobol indices (main and total effects).
 SA <- soboljansen(model = calc_vc, X1, X2, nboot = 5000)
-ggplot(SA)
-S_eff <- SA$S$original
-S_eff[S_eff < 0] <- 0
-T_eff <- SA$T$original
-list(S_eff = S_eff, T_eff = T_eff)
+
+# Extract and plot the sensitivity indices and their corresponding confidence intervals.
+SA_S <- SA$S
+SA_T <- SA$T
+SA_S_min <- min(SA_S$`min. c.i.`)
+SA_S_max <- max(SA_S$`max. c.i.`)
+SA_T_min <- min(SA_T$`min. c.i.`)
+SA_T_max <- max(SA_T$`max. c.i.`)
+SA_plot <- data.frame(
+    Parameter = rep(rownames(SA_S), 2),
+    Effect = rep(c("Single Effect", "Total Effect"), each = nrow(SA_S)),
+    Value = c(SA_S$original, SA_T$original),
+    MinCI = c(SA_S$`min. c.i.`, SA_T$`min. c.i.`),
+    MaxCI = c(SA_S$`max. c.i.`, SA_T$`max. c.i.`))
+SA_min <- min(SA_plot$MinCI, na.rm = TRUE)
+SA_max <- max(SA_plot$MaxCI, na.rm = TRUE)
+ggplot(SA_plot, aes(x = Parameter, y = Value, color = Effect)) +
+    geom_point(position = position_dodge(width = 0.5)) +
+    geom_errorbar(aes(ymin = MinCI, ymax = MaxCI), width = 0.2, position = position_dodge(width = 0.5)) +
+    coord_cartesian(ylim = c(SA_min, SA_max)) +
+    scale_color_manual(values = c("Single Effect" = "hotpink", "Total Effect" = "royalblue")) +
+    labs(y = "Sensitivity Index", x = "Parameter") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
 #### SENSITVITY PLOTS ####
 
+
+# Extract single and total effect indices.
+S_eff <- SA$S$original
+S_eff[S_eff < 0] <- 0
+T_eff <- SA$T$original
+list(S_eff = S_eff, T_eff = T_eff)
 
 # Create a data frame for plotting.
 S_eff <- as.data.frame(S_eff)
@@ -154,6 +180,5 @@ ggplot(sensitivity_df, aes(x = reorder(Parameter, -TotalOrder.T_eff), y = TotalO
     geom_bar(stat = "identity", fill = "darkred") +
     labs(title = "Total Sensitivity Indices", x = "Parameter", y = "Total Sensitivity Index") +
     theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
 
 
