@@ -19,12 +19,10 @@ library(ggplot2)
 
 # Create a dataframe of vector parameters.
 vec_params <- data.frame(
-    param = c("M", "Chi", "A0", "zeta.3", "td", "tau", "ts",
-              "to", "endophily", "endophagy", "exposure", "coverage"),
-    value = c(0.613499, 0.7947577, 0.6419328, 1, 0.33,
-              3, 10, 5, 0.7743085, 0.5604133, 0.9, 0.8),
-    lower_bound = c(0, 0, 0, 1, 0.33, 3, 10, 5, 0, 0, 0, 0),
-    upper_bound = c(1, 1, 1, 1, 0.33, 3, 10, 5, 1, 1, 1, 1)
+    param = c("M", "Chi", "A0", "endophily", "endophagy", "exposure", "coverage"),
+    value = c(0.613499, 0.7947577, 0.6419328, 0.7743085, 0.5604133, 0.9, 0.8),
+    lower_bound = c(0, 0, 0, 0, 0, 0, 0),
+    upper_bound = c(1, 1, 1, 1, 1, 1, 1)
 )
 
 # Initialise tracking of iterations.
@@ -51,11 +49,11 @@ calc_vc <- function(param_spec) {
         vec_p <- list(M = param_spec[i, "M"],
                       Chi = param_spec[i, "Chi"],
                       A0 = param_spec[i, "A0"],
-                      zeta.3 = param_spec[i, "zeta.3"],
-                      td = param_spec[i, "td"],
-                      tau = param_spec[i, "tau"],
-                      ts = param_spec[i, "ts"],
-                      to = param_spec[i, "to"],
+                      zeta.3 = 1,
+                      td = 0.33,
+                      tau = 3,
+                      ts = 10,
+                      to = 5,
                       endophily = param_spec[i, "endophily"],
                       endophagy = param_spec[i, "endophagy"],
                       exposure = param_spec[i, "exposure"])
@@ -92,7 +90,6 @@ calc_vc <- function(param_spec) {
         # Store the mean reduction in vectorial capacity under the intervention of interest as results.
         results[i] <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
         # results[i] <- impacts$interventions_vec$IRS_example$effects$avg_impact[2]
-        # results[i] <- impacts$interventions_vec$Screening_example$effects$avg_impact[2]
 
         # Update and print progress.
         current_iteration <<- current_iteration + 1
@@ -120,8 +117,7 @@ create_lhs_samples <- function(num_points, vec_params) {
 }
 
 # Construct the two random LHS samples.
-# num_points <- 50000
-num_points <- 5000
+num_points <- 50000
 X1 <- create_lhs_samples(num_points, vec_params)
 X2 <- create_lhs_samples(num_points, vec_params)
 
