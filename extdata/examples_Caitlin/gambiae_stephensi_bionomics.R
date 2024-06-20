@@ -56,17 +56,18 @@ p_bio
 #### MOSQUITO BIONOMICS WITH STANDARD DEVIATIONS ####
 
 
-# Create a dataframe with Anopheles gambiae and Anopheles stephensi bionomics, along with their standard deviations.
+# Create a dataframe with Anopheles gambiae and Anopheles stephensi bionomics.
+# Include their confidence intervals (± 2 standard deviations).
 df_bionomics_sd <- data.frame(species_name = c("Anopheles gambiae", "Anopheles gambiae", "Anopheles gambiae",
                                                "Anopheles stephensi", "Anopheles stephensi", "Anopheles stephensi"),
                               variable = c("Parous Rate", "Sac Rate", "Endophagy",
                                            "Parous Rate", "Sac Rate", "Endophagy"),
-                              value = c(0.613449879, 0.641932826, 0.560413252,
-                                        0.557716117, 0.495191314, 0.399699016),
-                              min = c(0.6096308, 0.5691285, 0.5553567,
-                                      0.5254729, 0.4432327, 0.3573952),
-                              max = c(0.6172690, 0.7147371, 0.5654698,
-                                      0.5899593, 0.5471500, 0.4420028))
+                              value = c(0.6134499, 0.6419328, 0.5604133,
+                                        0.5577161, 0.4951913, 0.399699),
+                              min = c(0.605811646, 0.49632422, 0.55030012,
+                                      0.4932297, 0.39127398, 0.31509142),
+                              max = c(0.621088154, 0.78754138, 0.57052648,
+                                      0.6222025, 0.59910862, 0.48430658))
 
 # Plot the mosquito bionomics with their corresponding standard deviations.
 p_variance <- ggplot(df_bionomics_sd, aes(x = variable, y = value, color = species_name)) +

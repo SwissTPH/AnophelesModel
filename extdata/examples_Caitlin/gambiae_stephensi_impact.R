@@ -89,24 +89,25 @@ my_default_model_stephensi <- build_model_obj(vec_p = vec_p_stephensi, hosts_p =
 #### USE THE PACKAGE INTERVENTION OBJECT ####
 
 
-# Define the intervention effects using the intervention list with examples included in the package.
-# Specify the exposure multiplier as 0.9.
-intervention_effects_vec_gambiae <- def_interventions_effects(intervention_list =  intervention_obj_examples,
-                                                              model_p = my_default_model_gambiae,
-                                                              num_ip_points = 100, verbose = TRUE,
-                                                              specified_multiplier = NULL)
-intervention_effects_vec_stephensi <- def_interventions_effects(intervention_list = intervention_obj_examples,
-                                                                model_p = my_default_model_stephensi,
-                                                                num_ip_points = 100, verbose = TRUE,
-                                                                specified_multiplier = NULL)
+# Define the intervention effects for LLINs and IRS as included in the package.
+selected_interventions <- list(LLINs_example = intervention_obj_examples$LLINs_example,
+                               IRS_example = intervention_obj_examples$IRS_example)
+intervention_effects_gambiae <- def_interventions_effects(intervention_list =  selected_interventions,
+                                                          model_p = my_default_model_gambiae,
+                                                          num_ip_points = 100, verbose = TRUE,
+                                                          specified_multiplier = NULL)
+intervention_effects_stephensi <- def_interventions_effects(intervention_list = selected_interventions,
+                                                            model_p = my_default_model_stephensi,
+                                                            num_ip_points = 100, verbose = TRUE,
+                                                            specified_multiplier = NULL)
 
 # Calculate and plot the impact of interventions using the custom biting patterns.
-impacts_gambiae <- calculate_impact(interventions_vec = intervention_effects_vec_gambiae,
+impacts_gambiae <- calculate_impact(interventions_vec = intervention_effects_gambiae,
                                     coverage_vec = c(seq(0, 1, by = 0.1)),
                                     model_p = my_default_model_gambiae,
                                     Nv0 = 10000,
                                     num_ip_points = 100)
-impacts_stephensi <- calculate_impact(interventions_vec = intervention_effects_vec_stephensi,
+impacts_stephensi <- calculate_impact(interventions_vec = intervention_effects_stephensi,
                                       coverage_vec = c(seq(0, 1, by = 0.1)),
                                       model_p = my_default_model_stephensi,
                                       Nv0 = 10000,
@@ -120,11 +121,11 @@ impacts
 # In both cases, 100 samples have been used to estimate the confidence intervals of the vectorial capacity.
 impacts_gambiae_ci <- calculate_impact_var(mosquito_species = "Anopheles gambiae",
                                            activity_patterns = activity_p_gambiae,
-                                           interventions = intervention_effects_vec_gambiae,
+                                           interventions = intervention_effects_gambiae,
                                            n_sample_points = 100, plot_result = FALSE)
 impacts_stephensi_ci <- calculate_impact_var(mosquito_species = "Anopheles stephensi",
                                              activity_patterns = activity_p_stephensi,
-                                             interventions = intervention_effects_vec_stephensi,
+                                             interventions = intervention_effects_stephensi,
                                              n_sample_points = 100, plot_result = FALSE)
 impacts_gambiae_ci_plot <- plot_impact_var("Anopheles gambiae", impacts_gambiae_ci)
 impacts_stephensi_ci_plot <- plot_impact_var("Anopheles stephensi", impacts_stephensi_ci)
