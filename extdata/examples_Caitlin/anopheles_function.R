@@ -12,6 +12,7 @@ rm(list = ls())
 ## Load packages.
 library(AnophelesModel)
 library(dplyr)
+library(tidyr)
 library(sensitivity)
 library(multisensi)
 library(tgp)
@@ -20,7 +21,7 @@ library(ggplot2)
 # Create a dataframe of vector parameters.
 vec_params <- data.frame(
     param = c("M", "Chi", "A0", "endophily", "endophagy", "exposure", "coverage"),
-    value = c(0.613499, 0.7947577, 0.6419328, 0.7743085, 0.5604133, 0.9, 0.8),
+    value = c(0.613499, 0.7947577, 0.6419328, 0.7743085, 0.5604133, 0.9, 0.7),
     lower_bound = c(0, 0, 0, 0, 0, 0, 0),
     upper_bound = c(1, 1, 1, 1, 1, 1, 1)
 )
@@ -56,7 +57,8 @@ calc_vc <- function(param_spec) {
                       to = 5,
                       endophily = param_spec[i, "endophily"],
                       endophagy = param_spec[i, "endophagy"],
-                      exposure = param_spec[i, "exposure"])
+                      exposure = param_spec[i, "exposure"],
+                      coverage = param_spec[i, "coverage"])
 
         # Define activity patterns.
         activity_p <- list(HBI = c(0.005608974, 0.061698718, 0.031250000, 0.080929487, 0.095352564, 0.040064103,
@@ -75,8 +77,10 @@ calc_vc <- function(param_spec) {
         my_default_model <- build_model_obj(vec_p = vec_p, hosts_p = hosts_p,
                                             activity = activity_p, total_pop = 2000)
 
-        # Define the intervention effects using the intervention list with examples included in the package.
-        intervention_effects <- def_interventions_effects(intervention_list = intervention_obj_examples,
+        # Define the intervention effects for LLINs and IRS as included in the package.
+        selected_interventions <- list(LLINs_example = intervention_obj_examples$LLINs_example,
+                                       IRS_example = intervention_obj_examples$IRS_example)
+        intervention_effects <- def_interventions_effects(intervention_list = selected_interventions,
                                                           model_p = my_default_model,
                                                           num_ip_points = 100, verbose = TRUE,
                                                           specified_multiplier = param_spec[i, "exposure"])
@@ -88,8 +92,8 @@ calc_vc <- function(param_spec) {
                                     Nv0 = 10000, num_ip_points = 100)
 
         # Store the mean reduction in vectorial capacity under the intervention of interest as results.
-        results[i] <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
-        # results[i] <- impacts$interventions_vec$IRS_example$effects$avg_impact[2]
+        # results[i] <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
+        results[i] <- impacts$interventions_vec$IRS_example$effects$avg_impact[2]
 
         # Update and print progress.
         current_iteration <<- current_iteration + 1
@@ -109,7 +113,7 @@ calc_vc <- function(param_spec) {
 S_mat <- T_mat <- NULL
 
 # Define the create_lhs_samples function to create LHS samples.
-create_lhs_samples <- function(num_points, vec_params) {
+create_lhs_samples <- function(num_points, vec_params) {I
     lhs_samples <- lhs(num_points, as.matrix(vec_params %>% select(lower_bound, upper_bound)))
     lhs_samples <- as.data.frame(lhs_samples)
     colnames(lhs_samples) <- vec_params$param
@@ -117,12 +121,14 @@ create_lhs_samples <- function(num_points, vec_params) {
 }
 
 # Construct the two random LHS samples.
-num_points <- 50000
+# num_points <- 50000 or 100000
+num_points <- 500
 X1 <- create_lhs_samples(num_points, vec_params)
 X2 <- create_lhs_samples(num_points, vec_params)
 
 # Compute the Sobol indices (main and total effects).
-SA <- soboljansen(model = calc_vc, X1, X2, nboot = 5000)
+# nboot = 5000
+SA <- soboljansen(model = calc_vc, X1 = X1, X2 = X2, nboot = 250000, conf = 0.95)
 
 # Extract and plot the sensitivity indices with their corresponding confidence intervals.
 SA_S <- SA$S
@@ -167,14 +173,27 @@ sensitivity_df <- data.frame(Parameter = S_eff$Parameter, FirstOrder = S_eff, To
 
 # Create the first-order sensitivity bar plot.
 ggplot(sensitivity_df, aes(x = reorder(Parameter, -FirstOrder.S_eff), y = FirstOrder.S_eff)) +
-    geom_bar(stat = "identity", fill = "steelblue") +
+    geom_bar(stat = "identity", fill = "hotpink") +
     labs(title = "Main Sensitivity Indices", x = "Parameter", y = "Main Sensitivity Index") +
     theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # Create the total-order sensitivity bar plot.
 ggplot(sensitivity_df, aes(x = reorder(Parameter, -TotalOrder.T_eff), y = TotalOrder.T_eff)) +
-    geom_bar(stat = "identity", fill = "darkred") +
+    geom_bar(stat = "identity", fill = "royalblue") +
     labs(title = "Total Sensitivity Indices", x = "Parameter", y = "Total Sensitivity Index") +
     theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+# Create a combined plot with both first-order and total-order sensitivity indices.
+sensitivity_df_long <- sensitivity_df %>% pivot_longer(cols = c("FirstOrder.S_eff", "TotalOrder.T_eff"),
+                                                       names_to = "IndexType", values_to = "SensitivityIndex")
+
+# Create the combined bar plot
+ggplot(sensitivity_df_long, aes(x = reorder(Parameter, -SensitivityIndex), y = SensitivityIndex, fill = IndexType)) +
+    geom_bar(stat = "identity", position = position_dodge()) +
+    labs(title = "Single Effect and Total Effect Sensitivity Indices for LLIN Intervention",
+         x = "Parameter", y = "Sensitivity Index") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_fill_manual(values = c("FirstOrder.S_eff" = "hotpink", "TotalOrder.T_eff" = "royalblue"),
+                      labels = c("Single Effect", "Total Effect"), name = "Effect")
 
