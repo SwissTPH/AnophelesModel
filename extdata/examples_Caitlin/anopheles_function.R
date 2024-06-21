@@ -79,6 +79,8 @@ calc_vc <- function(param_spec) {
                                             activity = activity_p, total_pop = 2000)
 
         # Define the intervention effects for LLINs and IRS as included in the package.
+        selected_interventions <- list(LLINs_example = intervention_obj_examples$LLINs_example,
+                                       IRS_example = intervention_obj_examples$IRS_example)
         intervention_effects <- def_interventions_effects(intervention_list = selected_interventions,
                                                           model_p = my_default_model,
                                                           num_ip_points = 100, verbose = TRUE,
@@ -90,10 +92,11 @@ calc_vc <- function(param_spec) {
                                     model_p = my_default_model,
                                     Nv0 = 10000, num_ip_points = 100)
 
-        # Normalise the result between 0 and 1.
         # Store the mean reduction in vectorial capacity under the intervention of interest as results.
+        # Normalise the impact between 0 and 1.
         # impact_value <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
-        impact_value <- impacts$interventions_vec$IRS_example$effects$avg_impact[2]
+        # impact_value <- impacts$interventions_vec$IRS_example$effects$avg_impact[2]
+        impact_value <- impacts$interventions_vec$Screening_example$effects$avg_impact[2]
         results[i] <- min(max(impact_value, 0), 1)
 
         # Update and print progress.
@@ -175,13 +178,13 @@ sensitivity_df <- data.frame(Parameter = S_eff$Parameter, FirstOrder = S_eff, To
 # Create the first-order sensitivity bar plot.
 ggplot(sensitivity_df, aes(x = reorder(Parameter, -FirstOrder.S_eff), y = FirstOrder.S_eff)) +
     geom_bar(stat = "identity", fill = "hotpink") +
-    labs(title = "Main Sensitivity Indices for IRS Intervention", x = "Parameter", y = "Main Sensitivity Index") +
+    labs(title = "Main Sensitivity Indices for LLIN Intervention", x = "Parameter", y = "Main Sensitivity Index") +
     theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # Create the total-order sensitivity bar plot.
 ggplot(sensitivity_df, aes(x = reorder(Parameter, -TotalOrder.T_eff), y = TotalOrder.T_eff)) +
     geom_bar(stat = "identity", fill = "royalblue") +
-    labs(title = "Total Sensitivity Indices for IRS Intervention", x = "Parameter", y = "Total Sensitivity Index") +
+    labs(title = "Total Sensitivity Indices for LLIN Intervention", x = "Parameter", y = "Total Sensitivity Index") +
     theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # Create a combined plot with both first-order and total-order sensitivity indices.
@@ -191,12 +194,11 @@ sensitivity_df_long <- sensitivity_df %>% pivot_longer(cols = c("FirstOrder.S_ef
 # Create the combined bar plot
 ggplot(sensitivity_df_long, aes(x = reorder(Parameter, -SensitivityIndex), y = SensitivityIndex, fill = IndexType)) +
     geom_bar(stat = "identity", position = position_dodge()) +
-    labs(title = "Single Effect and Total Effect Sensitivity Indices for IRS Intervention",
+    labs(title = "Single Effect and Total Effect Sensitivity Indices for LLIN Intervention",
          x = "Parameter", y = "Sensitivity Index") +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     scale_fill_manual(values = c("FirstOrder.S_eff" = "hotpink", "TotalOrder.T_eff" = "royalblue"),
                       labels = c("Single Effect", "Total Effect"), name = "Effect")
-
 
 
