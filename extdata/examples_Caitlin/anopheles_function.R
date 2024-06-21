@@ -94,9 +94,9 @@ calc_vc <- function(param_spec) {
 
         # Store the mean reduction in vectorial capacity under the intervention of interest as results.
         # Normalise the impact between 0 and 1.
-        # impact_value <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
+        impact_value <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
         # impact_value <- impacts$interventions_vec$IRS_example$effects$avg_impact[2]
-        impact_value <- impacts$interventions_vec$Screening_example$effects$avg_impact[2]
+
         results[i] <- min(max(impact_value, 0), 1)
 
         # Update and print progress.
