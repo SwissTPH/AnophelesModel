@@ -96,7 +96,6 @@ calc_vc <- function(param_spec) {
         # Normalise the impact between 0 and 1.
         impact_value <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
         # impact_value <- impacts$interventions_vec$IRS_example$effects$avg_impact[2]
-
         results[i] <- min(max(impact_value, 0), 1)
 
         # Update and print progress.
@@ -200,5 +199,6 @@ ggplot(sensitivity_df_long, aes(x = reorder(Parameter, -SensitivityIndex), y = S
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     scale_fill_manual(values = c("FirstOrder.S_eff" = "hotpink", "TotalOrder.T_eff" = "royalblue"),
                       labels = c("Single Effect", "Total Effect"), name = "Effect")
+
 
 
