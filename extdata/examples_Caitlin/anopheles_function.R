@@ -38,7 +38,8 @@ current_iteration <- 0
 calc_vc <- function(param_spec) {
 
     # Initialise results.
-    results <- NULL
+    # results <- NULL
+    results <- numeric(nrow(param_spec))
 
     # Update the number of iterations.
     total_iterations <<- total_iterations + nrow(param_spec)
@@ -78,8 +79,6 @@ calc_vc <- function(param_spec) {
                                             activity = activity_p, total_pop = 2000)
 
         # Define the intervention effects for LLINs and IRS as included in the package.
-        selected_interventions <- list(LLINs_example = intervention_obj_examples$LLINs_example,
-                                       IRS_example = intervention_obj_examples$IRS_example)
         intervention_effects <- def_interventions_effects(intervention_list = selected_interventions,
                                                           model_p = my_default_model,
                                                           num_ip_points = 100, verbose = TRUE,
@@ -91,9 +90,11 @@ calc_vc <- function(param_spec) {
                                     model_p = my_default_model,
                                     Nv0 = 10000, num_ip_points = 100)
 
+        # Normalise the result between 0 and 1.
         # Store the mean reduction in vectorial capacity under the intervention of interest as results.
-        # results[i] <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
-        results[i] <- impacts$interventions_vec$IRS_example$effects$avg_impact[2]
+        # impact_value <- impacts$interventions_vec$LLINs_example$effects$avg_impact[2]
+        impact_value <- impacts$interventions_vec$IRS_example$effects$avg_impact[2]
+        results[i] <- min(max(impact_value, 0), 1)
 
         # Update and print progress.
         current_iteration <<- current_iteration + 1
@@ -113,7 +114,7 @@ calc_vc <- function(param_spec) {
 S_mat <- T_mat <- NULL
 
 # Define the create_lhs_samples function to create LHS samples.
-create_lhs_samples <- function(num_points, vec_params) {I
+create_lhs_samples <- function(num_points, vec_params) {
     lhs_samples <- lhs(num_points, as.matrix(vec_params %>% select(lower_bound, upper_bound)))
     lhs_samples <- as.data.frame(lhs_samples)
     colnames(lhs_samples) <- vec_params$param
@@ -121,16 +122,14 @@ create_lhs_samples <- function(num_points, vec_params) {I
 }
 
 # Construct the two random LHS samples.
-# num_points <- 50000 or 100000
-num_points <- 500
+num_points <- 50000
 X1 <- create_lhs_samples(num_points, vec_params)
 X2 <- create_lhs_samples(num_points, vec_params)
 
 # Compute the Sobol indices (main and total effects).
-# nboot = 5000
-SA <- soboljansen(model = calc_vc, X1 = X1, X2 = X2, nboot = 250000, conf = 0.95)
+SA <- soboljansen(model = calc_vc, X1 = X1, X2 = X2, nboot = 5000, conf = 0.95)
 
-# Extract and plot the sensitivity indices with their corresponding confidence intervals.
+# Extract the sensitivity indices with their corresponding confidence intervals.
 SA_S <- SA$S
 SA_T <- SA$T
 SA_S_min <- min(SA_S$`min. c.i.`)
@@ -145,6 +144,8 @@ SA_plot <- data.frame(
     MaxCI = c(SA_S$`max. c.i.`, SA_T$`max. c.i.`))
 SA_min <- min(SA_plot$MinCI, na.rm = TRUE)
 SA_max <- max(SA_plot$MaxCI, na.rm = TRUE)
+
+# Plot the sensitivity indices with their corresponding confidence intervals.
 ggplot(SA_plot, aes(x = Parameter, y = Value, color = Effect)) +
     geom_point(position = position_dodge(width = 0.5)) +
     geom_errorbar(aes(ymin = MinCI, ymax = MaxCI), width = 0.2, position = position_dodge(width = 0.5)) +
@@ -174,13 +175,13 @@ sensitivity_df <- data.frame(Parameter = S_eff$Parameter, FirstOrder = S_eff, To
 # Create the first-order sensitivity bar plot.
 ggplot(sensitivity_df, aes(x = reorder(Parameter, -FirstOrder.S_eff), y = FirstOrder.S_eff)) +
     geom_bar(stat = "identity", fill = "hotpink") +
-    labs(title = "Main Sensitivity Indices", x = "Parameter", y = "Main Sensitivity Index") +
+    labs(title = "Main Sensitivity Indices for IRS Intervention", x = "Parameter", y = "Main Sensitivity Index") +
     theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # Create the total-order sensitivity bar plot.
 ggplot(sensitivity_df, aes(x = reorder(Parameter, -TotalOrder.T_eff), y = TotalOrder.T_eff)) +
     geom_bar(stat = "identity", fill = "royalblue") +
-    labs(title = "Total Sensitivity Indices", x = "Parameter", y = "Total Sensitivity Index") +
+    labs(title = "Total Sensitivity Indices for IRS Intervention", x = "Parameter", y = "Total Sensitivity Index") +
     theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # Create a combined plot with both first-order and total-order sensitivity indices.
@@ -190,10 +191,12 @@ sensitivity_df_long <- sensitivity_df %>% pivot_longer(cols = c("FirstOrder.S_ef
 # Create the combined bar plot
 ggplot(sensitivity_df_long, aes(x = reorder(Parameter, -SensitivityIndex), y = SensitivityIndex, fill = IndexType)) +
     geom_bar(stat = "identity", position = position_dodge()) +
-    labs(title = "Single Effect and Total Effect Sensitivity Indices for LLIN Intervention",
+    labs(title = "Single Effect and Total Effect Sensitivity Indices for IRS Intervention",
          x = "Parameter", y = "Sensitivity Index") +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     scale_fill_manual(values = c("FirstOrder.S_eff" = "hotpink", "TotalOrder.T_eff" = "royalblue"),
                       labels = c("Single Effect", "Total Effect"), name = "Effect")
+
+
 
