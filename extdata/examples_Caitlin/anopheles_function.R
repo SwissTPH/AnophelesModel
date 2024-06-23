@@ -177,13 +177,13 @@ sensitivity_df <- data.frame(Parameter = S_eff$Parameter, FirstOrder = S_eff, To
 # Create the first-order sensitivity bar plot.
 ggplot(sensitivity_df, aes(x = reorder(Parameter, -FirstOrder.S_eff), y = FirstOrder.S_eff)) +
     geom_bar(stat = "identity", fill = "hotpink") +
-    labs(title = "Main Sensitivity Indices for LLIN Intervention", x = "Parameter", y = "Main Sensitivity Index") +
+    labs(title = "Main Sensitivity Indices", x = "Parameter", y = "Main Sensitivity Index") +
     theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # Create the total-order sensitivity bar plot.
 ggplot(sensitivity_df, aes(x = reorder(Parameter, -TotalOrder.T_eff), y = TotalOrder.T_eff)) +
     geom_bar(stat = "identity", fill = "royalblue") +
-    labs(title = "Total Sensitivity Indices for LLIN Intervention", x = "Parameter", y = "Total Sensitivity Index") +
+    labs(title = "Total Sensitivity Indices", x = "Parameter", y = "Total Sensitivity Index") +
     theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # Create a combined plot with both first-order and total-order sensitivity indices.
@@ -193,7 +193,7 @@ sensitivity_df_long <- sensitivity_df %>% pivot_longer(cols = c("FirstOrder.S_ef
 # Create the combined bar plot
 ggplot(sensitivity_df_long, aes(x = reorder(Parameter, -SensitivityIndex), y = SensitivityIndex, fill = IndexType)) +
     geom_bar(stat = "identity", position = position_dodge()) +
-    labs(title = "Single Effect and Total Effect Sensitivity Indices for LLIN Intervention",
+    labs(title = "Single Effect and Total Effect Sensitivity Indices",
          x = "Parameter", y = "Sensitivity Index") +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
