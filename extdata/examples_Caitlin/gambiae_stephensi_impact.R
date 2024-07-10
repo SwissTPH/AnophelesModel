@@ -101,6 +101,21 @@ intervention_effects_stephensi <- def_interventions_effects(intervention_list = 
                                                             num_ip_points = 100, verbose = TRUE,
                                                             specified_multiplier = NULL)
 
+# Plot the impact for both species, accounting for confidence intervals.
+# In both cases, 100 samples have been used to estimate the confidence intervals of the vectorial capacity.
+impacts_gambiae_ci <- calculate_impact_var(mosquito_species = "Anopheles gambiae",
+                                           activity_patterns = activity_p_gambiae,
+                                           interventions = intervention_effects_gambiae,
+                                           n_sample_points = 100, plot_result = FALSE)
+impacts_stephensi_ci <- calculate_impact_var(mosquito_species = "Anopheles stephensi",
+                                             activity_patterns = activity_p_stephensi,
+                                             interventions = intervention_effects_stephensi,
+                                             n_sample_points = 100, plot_result = FALSE)
+impacts_gambiae_ci_plot <- plot_impact_var("Anopheles gambiae", impacts_gambiae_ci)
+impacts_stephensi_ci_plot <- plot_impact_var("Anopheles stephensi", impacts_stephensi_ci)
+impacts_ci <- ggarrange(plotlist = list(impacts_gambiae_ci_plot, impacts_stephensi_ci_plot), ncol = 2, nrow = 1)
+impacts_ci
+
 # Calculate and plot the impact of interventions using the custom biting patterns.
 impacts_gambiae <- calculate_impact(interventions_vec = intervention_effects_gambiae,
                                     coverage_vec = c(seq(0, 1, by = 0.1)),
@@ -116,19 +131,4 @@ impacts_gambiae_plot <- plot_impact_species(impacts_gambiae, "VC_red")
 impacts_stephensi_plot <- plot_impact_species(impacts_stephensi, "VC_red")
 impacts <- ggarrange(plotlist = list(impacts_gambiae_plot, impacts_stephensi_plot), ncol = 2, nrow = 1)
 impacts
-
-# Plot the impact for both species, account for confidence intervals.
-# In both cases, 100 samples have been used to estimate the confidence intervals of the vectorial capacity.
-impacts_gambiae_ci <- calculate_impact_var(mosquito_species = "Anopheles gambiae",
-                                           activity_patterns = activity_p_gambiae,
-                                           interventions = intervention_effects_gambiae,
-                                           n_sample_points = 100, plot_result = FALSE)
-impacts_stephensi_ci <- calculate_impact_var(mosquito_species = "Anopheles stephensi",
-                                             activity_patterns = activity_p_stephensi,
-                                             interventions = intervention_effects_stephensi,
-                                             n_sample_points = 100, plot_result = FALSE)
-impacts_gambiae_ci_plot <- plot_impact_var("Anopheles gambiae", impacts_gambiae_ci)
-impacts_stephensi_ci_plot <- plot_impact_var("Anopheles stephensi", impacts_stephensi_ci)
-impacts_ci <- ggarrange(plotlist = list(impacts_gambiae_ci_plot, impacts_stephensi_ci_plot), ncol = 2, nrow = 1)
-impacts_ci
 

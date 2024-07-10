@@ -109,7 +109,7 @@ get_in_out_exp <- function(activity_cycles, vec_p, specified_multiplier = NULL) 
 ## The get_exposure_multiplier function calculates the adjustment for averted exposure.
 ## Adjust it to return a specified exposure multiplier or calculate one if not provided.
 
-get_exposure_multiplier = function(param_name, model_obj, intervention_type, specified_multiplier = NULL) {
+get_exposure_multiplier <- function(param_name, model_obj, intervention_type, specified_multiplier = NULL) {
     # If specified_multiplier is not NULL, return it directly.
     if (!is.null(specified_multiplier)) {
         return(specified_multiplier)
