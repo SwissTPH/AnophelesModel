@@ -322,28 +322,28 @@ indoor feeding mosquitoes</li>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># print the first entries of the vec_ent_param object</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">vec_ent_param</span><span class="op">)</span></span>
-<span><span class="co">#&gt;           species_name         M        M.sd       Chi        A0      A0.sd</span></span>
-<span><span class="co">#&gt; 1 Anopheles arabiensis 0.5384622 0.003500333 0.4749833 0.5744970 0.01416144</span></span>
-<span><span class="co">#&gt; 2    Anopheles gambiae 0.6134499 0.003819127 0.7947577 0.6419328 0.07280429</span></span>
-<span><span class="co">#&gt; 3   Anopheles funestus 0.7565665 0.008446507 0.6243968 0.5899116 0.02053846</span></span>
-<span><span class="co">#&gt; 4       Anopheles nili 0.6593646 0.006636148 0.6707206 0.4951913 0.05195866</span></span>
-<span><span class="co">#&gt; 5   Anopheles moucheti 0.7268564 0.007056198 0.5828408 0.4951913 0.05195866</span></span>
-<span><span class="co">#&gt; 6      Anopheles melas 0.6559240 0.001829826 0.5064544 0.5744970 0.01416144</span></span>
+<span><span class="co">#&gt;          species_name         M       M.sd       Chi        A0      A0.sd</span></span>
+<span><span class="co">#&gt; 1               GENUS 0.5529423 0.12099829 0.6612922 0.4728015 0.14661842</span></span>
+<span><span class="co">#&gt; 2       Dirus complex 0.5784376 0.05767001 0.6612922 0.3526433 0.03130114</span></span>
+<span><span class="co">#&gt; 3    Funestus complex 0.7138477 0.03784895 0.7944059 0.5188162 0.06952455</span></span>
+<span><span class="co">#&gt; 4     Gambiae complex 0.6033056 0.03366968 0.7624318 0.5604678 0.07419108</span></span>
+<span><span class="co">#&gt; 5    Hyrcanus complex 0.6268158 0.04171021 0.6612922 0.3357685 0.11956995</span></span>
+<span><span class="co">#&gt; 6 Punctulatus complex 0.4965744 0.04539213 0.6612922 0.4728015 0.14661842</span></span>
 <span><span class="co">#&gt;   zeta.3   td tau ts to endophily endophily.sd endophagy endophagy.sd</span></span>
-<span><span class="co">#&gt; 1      1 0.33   3 10  5 0.7743085   0.01233146 0.6578578  0.004550147</span></span>
-<span><span class="co">#&gt; 2      1 0.33   3 10  5 0.7743085   0.01233146 0.5604133  0.005056590</span></span>
-<span><span class="co">#&gt; 3      1 0.33   3 10  5 0.7424881   0.08777241 0.5343858  0.005546232</span></span>
-<span><span class="co">#&gt; 4      1 0.33   3 10  5 0.6944887   0.13455023 0.3439954  0.024569634</span></span>
-<span><span class="co">#&gt; 5      1 0.33   3 10  5 0.6944887   0.13455023 0.3996990  0.042303792</span></span>
-<span><span class="co">#&gt; 6      1 0.33   3 10  5 0.7743085   0.01233146 0.4920965  0.002755030</span></span></code></pre></div>
+<span><span class="co">#&gt; 1      1 0.33   3 10  5 0.4378656   0.37049532 0.4179798   0.14994489</span></span>
+<span><span class="co">#&gt; 2      1 0.33   3 10  5 0.4378656   0.37049532 0.4179798   0.14994489</span></span>
+<span><span class="co">#&gt; 3      1 0.33   3 10  5 0.7384076   0.10608149 0.4858303   0.05653513</span></span>
+<span><span class="co">#&gt; 4      1 0.33   3 10  5 0.7756787   0.01193465 0.5467098   0.05262877</span></span>
+<span><span class="co">#&gt; 5      1 0.33   3 10  5 0.4378656   0.37049532 0.4179798   0.14994489</span></span>
+<span><span class="co">#&gt; 6      1 0.33   3 10  5 0.4378656   0.37049532 0.3643234   0.05224029</span></span></code></pre></div>
 <p>For example, to retrieve the parameters for <em>Anopheles
 albimanus</em>:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">vec_ent_param</span><span class="op">[</span><span class="va">vec_ent_param</span><span class="op">$</span><span class="va">species_name</span> <span class="op">==</span> <span class="st">"Anopheles albimanus"</span>, <span class="op">]</span></span>
-<span><span class="co">#&gt;           species_name         M      M.sd       Chi        A0      A0.sd</span></span>
-<span><span class="co">#&gt; 10 Anopheles albimanus 0.5577161 0.0322432 0.4223199 0.4951913 0.05195866</span></span>
-<span><span class="co">#&gt;    zeta.3   td tau ts to endophily endophily.sd endophagy endophagy.sd</span></span>
-<span><span class="co">#&gt; 10      1 0.33   3 10  5 0.6944887    0.1345502 0.2293868   0.01502506</span></span></code></pre></div>
+<span><span class="co">#&gt;           species_name         M      M.sd       Chi        A0     A0.sd zeta.3</span></span>
+<span><span class="co">#&gt; 30 Anopheles albimanus 0.5529423 0.1209983 0.3399474 0.4050984 0.0129718      1</span></span>
+<span><span class="co">#&gt;      td tau ts to  endophily endophily.sd endophagy endophagy.sd</span></span>
+<span><span class="co">#&gt; 30 0.33   3 10  5 0.08867425   0.02143263 0.2274282   0.01400597</span></span></code></pre></div>
 <p>The data object includes estimated bionomics parameters for
 individual Anopheles mosquito species, but also for complexes regrouping
 several species. For example, “Gambiae complex” refers to the Gambiae
@@ -357,10 +357,10 @@ corresponding complex. For example, to retrieve the parameters for the
 Gambiae complex:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">vec_ent_param</span><span class="op">[</span><span class="va">vec_ent_param</span><span class="op">$</span><span class="va">species_name</span> <span class="op">==</span> <span class="st">"Gambiae complex"</span>, <span class="op">]</span></span>
-<span><span class="co">#&gt;       species_name        M        M.sd       Chi       A0      A0.sd zeta.3</span></span>
-<span><span class="co">#&gt; 58 Gambiae complex 0.655924 0.001829826 0.4963518 0.574497 0.01416144      1</span></span>
-<span><span class="co">#&gt;      td tau ts to endophily endophily.sd endophagy endophagy.sd</span></span>
-<span><span class="co">#&gt; 58 0.33   3 10  5 0.7743085   0.01233146 0.4920965   0.00275503</span></span></code></pre></div>
+<span><span class="co">#&gt;      species_name         M       M.sd       Chi        A0      A0.sd zeta.3</span></span>
+<span><span class="co">#&gt; 4 Gambiae complex 0.6033056 0.03366968 0.7624318 0.5604678 0.07419108      1</span></span>
+<span><span class="co">#&gt;     td tau ts to endophily endophily.sd endophagy endophagy.sd</span></span>
+<span><span class="co">#&gt; 4 0.33   3 10  5 0.7756787   0.01193465 0.5467098   0.05262877</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="human-and-mosquito-activity-patterns">Human and mosquito activity patterns<a class="anchor" aria-label="anchor" href="#human-and-mosquito-activity-patterns"></a>
@@ -640,19 +640,19 @@ custom values. For example, to choose an existing parameterisation for
 <span><span class="co">#&gt; [1] "Anopheles nili"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $M</span></span>
-<span><span class="co">#&gt; [1] 0.6593646</span></span>
+<span><span class="co">#&gt; [1] 0.6594633</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $M.sd</span></span>
-<span><span class="co">#&gt; [1] 0.006636148</span></span>
+<span><span class="co">#&gt; [1] 0.007049116</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $Chi</span></span>
-<span><span class="co">#&gt; [1] 0.6707206</span></span>
+<span><span class="co">#&gt; [1] 0.9547475</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $A0</span></span>
-<span><span class="co">#&gt; [1] 0.4951913</span></span>
+<span><span class="co">#&gt; [1] 0.4728015</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $A0.sd</span></span>
-<span><span class="co">#&gt; [1] 0.05195866</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 0.1466184</span></span></code></pre></div>
 <p>To use a different parameterisation, first all the entomological
 parameter values need to be provided in a data frame with the same
 column names as the <code>vec_ent_param</code> object:</p>
@@ -952,10 +952,10 @@ object:</p>
 <code class="sourceCode R"><span><span class="va">model_params</span> <span class="op">=</span> <span class="fu"><a href="../reference/build_model_obj.html">build_model_obj</a></span><span class="op">(</span><span class="fu"><a href="../reference/def_vector_params.html">def_vector_params</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="../reference/def_host_params.html">def_host_params</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">custom_activity_obj</span>, <span class="va">host_pop</span><span class="op">)</span></span>
 <span><span class="co"># Print the calculated mosquito death rate</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">model_params</span><span class="op">$</span><span class="va">host_params</span><span class="op">$</span><span class="va">muvA</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0.6840223</span></span>
+<span><span class="co">#&gt; [1] 0.6592188</span></span>
 <span><span class="co"># Print the estimated availability to mosquitoes for each host type</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">model_params</span><span class="op">$</span><span class="va">host_params</span><span class="op">$</span><span class="va">alphai</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0.0019298339 0.0004983702</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 0.0019901083 0.0003483059</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="step-5-defining-interventions-effects">Step 5: Defining interventions effects<a class="anchor" aria-label="anchor" href="#step-5-defining-interventions-effects"></a>
@@ -1172,15 +1172,15 @@ nili</em>:</p>
 <span><span class="co">#&gt; &lt;mosq minInfectedThreshold="0.01"&gt;</span></span>
 <span><span class="co">#&gt;   &lt;mosqRestDuration value="2"/&gt;</span></span>
 <span><span class="co">#&gt;   &lt;extrinsicIncubationPeriod value="10"/&gt;</span></span>
-<span><span class="co">#&gt;   &lt;mosqLaidEggsSameDayProportion value="0.495191314314922"/&gt;</span></span>
+<span><span class="co">#&gt;   &lt;mosqLaidEggsSameDayProportion value="0.472801537573773"/&gt;</span></span>
 <span><span class="co">#&gt;   &lt;mosqSeekingDuration value="3"/&gt;</span></span>
-<span><span class="co">#&gt;   &lt;mosqSurvivalFeedingCycleProbability value="0.659364630942942"/&gt;</span></span>
+<span><span class="co">#&gt;   &lt;mosqSurvivalFeedingCycleProbability value="0.659463292196938"/&gt;</span></span>
 <span><span class="co">#&gt;   &lt;availability/&gt;</span></span>
 <span><span class="co">#&gt;   &lt;mosqProbBiting mean="0.95" variance="0"/&gt;</span></span>
 <span><span class="co">#&gt;   &lt;mosqProbFindRestSite mean="0.95" variance="0"/&gt;</span></span>
 <span><span class="co">#&gt;   &lt;mosqProbResting mean="0.99" variance="0"/&gt;</span></span>
 <span><span class="co">#&gt;   &lt;mosqProbOvipositing mean="0.88"/&gt;</span></span>
-<span><span class="co">#&gt;   &lt;mosqHumanBloodIndex mean="0.670720617095951"/&gt;</span></span>
+<span><span class="co">#&gt;   &lt;mosqHumanBloodIndex mean="0.954747482916651"/&gt;</span></span>
 <span><span class="co">#&gt; &lt;/mosq&gt; </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $nonHumanHosts_snippet</span></span>
@@ -1214,11 +1214,11 @@ in the OpenMalaria wiki</a>.</p>
 <span><span class="co">#&gt; [1] "Weibull"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $RSS</span></span>
-<span><span class="co">#&gt; [1] 5.403574e-05</span></span>
+<span><span class="co">#&gt; [1] 5.405487e-05</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $params</span></span>
 <span><span class="co">#&gt;         a         L         k </span></span>
-<span><span class="co">#&gt; 0.5033344 8.7559914 0.7016281 </span></span>
+<span><span class="co">#&gt; 0.5034235 8.7559914 0.7016281 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; [1] "Creating snippet for preprandial killing"</span></span>
 <span><span class="co">#&gt; [1] "Exponential decay fitted successfully."</span></span>
@@ -1232,11 +1232,11 @@ in the OpenMalaria wiki</a>.</p>
 <span><span class="co">#&gt; [1] "Weibull"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $RSS</span></span>
-<span><span class="co">#&gt; [1] 0.00029226</span></span>
+<span><span class="co">#&gt; [1] 0.0002923635</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $params</span></span>
 <span><span class="co">#&gt;         a         L         k </span></span>
-<span><span class="co">#&gt; 0.6265157 1.8670517 1.7217937 </span></span>
+<span><span class="co">#&gt; 0.6266266 1.8670517 1.7217937 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; [1] "Creating snippet for postprandial killing"</span></span>
 <span><span class="co">#&gt; [1] "Exponential decay fitted successfully."</span></span>
@@ -1250,11 +1250,11 @@ in the OpenMalaria wiki</a>.</p>
 <span><span class="co">#&gt; [1] "Weibull"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $RSS</span></span>
-<span><span class="co">#&gt; [1] 0.0001874556</span></span>
+<span><span class="co">#&gt; [1] 0.0001875219</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $params</span></span>
-<span><span class="co">#&gt;         a         L         k </span></span>
-<span><span class="co">#&gt; 0.4157354 1.3772267 1.0142439</span></span></code></pre>
+<span><span class="co">#&gt;        a        L        k </span></span>
+<span><span class="co">#&gt; 0.415809 1.377227 1.014244</span></span></code></pre>
 </div>
 <div class="section level2">
 <h2 id="combinations-of-interventions">Combinations of interventions<a class="anchor" aria-label="anchor" href="#combinations-of-interventions"></a>

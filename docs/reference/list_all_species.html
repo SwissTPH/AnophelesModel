@@ -68,44 +68,44 @@ returns a vector containing them.</p>
     <h2>Examples</h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">species_vec</span> <span class="op">=</span> <span class="fu">list_all_species</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">species_vec</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] "Anopheles arabiensis"       "Anopheles gambiae"         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [3] "Anopheles funestus"         "Anopheles nili"            </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [5] "Anopheles moucheti"         "Anopheles melas"           </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [7] "Anopheles merus"            "Anopheles ovengensis"      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [9] "Anopheles carnevalei"       "Anopheles albimanus"       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [11] "Anopheles darlingi"         "Anopheles aquasalis"       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [13] "Anopheles marajoara"        "Anopheles albitarsis E"    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [15] "Anopheles nuneztovari B/C"  "Anopheles albitarsis A"    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [17] "Anopheles albitarsis B"     "Anopheles quadrimaculatus" </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [19] "Anopheles freeborni"        "Anopheles aconitus"        </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [21] "Anopheles maculatus"        "Anopheles barbirostris"    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [23] "Anopheles flavirostris"     "Anopheles sundaicus"       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [25] "Anopheles sinensis"         "Anopheles harrisoni"       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [27] "Anopheles dirus"            "Anopheles minimus"         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [29] "Anopheles balabacensis"     "Anopheles stephensi"       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [31] "Anopheles anthropophagus"   "Anopheles baimaii"         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [33] "Anopheles leucosphyrus"     "Anopheles cracens"         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [35] "Anopheles fluviatilis T"    "Anopheles culicifacies A"  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [37] "Anopheles culicifacies B"   "Anopheles culicifacies C"  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [39] "Anopheles fluviatilis S"    "Anopheles culicifacies D"  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [41] "Anopheles epiroticus"       "Anopheles koliensis"       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [43] "Anopheles latens"           "Anopheles subpictus B"     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [45] "Anopheles farauti"          "Anopheles punctulatus"     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [47] "Anopheles fluviatilis"      "Anopheles annularis A"     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [49] "Anopheles culicifacies E"   "Anopheles splendidus"      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [51] "Anopheles nivipes"          "Anopheles pseudojamesi"    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [53] "Anopheles jamesii"          "Anopheles kochi"           </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [55] "Anopheles philippinensis"   "Anopheles tessellatus"     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [57] "Anopheles vagus"            "Gambiae complex"           </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [59] "Funestus complex"           "Nili complex"              </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [61] "Pseudopunctipennis complex" "Nuneztovari complex"       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [63] "Albitarsis complex"         "Quadrimaculatus complex"   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [65] "Annularis complex"          "Subpictus complex"         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [67] "Dirus complex"              "Maculatus complex"         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [69] "Barbirostris complex"       "Sundaicus complex"         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [71] "Hyrcanus complex"           "Leucosphyrus complex"      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [73] "Punctulatus complex"        "Jamesii complex"           </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [75] "GENUS"                     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] "GENUS"                      "Dirus complex"             </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [3] "Funestus complex"           "Gambiae complex"           </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [5] "Hyrcanus complex"           "Punctulatus complex"       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [7] "Anopheles aconitus"         "Anopheles anthropophagus"  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [9] "Anopheles arabiensis"       "Anopheles baimaii"         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [11] "Anopheles darlingi"         "Anopheles farauti"         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [13] "Anopheles funestus"         "Anopheles gambiae"         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [15] "Anopheles merus"            "Anopheles moucheti"        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [17] "Anopheles sinensis"         "Albitarsis complex"        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [19] "Annularis complex"          "Barbirostris complex"      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [21] "Maculatus complex"          "Nili complex"              </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [23] "Nuneztovari complex"        "Pseudopunctipennis complex"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [25] "Subpictus complex"          "Anopheles nili"            </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [27] "Anopheles melas"            "Anopheles ovengensis"      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [29] "Anopheles carnevalei"       "Anopheles albimanus"       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [31] "Anopheles aquasalis"        "Anopheles marajoara"       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [33] "Anopheles albitarsis E"     "Anopheles nuneztovari B/C" </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [35] "Anopheles albitarsis A"     "Anopheles albitarsis B"    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [37] "Quadrimaculatus complex"    "Anopheles quadrimaculatus" </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [39] "Anopheles freeborni"        "Anopheles maculatus"       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [41] "Anopheles barbirostris"     "Anopheles flavirostris"    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [43] "Anopheles sundaicus"        "Sundaicus complex"         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [45] "Anopheles harrisoni"        "Anopheles dirus"           </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [47] "Anopheles minimus"          "Anopheles balabacensis"    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [49] "Anopheles stephensi"        "Anopheles leucosphyrus"    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [51] "Anopheles cracens"          "Anopheles fluviatilis T"   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [53] "Anopheles culicifacies A"   "Anopheles culicifacies B"  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [55] "Anopheles culicifacies C"   "Anopheles fluviatilis S"   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [57] "Anopheles culicifacies D"   "Anopheles epiroticus"      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [59] "Anopheles koliensis"        "Anopheles latens"          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [61] "Leucosphyrus complex"       "Anopheles subpictus B"     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [63] "Anopheles punctulatus"      "Anopheles fluviatilis"     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [65] "Anopheles annularis A"      "Anopheles culicifacies E"  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [67] "Anopheles splendidus"       "Anopheles nivipes"         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [69] "Anopheles pseudojamesi"     "Anopheles jamesii"         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [71] "Anopheles kochi"            "Anopheles philippinensis"  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [73] "Anopheles tessellatus"      "Anopheles vagus"           </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [75] "Jamesii complex"           </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
