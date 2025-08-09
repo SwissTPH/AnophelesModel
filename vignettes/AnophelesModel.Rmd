@@ -504,7 +504,7 @@ $P_{A^1} = \frac{A_0M\xi\zeta_2P_{B^2}P_{C^2}}{P_{B^1}P_{C^1}(\xi P_{D^1}P_{E^1}
 and for animal hosts:
 $P_{A^1} = \frac{A_0M(1-\xi)}{(\xi P_{D^1}P_{E^1}+(1-\xi)P_{D^2}P_{E^2})\zeta_2P_{B^2}P_{C^2}}$
 
-If the user-entered values for $P_{B^i}, P_{C^i}, P_{D^i}, and P_{E^i}$ are too low, 
+If the user-entered values for $P_{B^i}, P_{C^i}, P_{D^i}$, and $P_{E^i}$ are too low, 
 a special case arises when there are no solutions for the probabilities $P_{A^i}$ 
 defined above and the package produces an error as in the example below:
 ```{r}

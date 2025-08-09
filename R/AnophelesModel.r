@@ -167,7 +167,7 @@ calculate_impact_ip = function(intervention_obj, model_obj, n_vec, Ni) {
 #' the ones in the package database.
 #' The provided data frame should have the same structure as the database
 #' object \code{host_ent_param} (see Data documentation). Default value is NULL.
-#' @param activity can be either a string corresponding to default entries:
+#' @param activity_patterns can be either a string corresponding to default entries:
 #' "default_Anopheles_gambiae", "default_Anopheles_albimanus"
 #' or a list object with the following attributes:
 #' \itemize{
@@ -178,7 +178,7 @@ calculate_impact_ip = function(intervention_obj, model_obj, n_vec, Ni) {
 #' }
 #' These attribues can be either time series with the corresponding values at
 #' each time point, or characters indicating an entry ID in the package
-#' database. The function list_rhythms() can be used to retrieve the
+#' database. The function list_activity() can be used to retrieve the
 #' available entries for all geographical locations.
 #' @param interventions vector of intervention names
 #' @param coverage_vec vector of coverages to consider for each intervention

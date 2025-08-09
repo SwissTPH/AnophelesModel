@@ -15,7 +15,10 @@ Authors@R: as.person(c(
     "Emilie Pothin [aut]",
     "Thomas Smith [aut]"
   ))
-Description: Parameterisation and prediction for models of the oviposition cycle of Anopheles 
+Description: This package provides functions for parameterising and predicting 
+    models of the oviposition cycle of Anopheles mosquitoes. It is designed to 
+    quantify how vector bionomics influence the impact of vector control 
+    interventions against malaria.
 Imports:
     magrittr,
     ggplot2,
