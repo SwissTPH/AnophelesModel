@@ -1,0 +1,127 @@
+# This file contains functions for querying the package database.
+
+#########list_all_species############
+#' @title Print all species with entomological parameters in the package database
+#'
+#' @description Lists all mosquito species whose entomological parameters are
+#' available in the package.
+#'
+#' @return Vector of species names (also printed to console).
+#'
+#' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
+#'
+#' @examples
+#' species_vec = list_all_species()
+#' print(species_vec)
+#'
+#' @export
+#'
+list_all_species = function() {
+    species_vec = unique(vec_ent_param$species_name)
+    paste(species_vec, collapse = ", ")
+    return(species_vec)
+}
+
+#########list_activity############
+#' @title Extract activity patterns of humans or mosquitoes
+#'
+#' @description Returns activity patterns from the package database matching
+#' the provided criteria.
+#'
+#' @param species Name of the species. Use "Homo sapiens" for human patterns.
+#' Default is "Anopheles gambiae".
+#' @param sampling Sampling type: "IND", "BED", "HBI", "HBO", "ABO", or "HB".
+#' Default is "HBI".
+#' @param country Country name. Default NULL returns all countries.
+#' @param site Site name. Default NULL returns all sites.
+#'
+#' @return Data frame with columns: id, species, sampling, country, site,
+#' variable (time point), value.
+#'
+#' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
+#'
+#' @examples
+#' humans_indoors = list_activity(species = "Homo sapiens", sampling = "IND",
+#' site = "Rachuonyo")
+#' print(humans_indoors)
+#'
+#' @export
+#'
+list_activity = function(species = "Anopheles gambiae", sampling = "HBI",
+                         country = NULL, site = NULL) {
+    if (is.null(species) | is.null(sampling)) {
+        stop("Species name and sampling type should be provided.")
+    }
+    if (is.null(country)) country = activity_patterns$country
+    if (is.null(site))    site    = activity_patterns$site
+
+    selected_patterns = activity_patterns[
+        which(activity_patterns$species == species &
+                  activity_patterns$sampling == sampling &
+                  activity_patterns$country %in% country &
+                  activity_patterns$site %in% site), ]
+
+    if (nrow(selected_patterns) == 0 || is.null(nrow(selected_patterns))) {
+        print("No activity patterns found for the provided search criteria.")
+    }
+    return(selected_patterns)
+}
+
+#########calculate_exposure#########
+#' @title Calculate indoor and outdoor human exposure to biting
+#'
+#' @description Calculates indoor and outdoor proportions of human exposure to
+#' mosquito biting, based on activity patterns and mosquito endophagy /
+#' endophily parameters.
+#'
+#' @param activity_cycles List with time-series attributes: \code{HBI},
+#' \code{HBO}, \code{humans_indoors}, \code{humans_in_bed}.
+#' @param vec_p List of vector-specific entomological parameters (see
+#' \code{def_vector_params}).
+#'
+#' @return List with proportions of overall exposure:
+#' \itemize{
+#'   \item \code{Exposure_Indoor_total}
+#'   \item \code{Exposure_Outdoor_total}
+#'   \item \code{Exposure_Indoor_whileinbed}
+#'   \item \code{Exposure_Outdoor_whileinbed}
+#'   \item \code{indoor_resting}
+#' }
+#'
+#' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
+#' @author Olivier Briet
+#' @author Nakul Chitnis
+#' @author Tom Smith
+#'
+#' @export
+#'
+calculate_exposure = function(activity_cycles, vec_p) {
+    activity_cycles$HBI = activity_cycles$HBI /
+        sum(activity_cycles$HBI, na.rm = TRUE) * vec_p$endophagy
+    activity_cycles$HBO = activity_cycles$HBO /
+        sum(activity_cycles$HBO, na.rm = TRUE) * (1 - vec_p$endophagy)
+
+    activity_cycles$humans_indoors = with(activity_cycles,
+                                          ifelse(is.na(humans_indoors),
+                                                 humans_in_bed, humans_indoors))
+    activity_cycles$Exposure_Indoor_total  = with(activity_cycles, HBI * humans_indoors)
+    activity_cycles$Exposure_Outdoor_total = with(activity_cycles, HBO * (1 - humans_indoors))
+
+    activity_cycles$Exposure_Indoor_whileinbed = with(activity_cycles,
+        HBI * pmin(humans_in_bed, humans_indoors, na.rm = TRUE))
+    activity_cycles$Exposure_Outdoor_whileinbed = with(activity_cycles,
+        HBO * pmax(humans_in_bed - humans_indoors,
+                   rep(0, length(humans_indoors)), na.rm = TRUE))
+
+    Overall_total = sum(activity_cycles$Exposure_Indoor_total,  na.rm = TRUE) +
+                    sum(activity_cycles$Exposure_Outdoor_total, na.rm = TRUE)
+
+    indoor_outdoor = list(
+        Exposure_Indoor_total       = sum(activity_cycles$Exposure_Indoor_total,       na.rm = TRUE) / Overall_total,
+        Exposure_Outdoor_total      = sum(activity_cycles$Exposure_Outdoor_total,      na.rm = TRUE) / Overall_total,
+        Exposure_Indoor_whileinbed  = sum(activity_cycles$Exposure_Indoor_whileinbed,  na.rm = TRUE) / Overall_total,
+        Exposure_Outdoor_whileinbed = sum(activity_cycles$Exposure_Outdoor_whileinbed, na.rm = TRUE) / Overall_total,
+        indoor_resting              = vec_p$endophily
+    )
+    return(indoor_outdoor)
+}

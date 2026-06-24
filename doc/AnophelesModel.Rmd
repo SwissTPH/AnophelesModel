@@ -1,0 +1,538 @@
+---
+title: "AnophelesModel Documentation"
+author: "Monica Golumbeanu, Olivier Briët, Clara Champagne, Jeanne Lemant, Barnabas Zogo, Maximilian Gerhards, Marianne Sinka, Nakul Chitnis, Melissa Penny, Emilie Pothin, Tom Smith"
+date: "`r Sys.Date()`"
+output:
+    rmarkdown::html_vignette:
+        fig_caption: yes
+        toc: true
+vignette: >
+  %\VignetteIndexEntry{AnophelesModel Documentation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+bibliography: references.bib
+---
+
+<style>
+p.caption {
+  font-size: 0.85em;
+  font-style: italic;
+  color: grey
+}
+</style>
+
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+
+The `AnophelesModel` package parameterises a model of the mosquito feeding
+cycle using mosquito bionomics, human activity patterns, and user-supplied
+intervention efficacy parameters. It estimates the species-specific impact of
+vector control interventions on the vectorial capacity and can generate
+parameterisations for downstream models of malaria transmission dynamics.
+
+The model is based on the state-transition framework of [@Chitnis2008],
+consisting of difference equations describing the dynamics of non-infected,
+infected, and infective mosquito populations. The transitions between feeding
+cycle stages for a host *i* are governed by the following probabilities:
+
+The five stages of the feeding cycle are: **Host seeking → Host found
+(P~Ai~) → Fed (P~Bi~) → Resting (P~Ci~) → Ovipositing (P~Di~) →
+back to Host seeking (P~Ei~)**.
+
+## General workflow
+
+The typical analysis proceeds in five steps, each with a dedicated function:
+
+1. `def_vector_params()` + `def_host_params()` + `def_activity_patterns()`
+   → 2. `build_model_obj()` → 3. `build_intervention()` → 4. `calculate_impact()` /
+   `run_interventions()`
+
+The key change from earlier versions is that intervention effects are now
+specified directly as efficacy parameters (deterrency, pre- and post-prandial
+killing) with an explicit decay function, rather than being looked up from a
+built-in database.
+
+## Package database
+
+### Host-specific entomological parameters
+
+The object `host_ent_param` contains, for human and animal hosts, the default
+transition probabilities of the mosquito feeding cycle in absence of
+interventions:
+
+* `PBi`: probability that a mosquito bites the host
+* `PCi`: probability that a mosquito finds a resting place after biting
+* `PDi`: probability that a mosquito survives the resting phase
+* `PEi`: probability that a mosquito lays eggs and returns to host-seeking
+* `Kvi`: proportion of susceptible mosquitoes that become infected after biting
+
+```{r}
+library(AnophelesModel2)
+host_ent_param
+```
+
+### Mosquito bionomics
+
+`vec_ent_param` contains bionomic parameterisations for 57 *Anopheles* species
+and 17 complexes, estimated with a Bayesian hierarchical model [@Lemant_prep]
+informed by published field data [@Massey2016; @briet2019]:
+
+```{r}
+head(vec_ent_param)
+```
+
+To retrieve parameters for a specific species:
+```{r}
+vec_ent_param[vec_ent_param$species_name == "Anopheles albimanus", ]
+```
+
+### Human and mosquito activity patterns
+
+`activity_patterns` contains mosquito biting rhythms and human sleeping
+activity from [@Sherrard-Smith15086] and [@briet2019]. Each entry has fields
+`id`, `species`, `sampling` (IND / BED / HBI / HBO / ABO / HB), `country`,
+`site`, `hour`, `value`.
+
+For example, to retrieve human activity patterns from Kenya:
+```{r}
+select_idx = activity_patterns$species == "Homo sapiens" &
+             activity_patterns$country == "Kenya"
+Kenya_human_rhythms = activity_patterns[select_idx, ]
+head(Kenya_human_rhythms)
+```
+
+### Database query functions
+
+* `list_all_species()` — list all species with bionomic parameters
+* `list_activity()` — search activity patterns by species, sampling type,
+  country, or site
+* `calculate_exposure()` — compute indoor/outdoor human exposure to biting
+
+```{r}
+species_vec = list_all_species()
+head(species_vec)
+```
+
+## Estimating the impact of vector control interventions
+
+### Step 1: Define vector entomological parameters
+
+Choose an existing species from the database:
+```{r}
+gambiae_vec_p = def_vector_params(mosquito_species = "Anopheles gambiae")
+```
+
+You can also supply a custom data frame with the same column names as
+`vec_ent_param`. The example below uses the *An. gambiae* values:
+```{r, eval=FALSE}
+custom_vec_table = data.frame(
+    species_name  = "Anopheles gambiae",
+    M = 0.623, M.sd = 0.06,
+    Chi = 0.939,
+    A0 = 0.313, A0.sd = 0.03,
+    zeta.3 = 1, td = 0.33, tau = 3, ts = 10, to = 5,
+    endophily = 0.813, endophily.sd = 0.07,
+    endophagy = 0.813, endophagy.sd = 0.07
+)
+custom_vec_p = def_vector_params(mosquito_species = "Anopheles gambiae",
+                                 vector_table = custom_vec_table)
+```
+
+### Step 2: Define host-specific parameters
+
+Load defaults from the database:
+```{r}
+gambiae_host_p = def_host_params(mosquito_species = "Anopheles gambiae",
+                                 vec_params = gambiae_vec_p)
+print(gambiae_host_p)
+```
+
+Custom host tables are also supported; the values must be biologically
+consistent with the chosen vector parameters (the function will error if
+`muvA` comes out negative):
+```{r, eval=FALSE}
+custom_host_table = data.frame(
+    species_name = "Anopheles gambiae",
+    host = c("human", "animal"),
+    PBi = c(0.95, 0.70), PCi = c(0.90, 0.70),
+    PDi = c(0.90, 0.80), PEi = c(0.88, 0.80),
+    Kvi = c(0.52, 0.00)
+)
+custom_host_p = def_host_params(mosquito_species = "Anopheles gambiae",
+                                vec_params = gambiae_vec_p,
+                                host_table = custom_host_table)
+```
+
+### Step 3: Define activity patterns
+
+Use the built-in defaults for *An. gambiae* (Kenya) or *An. albimanus* (Haiti):
+```{r}
+activity_gambiae = def_activity_patterns("default_Anopheles_gambiae")
+```
+
+Select patterns from the database by entry ID:
+```{r}
+activity_arabiensis = def_activity_patterns(list(
+    HBI            = 34,
+    HBO            = 165,
+    humans_indoors = 4,
+    humans_in_bed  = 24
+))
+```
+
+Or supply time-series vectors directly:
+```{r}
+HBI  = c(0.22, 0.21, 0.22, 0.10, 0.13, 0.17, 0.08, 0.12, 0.03, 0.12, 0.17, 0.18, 0.25)
+HBO  = c(0.25, 0.35, 0.37, 0.33, 0.36, 0.32, 0.13, 0.14, 0.09, 0.15, 0.36, 0.23, 0.25)
+humans_in_bed  = c(5.6, 14.1, 28.6, 47.8, 67.5, 83.2, 92.7,
+                   96.7, 96.6, 93.0, 85.3, 73.0, 57.1) / 100
+humans_indoors = humans_in_bed
+albimanus_activity = def_activity_patterns(list(HBI = HBI, HBO = HBO,
+                                                humans_indoors = humans_indoors,
+                                                humans_in_bed  = humans_in_bed))
+```
+
+### Step 4: Build the model object
+
+Combines vector, host, and activity parameters; estimates the mosquito death
+rate and host availability rates used by the entomological model:
+```{r}
+host_pop = 2000
+vec_pop  = 10000
+
+model_p = build_model_obj(gambiae_vec_p, gambiae_host_p,
+                          activity_gambiae, host_pop)
+print(model_p$host_params$muvA)    # mosquito death rate while host-seeking
+print(model_p$host_params$alphai)  # host availability rates
+```
+
+### Step 5: Build an intervention object
+
+Two models are available for how the intervention acts on the feeding cycle,
+selected automatically by the names in the `efficacy` vector:
+
+**Standard model (3 host types)**
+
+| Efficacy parameter | Mechanism |
+|---|---|
+| `Deterrency` | Reduces host availability (`alphai`) for protected humans |
+| `PrePrandial` | Reduces biting probability (`PBi`) for protected humans |
+| `PostPrandial` | Reduces post-feeding survival (`PCi`) for protected humans |
+
+**Dummy-host model (4 host types)**
+
+| Efficacy parameter | Mechanism |
+|---|---|
+| `Deterrency` | Same as above |
+| `HostSeekingKilling` | Adds a 4th "dummy host" with `alphai = alphai_human × HostSeekingKilling` and `PBi = 0`: mosquitoes are diverted and killed *while searching*, before contact with a real host |
+| `PostPrandial` | Same as above |
+
+The dummy-host model is activated by including `"HostSeekingKilling"` in the
+`efficacy` vector instead of (or in addition to) `"PrePrandial"`. It
+represents interventions where killing occurs during host-seeking rather than
+at the point of biting.
+
+These are combined with a **decay function** describing how the physical
+intervention degrades over time (attrition). Available shapes:
+
+```{r, fig.cap="Comparison of decay function shapes (L=365, kappa=2 where applicable)"}
+library(ggplot2)
+days = 0:364
+decay_df = rbind(
+    data.frame(day = days, value = decay_function(L=365, kappa=2, datej=days, decay="weibull"),        shape="Weibull"),
+    data.frame(day = days, value = decay_function(L=365, kappa=NULL, datej=days, decay="linear"),      shape="Linear"),
+    data.frame(day = days, value = decay_function(L=365, kappa=2, datej=days, decay="hill"),           shape="Hill"),
+    data.frame(day = days, value = decay_function(L=365, kappa=2, datej=days, decay="smooth-compact"), shape="Smooth-compact")
+)
+ggplot(decay_df, aes(x = day, y = value, colour = shape)) +
+    geom_line() + theme_bw() +
+    labs(x = "Day", y = "Remaining efficacy", colour = "Shape",
+         title = "Decay function shapes")
+```
+
+**Standard model** — 50% deterrency, 60% pre-prandial killing, 70%
+post-prandial killing, Weibull attrition (half-life 6 months):
+```{r}
+n_ip = 100  # number of interpolation time points
+
+my_interv = build_intervention(
+    efficacy = c(Deterrency = 0.50, PrePrandial = 0.60, PostPrandial = 0.70),
+    L = 180, kappa = 2, decay = "weibull",
+    npoints = n_ip, model_p = model_p, name = "My ITN (standard)"
+)
+```
+
+**Dummy-host model** — same deterrency and post-prandial killing, but
+host-seeking killing replaces pre-prandial:
+```{r}
+my_interv_dh = build_intervention(
+    efficacy = c(Deterrency = 0.50, HostSeekingKilling = 0.60, PostPrandial = 0.70),
+    L = 180, kappa = 2, decay = "weibull",
+    npoints = n_ip, model_p = model_p, name = "My ITN (dummy-host)"
+)
+# effects matrices now have 4 columns (protected humans, unprotected, animals, dummy host)
+ncol(my_interv_dh[[1]]$effects$alphai)
+```
+
+The returned object is a list of length 1 containing the intervention
+specification. Effects matrices have dimension `n_ip × 3` (standard model) or
+`n_ip × 4` (dummy-host model). It can be passed directly to
+`calculate_impact()`:
+
+```{r}
+coverages = seq(0, 1, by = 0.1)
+
+impacts = calculate_impact(
+    interventions_vec = my_interv,
+    coverage_vec      = coverages,
+    model_p           = model_p,
+    Nv0               = vec_pop,
+    num_ip_points     = n_ip
+)
+
+# Average vectorial capacity reduction at each coverage
+data.frame(coverage   = coverages,
+           avg_impact = round(impacts$interventions_vec[[1]]$effects$avg_impact, 3))
+```
+
+```{r, dpi=150, fig.cap="Vectorial capacity reduction for the custom intervention."}
+plot_tab = data.frame(
+    intervention_name     = "My ITN",
+    intervention_coverage = coverages,
+    intervention_impact   = impacts$interventions_vec[[1]]$effects$avg_impact
+)
+plot_impact_var("Anopheles gambiae", plot_tab)
+```
+
+### Incorporating indoor/outdoor exposure
+
+`calculate_exposure()` decomposes total human exposure into indoor/outdoor
+components, which can inform how efficacy parameters should be scaled before
+passing to `build_intervention()`:
+
+```{r}
+exposure = calculate_exposure(activity_cycles = activity_gambiae,
+                              vec_p           = gambiae_vec_p)
+print(exposure)
+```
+
+For example, `Exposure_Indoor_whileinbed` gives the fraction of bites received
+indoors while sleeping — the portion of exposure that an ITN would protect
+against. This can be used to convert population-level coverage into an
+effective in-bed coverage:
+
+```{r}
+# Effective coverage = deployment coverage × fraction of exposure while in bed
+pop_coverage    = 0.8
+eff_coverage    = pop_coverage * exposure$Exposure_Indoor_whileinbed
+cat("Effective coverage:", round(eff_coverage, 3), "\n")
+```
+
+### Step 6: Vectorised analysis across multiple parameter sets
+
+`run_interventions()` accepts a data frame where each row defines one
+scenario. This makes it easy to sweep over efficacy values, decay shapes, or
+any other parameter combination in a single call.
+
+Each row must have columns: `name`, `deterrency`, `preprandial`,
+`postprandial`, `L`, `kappa`, `decay`. Optional insecticide half-life columns
+(`halflife_det`, `halflife_pre`, `halflife_post`, in years) trigger an
+additional linear insecticide decay on top of the main efficacy.
+
+```{r}
+param_sets = data.frame(
+    name         = c("Low efficacy", "Medium efficacy", "High efficacy"),
+    deterrency   = c(0.20, 0.45, 0.70),
+    preprandial  = c(0.25, 0.55, 0.80),
+    postprandial = c(0.20, 0.50, 0.75),
+    L            = c(180,  180,  180),
+    kappa        = c(2,    2,    2),
+    decay        = c("weibull", "weibull", "weibull"),
+    stringsAsFactors = FALSE
+)
+
+results = run_interventions(
+    param_sets   = param_sets,
+    model_p      = model_p,
+    coverage_vec = seq(0, 1, by = 0.2),
+    Nv0          = vec_pop,
+    npoints      = n_ip
+)
+
+head(results)
+```
+
+```{r, dpi=150, fig.cap="Vectorial capacity reduction for three efficacy scenarios."}
+ggplot(results, aes(x = coverage, y = avg_impact * 100,
+                    colour = name, group = name)) +
+    geom_line(size = 0.8) +
+    theme_bw() +
+    labs(x = "Coverage", y = "Mean reduction in VC (%)",
+         colour = "Scenario",
+         title = "Impact across efficacy scenarios")
+```
+
+Varying a decay parameter instead — e.g. comparing Weibull half-lives:
+```{r}
+halflives = c(90, 180, 365)
+decay_sweep = data.frame(
+    name         = paste0("L=", halflives, "d"),
+    deterrency   = 0.5,
+    preprandial  = 0.6,
+    postprandial = 0.7,
+    L            = halflives,
+    kappa        = 2,
+    decay        = "weibull",
+    stringsAsFactors = FALSE
+)
+
+decay_results = run_interventions(
+    param_sets   = decay_sweep,
+    model_p      = model_p,
+    coverage_vec = seq(0, 1, by = 0.2),
+    Nv0          = vec_pop,
+    npoints      = n_ip
+)
+head(decay_results)
+```
+
+### Step 7: Propagating uncertainty in vector parameters
+
+The `vec_param_sets` argument of `run_interventions()` allows propagating
+uncertainty in vector bionomic parameters through the model. Supply a data
+frame of draws (one row per draw, same columns as `vec_ent_param`) and
+`run_interventions()` will evaluate the model for every combination of
+intervention scenario and vector parameter draw, returning a `draw` column in
+the output.
+
+The example below samples 200 draws from the *An. gambiae* parameter
+distributions, varying the parous rate `M` (sd = 0.06) and sac rate `A0`
+(sd = 0.03), with all other parameters fixed at their point estimates:
+
+```{r, dpi=150, fig.cap="Uncertainty band (median + 95% interval) for VC reduction across 200 draws of gambiae vector parameters."}
+set.seed(42)
+n_draws = 200
+
+# Point estimates for An. gambiae
+base_vec = gambiae_vec_p
+
+# Sample draws: vary M and A0, keep others fixed
+vec_draws = data.frame(
+    species_name  = base_vec$species_name,
+    M             = rnorm(n_draws, mean = base_vec$M,  sd = 0.06),
+    M.sd          = base_vec$M.sd,
+    Chi           = base_vec$Chi,
+    A0            = rnorm(n_draws, mean = base_vec$A0, sd = 0.03),
+    A0.sd         = base_vec$A0.sd,
+    zeta.3        = base_vec$zeta.3,
+    td            = base_vec$td,
+    tau           = base_vec$tau,
+    ts            = base_vec$ts,
+    to            = base_vec$to,
+    endophily     = base_vec$endophily,
+    endophily.sd  = base_vec$endophily.sd,
+    endophagy     = base_vec$endophagy,
+    endophagy.sd  = base_vec$endophagy.sd,
+    stringsAsFactors = FALSE
+)
+
+# Clip to valid ranges
+vec_draws$M  = pmax(pmin(vec_draws$M,  0.999), 0.001)
+vec_draws$A0 = pmax(pmin(vec_draws$A0, 0.999), 0.001)
+
+# Single intervention scenario
+single_scenario = data.frame(
+    name         = "Medium efficacy ITN",
+    deterrency   = 0.45,
+    preprandial  = 0.55,
+    postprandial = 0.50,
+    L            = 180,
+    kappa        = 2,
+    decay        = "weibull",
+    stringsAsFactors = FALSE
+)
+
+coverage_grid = seq(0, 1, by = 0.1)
+
+uncertainty_results = run_interventions(
+    param_sets      = single_scenario,
+    model_p         = model_p,
+    coverage_vec    = coverage_grid,
+    vec_param_sets  = vec_draws,
+    Nv0             = vec_pop,
+    npoints         = n_ip
+)
+
+# Summarise: median and 95% interval across draws, by coverage
+library(dplyr)
+unc_summary = uncertainty_results %>%
+    group_by(coverage) %>%
+    summarise(
+        med   = median(avg_impact),
+        lo    = quantile(avg_impact, 0.025),
+        hi    = quantile(avg_impact, 0.975),
+        .groups = "drop"
+    )
+
+ggplot(unc_summary, aes(x = coverage)) +
+    geom_ribbon(aes(ymin = lo * 100, ymax = hi * 100), alpha = 0.3, fill = "#3182bd") +
+    geom_line(aes(y = med * 100), colour = "#3182bd", size = 1) +
+    theme_bw() +
+    labs(
+        x     = "Coverage",
+        y     = "Mean reduction in VC (%)",
+        title = "Uncertainty in VC reduction due to vector parameter variability",
+        subtitle = "Median + 95% interval across 200 draws (M sd=0.06, A0 sd=0.03)"
+    )
+```
+
+### Combining two interventions
+
+`calculate_combined_impact()` computes the VC reduction when two interventions
+are deployed simultaneously. Both intervention objects must be built with the
+same `model_p`. The `model_p` argument is now explicit:
+
+```{r}
+interv_ITN = build_intervention(
+    efficacy = c(Deterrency = 0.5, PrePrandial = 0.6, PostPrandial = 0.7),
+    L = 180, kappa = 2, decay = "weibull", npoints = n_ip,
+    model_p = model_p, name = "ITN", duration = 365
+)
+
+interv_IRS = build_intervention(
+    efficacy = c(PrePrandial = 0.3, PostPrandial = 0.8),
+    L = 180, kappa = 2, decay = "weibull", npoints = n_ip,
+    model_p = model_p, name = "IRS", duration = 365
+)
+
+combined_impact = calculate_combined_impact(
+    combination_name  = "ITN + IRS",
+    intervention1     = interv_ITN[[1]],
+    intervention2     = interv_IRS[[1]],
+    cov_intervention1 = 0.8,
+    cov_intervention2 = 0.8,
+    model_p           = model_p,
+    N_vec             = vec_pop
+)
+cat("Combined VC reduction:", round(combined_impact * 100, 1), "%\n")
+```
+
+## Generating entomology XML snippets for OpenMalaria
+
+`get_OM_ento_snippet()` creates the `<mosq>` and `<nonHumanHosts>` XML tags
+for the OpenMalaria entomology component:
+
+```{r}
+xml_snippets = get_OM_ento_snippet(gambiae_vec_p, gambiae_host_p)
+print(xml_snippets)
+```
+
+## References

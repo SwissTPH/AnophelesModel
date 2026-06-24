@@ -1,0 +1,39 @@
+Package: AnophelesModel2
+Type: Package
+Title: An R package to quantify the effect of vector bionomics on the impact of vector control interventions against malaria transmitted by Anopheles mosquitoes
+Version: 0.1.0
+Authors@R: as.person(c(
+    "Monica Golumbeanu <monica.golumbeanu@swisstph.ch> [aut, cre]", 
+    "Olivier Briet [aut]",
+    "Clara Champagne [aut]",
+    "Jeanne Lemant [aut]",
+    "Barnabas Zogo [aut]",
+    "Maximilian Gerhards [aut]",
+    "Marianne Sinka [aut]",
+    "Nakul Chitnis [aut]",
+    "Melissa Penny [aut]",
+    "Emilie Pothin [aut]",
+    "Thomas Smith [aut]"
+  ))
+Description: This package provides functions for parameterising and predicting 
+    models of the oviposition cycle of Anopheles mosquitoes. It is designed to 
+    quantify how vector bionomics influence the impact of vector control 
+    interventions against malaria.
+Imports:
+    ggplot2,
+    data.table,
+    checkmate,
+    XML
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat,
+    ggpubr,
+    Hmisc
+VignetteBuilder: knitr
+License: GPL (>=2)
+Encoding: UTF-8
+LazyData: true
+Depends: 
+    R (>= 3.5.0)
+Config/roxygen2/version: 8.0.0

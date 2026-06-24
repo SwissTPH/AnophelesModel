@@ -1,0 +1,13 @@
+Meta
+tmp
+.Rhistory
+.Rbuildignore
+tex
+pdf
+synctex.gz
+toc
+bbl
+/Meta/
+.Rproj.user/
+.Rproj.user
+/.Rproj.user
