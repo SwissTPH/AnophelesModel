@@ -303,7 +303,7 @@ re-joining.
 ```{r}
 param_sets = data.frame(
     name         = c("Low efficacy", "Medium efficacy", "High efficacy"),
-    deterrency   = c(0.20, 0.45, 0.70),
+    deterrency   = c(0.20, 0.4, 0.5),
     preprandial  = c(0.25, 0.55, 0.80),
     postprandial = c(0.20, 0.50, 0.75),
     halflife_attrition = 180, shape_attrition = 2, decay_attrition = "weibull",
