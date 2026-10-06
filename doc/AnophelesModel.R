@@ -255,13 +255,14 @@ comp_decay_ps = data.frame(
 comp_results = run_interventions(
     param_sets   = comp_decay_ps,
     model_p      = model_p,
-    coverage_vec = seq(0, 1, by = 0.2),
+    coverage_vec = seq(0, 1, by = 0.1),
     duration_years = 3
 )
 head(comp_results[, c("name", "coverage", "avg_impact")])
 
 ## ----dpi=150, fig.cap="Effect of per-component insecticide decay on average impact at 70% coverage."----
-ggplot(comp_results[comp_results$coverage == 0.7, ],
+# Compare with a tolerance: seq() does not produce exactly 0.7
+ggplot(comp_results[abs(comp_results$coverage - 0.7) < 1e-8, ],
        aes(x = name, y = avg_impact * 100, fill = name)) +
     geom_col(width = 0.5) + theme_bw() +
     labs(x = NULL, y = "Mean reduction in VC (%)", fill = NULL) +

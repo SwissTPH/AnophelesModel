@@ -291,7 +291,9 @@ plot_impact_var("Anopheles gambiae", plot_tab)
 ```
 
 `calculate_combined_impact()` handles two simultaneously deployed
-interventions:
+interventions. Effects combine multiplicatively; dummy-host interventions are
+also supported, with host-seeking killing adding up for people covered by
+both:
 ```{r}
 interv_ITN = build_intervention(
     efficacy = c(Deterrency = 0.5, PrePrandial = 0.6, PostPrandial = 0.7),

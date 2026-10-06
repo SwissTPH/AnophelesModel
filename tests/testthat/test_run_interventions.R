@@ -11,8 +11,9 @@ make_model_p = function() {
     build_model_obj(vec_p, host_p)
 }
 
-# Reference: run one param-set row through build_intervention + calculate_impact
-# (the pre-vectorisation loop) and return a data.frame matching run_interventions output.
+# Reference: run one param-set row through build_intervention +
+# reference_calculate_impact (the pre-vectorisation loop, helper-reference.R)
+# and return a data.frame matching run_interventions output.
 reference_run = function(param_sets, model_p, coverage_vec, duration_years = 3) {
     npoints = round(365 * duration_years)
     rows = lapply(seq_len(nrow(param_sets)), function(i) {
@@ -33,7 +34,7 @@ reference_run = function(param_sets, model_p, coverage_vec, duration_years = 3) 
             name     = as.character(row$name),
             decay_attrition    = as.character(row$decay_attrition),
             halflife_insecticide = hl)
-        impact = calculate_impact(interv, coverage_vec, model_p)
+        impact = reference_calculate_impact(interv, coverage_vec, model_p)
         eff    = impact$interventions_vec[[1]]$effects
         data.frame(name       = as.character(row$name),
                    coverage   = coverage_vec,
@@ -364,9 +365,12 @@ test_that("eval_entomological_model reparameterisation is numerically identical"
 
     expect_equal(vc_new, vc_ref, tolerance = 1e-15)
 
-    # Cross-check: calculate_impact (the full loop) gives the same avg_vc
-    impact = calculate_impact(
+    # Cross-check: the reference loop and calculate_impact give the same avg_vc
+    impact = reference_calculate_impact(
         interv_list, coverage_vec, model_p)
+    expect_equal(calculate_impact(interv_list, coverage_vec, model_p)$
+                     interventions_vec[[1]]$effects$avg_vc,
+                 impact$interventions_vec[[1]]$effects$avg_vc, tolerance = 1e-12)
     avg_vc_loop = impact$interventions_vec[[1]]$effects$avg_vc
 
     avg_vc_new = tapply(vc_new, rep(seq_along(coverage_vec), npoints), mean)

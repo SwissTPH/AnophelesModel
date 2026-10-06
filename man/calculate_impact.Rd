@@ -11,7 +11,8 @@ calculate_impact(interventions_vec, coverage_vec, model_p)
 \code{build_intervention()}.}
 
 \item{coverage_vec}{Numeric vector of deployment coverages (values in
-\code{[0, 1]}).}
+\code{[0, 1]}). The impact is always computed relative to coverage 0 (no
+intervention), which is evaluated internally when not supplied.}
 
 \item{model_p}{Model object created with \code{build_model_obj()}.}
 }

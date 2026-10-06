@@ -238,14 +238,18 @@ fit_weibull_decay = function(curve, days, L_start = NULL, kappa_start = 1) {
 }
 
 
-# Internal: multiply decay multiplier matrices by baseline host parameters.
-# Returns [np x npoints] matrices of time-varying intervention effects,
-# ready to index as eff$alphai_1[param_idx, t] inside the time loop.
-apply_eff_matrices = function(mm, alpha_h, PBi_h, PCi_h) {
+# Internal: multiply decay multiplier matrices by the baseline human host
+# parameters (host_p from build_model_obj()). Returns [np x npoints] matrices
+# of the time-varying parameters of protected humans, in the eff format of
+# simulate_vc() (PDi / PEi are not affected by interventions).
+apply_eff_matrices = function(mm, host_p) {
+    const = function(x) matrix(x, nrow(mm$mult_det), ncol(mm$mult_det))
     list(
-        alphai_1  = alpha_h * mm$mult_det,
-        PBi_1     = PBi_h   * mm$mult_pre,
-        PCi_1     = PCi_h   * mm$mult_post,
+        alphai_1  = host_p$alphai[1] * mm$mult_det,
+        PBi_1     = host_p$PBi[1]    * mm$mult_pre,
+        PCi_1     = host_p$PCi[1]    * mm$mult_post,
+        PDi_1     = const(host_p$PDi[1]),
+        PEi_1     = const(host_p$PEi[1]),
         alphai_4  = mm$mult_hsk,   # dummy-host column (zero when not dummy)
         surv_mat  = mm$surv_mat,
         use_dummy = mm$use_dummy
@@ -447,7 +451,7 @@ build_intervention = function(efficacy,
     days = seq(0L, npoints - 1L)
     mm   = make_mult_matrices(ps, days, insecticide_decay = insecticide_decay)
     h    = model_p$host_params
-    eff  = apply_eff_matrices(mm, alpha_h = h$alphai[1], PBi_h = h$PBi[1], PCi_h = h$PCi[1])
+    eff  = apply_eff_matrices(mm, h)
 
     interv_list = list(init_baseline_intervention(model_p, npoints,
                                                   dummy_host = use_dummy_host))
@@ -653,98 +657,20 @@ run_interventions = function(param_sets, model_p, coverage_vec,
         mm        = if (!is.null(interv_param_sets))
                         make_mult_matrices(ps_d, days, insecticide_decay) else fixed_mult
         n_param_d = nrow(ps_d)
-        n_host_d  = if (mm$use_dummy) 4L else 3L
-
         cov_d     = if (!is.null(coverage_sets)) coverage_sets[[d]] else coverage_vec
-        has_zero  = 0 %in% cov_d
-        cov_eval  = if (has_zero) cov_d else c(0, cov_d)
-        zero_col  = which(cov_eval == 0)[1L]
-        n_cov_d   = length(cov_eval)
 
         mp     = vec_model_list[[d]]
         vec_p  = mp$vec_params
         host_p = mp$host_params
 
-        alpha_h = host_p$alphai[1]; alpha_a = host_p$alphai[2]
-        PBi_h   = host_p$PBi[1];   PBi_a   = host_p$PBi[2]
-        PCi_h   = host_p$PCi[1];   PCi_a   = host_p$PCi[2]
-        PDi_h   = host_p$PDi[1];   PDi_a   = host_p$PDi[2]
-        PEi_h   = host_p$PEi[1];   PEi_a   = host_p$PEi[2]
-        Kvi_h   = host_p$Kvi[1];   Kvi_a   = host_p$Kvi[2]
-
-        # Pre-multiply decay multipliers by baseline host params once, before time loop
-        eff = apply_eff_matrices(mm, alpha_h, PBi_h, PCi_h)
-
-        n_rows    = n_param_d * n_cov_d
-        param_idx = rep(seq_len(n_param_d), each  = n_cov_d)
-        cov_idx   = rep(seq_len(n_cov_d),   times = n_param_d)
-
-        if (n_host_d == 4L) {
-            PDi_big = rep.row(c(PDi_h, PDi_h, PDi_a, 0), n_rows)
-            PEi_big = rep.row(c(PEi_h, PEi_h, PEi_a, 0), n_rows)
-            Kvi_big = rep.row(c(Kvi_h, Kvi_h, Kvi_a, 0), n_rows)
-        } else {
-            PDi_big = rep.row(c(PDi_h, PDi_h, PDi_a), n_rows)
-            PEi_big = rep.row(c(PEi_h, PEi_h, PEi_a), n_rows)
-            Kvi_big = rep.row(c(Kvi_h, Kvi_h, Kvi_a), n_rows)
-        }
-
-        vc_sum     = matrix(0, n_param_d, n_cov_d)
-        impact_sum = matrix(0, n_param_d, n_cov_d)
-
-        for (t in seq_len(npoints)) {
-            # Index pre-multiplied [n_param_d × npoints] matrices at timepoint t
-            a1 = eff$alphai_1[param_idx, t]
-            b1 = eff$PBi_1   [param_idx, t]
-            c1 = eff$PCi_1   [param_idx, t]
-
-            if (n_host_d == 4L) {
-                alphai_big = cbind(a1, alpha_h, alpha_a, eff$alphai_4[param_idx, t])
-                PBi_big    = cbind(b1, PBi_h,   PBi_a,  0)
-                PCi_big    = cbind(c1, PCi_h,   PCi_a,  0)
-            } else {
-                alphai_big = cbind(a1, alpha_h, alpha_a)
-                PBi_big    = cbind(b1, PBi_h,   PBi_a)
-                PCi_big    = cbind(c1, PCi_h,   PCi_a)
-            }
-
-            surv_t   = eff$surv_mat[param_idx, t]
-            frac1    = cov_eval[cov_idx] * surv_t
-            frac2    = 1 - frac1
-            frac3    = rep(1, n_rows)
-            frac_big = if (n_host_d == 4L) cbind(frac1, frac2, frac3, frac1)
-                       else                cbind(frac1, frac2, frac3)
-
-            t_avail   = alphai_big * frac_big
-            host_frac = frac_big / 2L
-
-            ent = eval_entomological_model(
-                list(PBi = PBi_big, PCi = PCi_big,
-                     PDi = PDi_big, PEi = PEi_big, Kvi = Kvi_big),
-                vec_p, host_p, 1L, t_avail, host_frac, 2L)
-
-            vc_mat     = t(matrix(ent$vc_all, nrow = n_cov_d, ncol = n_param_d))
-            vc_base    = vc_mat[, zero_col]
-            impact_mat = 1 - vc_mat / vc_base
-            impact_mat[!is.finite(impact_mat)] = 0
-
-            vc_sum     = vc_sum     + vc_mat
-            impact_sum = impact_sum + impact_mat
-        }
-
-        avg_vc     = vc_sum     / npoints
-        avg_impact = impact_sum / npoints
-
-        # Drop the synthetic coverage-0 column if user did not request it
-        if (!has_zero) {
-            avg_vc     = avg_vc    [, -zero_col, drop = FALSE]
-            avg_impact = avg_impact[, -zero_col, drop = FALSE]
-            cov_out    = cov_eval[-zero_col]
-            n_cov_out  = length(cov_out)
-        } else {
-            cov_out   = cov_eval
-            n_cov_out = n_cov_d
-        }
+        # Pre-multiply decay multipliers by baseline host params, then run the
+        # shared time loop (coverage 0 baseline added / dropped internally)
+        sim = simulate_vc(apply_eff_matrices(mm, host_p), host_base(host_p),
+                          vec_p, host_p, cov_d)
+        avg_vc     = sim$avg_vc
+        avg_impact = sim$avg_impact
+        cov_out    = sim$coverage
+        n_cov_out  = length(cov_out)
 
         out_param_idx = rep(seq_len(n_param_d), each = n_cov_out)
         ps_expanded           = ps_d[out_param_idx, , drop = FALSE]

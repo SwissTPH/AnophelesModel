@@ -37,6 +37,13 @@ Mean reduction in vectorial capacity (scalar).
 Computes the mean reduction in vectorial capacity when two
 interventions are deployed simultaneously at specified coverages. Effects
 are combined multiplicatively (relative to the unintervened baseline).
+
+Dummy-host (4-host) interventions are supported, also combined with
+standard ones. Host-seeking killing is \strong{additive}: each product acts
+as its own dummy host, so for people covered by both interventions the
+dummy-host availabilities add up.
+
+The two interventions are evaluated over the shorter of their durations.
 }
 \author{
 Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
