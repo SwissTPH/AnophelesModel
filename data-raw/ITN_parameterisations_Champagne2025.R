@@ -11,7 +11,7 @@ ITN_parameterisations_Champagne2025 = raw[, setdiff(names(raw), drop_cols)]
 # Tidy column names to snake_case
 names(ITN_parameterisations_Champagne2025)[
     names(ITN_parameterisations_Champagne2025) == "halflife_insecticide"
-] = "halflife_insecticide"   # keep as-is (days)
+] = "halflife_insecticide"   # keep as-is (years; linear time-to-zero, 3 / (1 - Washed/Unwashed))
 
 save(ITN_parameterisations_Champagne2025,
      file = "data/ITN_parameterisations_Champagne2025.RData")

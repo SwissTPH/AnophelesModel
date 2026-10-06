@@ -9,13 +9,13 @@ build_intervention(
   halflife_attrition = NULL,
   shape_attrition = NULL,
   decay_attrition = "weibull",
-  decay_insecticide = "linear",
   duration_years = 3,
   model_p = NULL,
   name = NULL,
   mode = NULL,
   halflife_insecticide = NULL,
   component_decay = NULL,
+  insecticide_decay = TRUE,
   npoints = NULL,
   L = NULL,
   kappa = NULL,
@@ -37,16 +37,17 @@ efficacy parameters:
     Values > 1 are valid (dummy host more attractive than unprotected humans).
 }}
 
-\item{halflife_attrition}{Attrition decay scale parameter (days).}
+\item{halflife_attrition}{Attrition decay parameter \code{L} (days): the
+half-life for Weibull / exponential / Hill, the time to zero for linear /
+step / smooth-compact (see \code{decay_function()}).}
 
 \item{shape_attrition}{Attrition decay shape exponent (for Weibull / Hill /
-smooth-compact; set to \code{NULL} for linear / none).}
+smooth-compact; set to \code{NULL} otherwise).}
 
-\item{decay_attrition}{Attrition decay shape string (see \code{decay_function()}).
+\item{decay_attrition}{Attrition decay shape string: \code{"weibull"},
+\code{"exponential"}, \code{"hill"}, \code{"linear"}, \code{"step"},
+\code{"smooth-compact"} or \code{"none"} (see \code{decay_function()}).
 Default \code{"weibull"}.}
-
-\item{decay_insecticide}{Decay shape for the per-component insecticide decay
-triggered by \code{halflife_insecticide}. Default \code{"linear"}.}
 
 \item{duration_years}{Duration of the intervention in years. One
 interpolation point per day is used, so \code{npoints = round(365 *
@@ -61,17 +62,32 @@ When supplied, overrides auto-detection from the names of \code{efficacy}.
 The object returned by \code{get_ITN_params()} includes a \code{mode} field
 that can be passed here directly.}
 
-\item{halflife_insecticide}{Optional named numeric vector with insecticide-
-specific half-lives in years, using the same names as \code{efficacy}.
-Triggers an additional per-component insecticide decay (shape controlled by
-\code{decay_insecticide}) on top of the main attrition.
-For more flexible per-component decay, use \code{component_decay} instead.}
+\item{halflife_insecticide}{Optional named numeric vector (years), using the
+same names as \code{efficacy}, triggering an additional per-component
+\strong{linear} insecticide decay on top of the main attrition: the efficacy
+of a component is multiplied by \eqn{1 - t / (365 \cdot hl)}. Despite its
+name, \eqn{hl} is the time at which the effect reaches zero (the effect
+halves at \eqn{hl / 2}). This is the convention of the Champagne et al.
+(2025) parameterisations returned by \code{get_ITN_params()}, where
+\eqn{hl = 3 / (1 - Washed / Unwashed)}, so that efficacy after 3 years
+equals the washed (20x) value. Negative values (washed efficacy higher than
+unwashed) make the effect increase linearly over time; \code{Inf} means no
+insecticide decay. For other decay shapes, use \code{component_decay}.}
 
 \item{component_decay}{Optional named list specifying an independent decay
 function for each efficacy component, using the same names as \code{efficacy}.
-Each element is a list with fields \code{decay} (string), \code{L} (scale in
-days), and optionally \code{kappa}. Overrides \code{halflife_insecticide} for
+Each element is a list with fields \code{decay} (string), \code{L} (days;
+meaning depends on the shape, see \code{decay_function()}), and optionally
+\code{kappa}. Overrides \code{halflife_insecticide} for
 the same component.}
+
+\item{insecticide_decay}{Logical (default \code{TRUE}). If \code{FALSE},
+\code{halflife_insecticide} and \code{component_decay} are ignored: the
+efficacies keep their initial (e.g. unwashed) values throughout and only
+attrition decays. If \code{TRUE}, the per-component insecticide decay is
+applied and, in addition, a Weibull decay is fitted for each efficacy
+component to the product attrition \eqn{\times} insecticide decay (see
+Value).}
 
 \item{npoints}{Deprecated. Use \code{duration_years} instead.}
 
@@ -85,6 +101,13 @@ the same component.}
 A list of length 1 containing the intervention specification, ready
 to pass to \code{calculate_impact()}. Standard model: 3-column effects
 matrices. Dummy-host model: 4-column effects matrices.
+When \code{insecticide_decay = TRUE}, the element \code{fitted_decay} is a
+data frame with one row per efficacy component and columns
+\code{component}, \code{L} (Weibull half-life, days), \code{kappa},
+\code{a} (amplitude) and \code{rmse}: the single Weibull per component
+that best approximates attrition \eqn{\times} insecticide decay over the
+intervention duration (as used for OpenMalaria GVI parameterisations).
+The model itself always uses the exact (unfitted) decay.
 }
 \description{
 Constructs an intervention effects object from user-supplied

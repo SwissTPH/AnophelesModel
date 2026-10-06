@@ -163,13 +163,19 @@ All components share an **attrition decay** (`halflife_attrition`,
 `shape_attrition`, `decay_attrition`) describing physical degradation over
 time. Available decay shapes:
 
+For Weibull, exponential and Hill, `L` is the half-life (value 0.5 at
+`t = L`); for linear, step and smooth-compact, `L` is the time at which the
+effect reaches zero. All shapes stay within `[0, 1]`.
+
 ```{r,echo=FALSE, fig.cap="Decay function shapes (L=365 days, kappa=2 where applicable)."}
 library(ggplot2)
-days = 0:364
+days = 0:(2*365)
 decay_df = rbind(
     data.frame(day=days, value=decay_function(L=365,kappa=2,   datej=days,decay="weibull"),       shape="Weibull"),
-    data.frame(day=days, value=decay_function(L=365,kappa=NULL,datej=days,decay="linear"),         shape="Linear"),
+    data.frame(day=days, value=decay_function(L=365,kappa=NULL,datej=days,decay="exponential"),    shape="Exponential"),
     data.frame(day=days, value=decay_function(L=365,kappa=2,   datej=days,decay="hill"),           shape="Hill"),
+    data.frame(day=days, value=decay_function(L=365,kappa=NULL,datej=days,decay="linear"),         shape="Linear"),
+    data.frame(day=days, value=decay_function(L=365,kappa=NULL,datej=days,decay="step"),           shape="Step"),
     data.frame(day=days, value=decay_function(L=365,kappa=2,   datej=days,decay="smooth-compact"), shape="Smooth-compact")
 )
 ggplot(decay_df, aes(x=day, y=value, colour=shape)) +
@@ -179,8 +185,10 @@ ggplot(decay_df, aes(x=day, y=value, colour=shape)) +
 
 **Standard model** — built-in parameterisation for Interceptor G2 from the
 Kibondo EHT [@champagne2025], with Weibull attrition (half-life 6 months) and
-per-component **linear** insecticide decay (half-lives derived from the wash
-series, passed via `halflife_insecticide`):
+per-component **linear** insecticide decay, passed via `halflife_insecticide`
+(in years). Despite its name, this is the time at which the effect would
+reach zero, calibrated so that efficacy after 3 years equals the efficacy of
+nets washed 20 times:
 ```{r}
 itn_p = get_ITN_params("Interceptor G2", "Kibondo")
 
@@ -189,6 +197,25 @@ my_interv = build_intervention(
     halflife_insecticide = itn_p$halflife_insecticide,
     mode                 = itn_p$mode,
     halflife_attrition =  3*365, shape_attrition = 2, decay_attrition = "weibull",
+    duration_years = 3, model_p = model_p, name = itn_p$name
+)
+```
+
+With insecticide decay (the default `insecticide_decay = TRUE`), the object
+also contains, for each efficacy component, the single Weibull decay that best
+approximates attrition × insecticide decay (as used for OpenMalaria GVI
+parameterisations). The model itself uses the exact decay:
+```{r}
+my_interv[[1]]$fitted_decay
+```
+
+Set `insecticide_decay = FALSE` to ignore the insecticide decay and keep the
+unwashed efficacy throughout (only attrition decays):
+```{r, eval=FALSE}
+my_interv_nodecay = build_intervention(
+    efficacy = itn_p$efficacy, halflife_insecticide = itn_p$halflife_insecticide,
+    mode = itn_p$mode, insecticide_decay = FALSE,
+    halflife_attrition = 3*365, shape_attrition = 2, decay_attrition = "weibull",
     duration_years = 3, model_p = model_p, name = itn_p$name
 )
 ```
@@ -428,14 +455,15 @@ comp_decay_ps = data.frame(
 comp_results = run_interventions(
     param_sets   = comp_decay_ps,
     model_p      = model_p,
-    coverage_vec = seq(0, 1, by = 0.2),
+    coverage_vec = seq(0, 1, by = 0.1),
     duration_years = 3
 )
 head(comp_results[, c("name", "coverage", "avg_impact")])
 ```
 
 ```{r, dpi=150, fig.cap="Effect of per-component insecticide decay on average impact at 70% coverage."}
-ggplot(comp_results[comp_results$coverage == 0.7, ],
+# Compare with a tolerance: seq() does not produce exactly 0.7
+ggplot(comp_results[abs(comp_results$coverage - 0.7) < 1e-8, ],
        aes(x = name, y = avg_impact * 100, fill = name)) +
     geom_col(width = 0.5) + theme_bw() +
     labs(x = NULL, y = "Mean reduction in VC (%)", fill = NULL) +

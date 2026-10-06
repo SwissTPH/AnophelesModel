@@ -57,9 +57,12 @@ list_ITN_params = function() {
 #' }
 #'
 #' The returned \code{halflife_insecticide} vector encodes per-component
-#' insecticide decay as a \strong{linear} decay with the given half-life
-#' (in years). Components whose fitted half-life was negative (efficacy
-#' increased with washing) are returned as \code{Inf} (no decay).
+#' insecticide decay as a \strong{linear} decay (in years). Despite the name,
+#' it is the time at which the effect reaches zero, calibrated so that
+#' efficacy after 3 years equals the washed value. Negative values (efficacy
+#' increased with washing) are returned as fitted. To use the unwashed
+#' efficacy throughout, pass \code{insecticide_decay = FALSE} to
+#' \code{\link{build_intervention}}.
 #'
 #' @param net_type Character string; net type label as in the \code{netType}
 #'   column of \code{ITN_parameterisations_Champagne2025}.
@@ -79,7 +82,7 @@ list_ITN_params = function() {
 #'   \item \code{efficacy}: named numeric vector for the \code{efficacy}
 #'     argument of \code{\link{build_intervention}}.
 #'   \item \code{halflife_insecticide}: named numeric vector (years) encoding
-#'     a \strong{linear} per-component decay; \code{Inf} = no decay.
+#'     a \strong{linear} per-component decay (time to zero).
 #'     Pass directly to the \code{halflife_insecticide} argument of
 #'     \code{\link{build_intervention}}.
 #'   \item \code{name}: suggested intervention label
@@ -129,8 +132,8 @@ get_ITN_params = function(net_type, EHT, mode = "standard",
     val_col  = if (washed) "Washed" else "Unwashed"
     efficacy = setNames(rows[[val_col]], param_map[rows$parameter])
 
-    # Half-life: dataset in years (linear decay in build_intervention).
-    # component; those entries are dropped so build_intervention returns 1.
+    # Linear time-to-zero in years (3 / (1 - Washed/Unwashed)); negative values
+    # (efficacy increased with washing) are kept as fitted.
     hl_years  = rows$halflife_insecticide
     halflife_insecticide = setNames(hl_years, param_map[rows$parameter])
 
@@ -143,7 +146,7 @@ get_ITN_params = function(net_type, EHT, mode = "standard",
         cat("Reference:", ref, "\n")
         cat("Efficacy (", if (washed) "washed" else "unwashed", "):\n", sep = "")
         print(round(efficacy, 3))
-        cat("Half-life insecticide, linear decay (years; omitted = no decay):\n")
+        cat("Insecticide decay, linear time to zero (years; omitted = no decay):\n")
         if (length(halflife_insecticide) > 0) print(round(halflife_insecticide, 3))
         else cat("  (none — all components constant)\n")
     }

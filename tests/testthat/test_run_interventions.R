@@ -246,14 +246,14 @@ test_that("run_interventions dummy-host model matches calculate_impact reference
 test_that("run_interventions works with linear and hill decay types", {
     model_p      = make_model_p()
     coverage_vec = c(0, 0.5, 1)
-    duration_years = 20 / 365
+    duration_years = 1   # longer than L: exercises behaviour after time to zero
 
     param_sets = data.frame(
         name               = c("linear_test", "hill_test"),
         deterrency         = c(0.5, 0.5),
         preprandial        = c(0.3, 0.3),
         postprandial       = c(0.2, 0.2),
-        halflife_attrition = c(365, 365),
+        halflife_attrition = c(120, 120),
         shape_attrition    = c(NA,  2),
         decay_attrition    = c("linear", "hill"),
         stringsAsFactors   = FALSE
@@ -264,6 +264,7 @@ test_that("run_interventions works with linear and hill decay types", {
     expect_true(all(is.finite(res$avg_vc)))
     expect_true(all(is.finite(res$avg_impact)))
     expect_true(all(res$avg_vc >= 0))
+    expect_true(all(res$avg_impact >= 0 & res$avg_impact <= 1))
 })
 
 # ---------------------------------------------------------------------------

@@ -36,7 +36,7 @@ Named list with:
   \item \code{efficacy}: named numeric vector for the \code{efficacy}
     argument of \code{\link{build_intervention}}.
   \item \code{halflife_insecticide}: named numeric vector (years) encoding
-    a \strong{linear} per-component decay; \code{Inf} = no decay.
+    a \strong{linear} per-component decay (time to zero).
     Pass directly to the \code{halflife_insecticide} argument of
     \code{\link{build_intervention}}.
   \item \code{name}: suggested intervention label
@@ -59,9 +59,12 @@ Two model modes are supported:
 }
 
 The returned \code{halflife_insecticide} vector encodes per-component
-insecticide decay as a \strong{linear} decay with the given half-life
-(in years). Components whose fitted half-life was negative (efficacy
-increased with washing) are returned as \code{Inf} (no decay).
+insecticide decay as a \strong{linear} decay (in years). Despite the name,
+it is the time at which the effect reaches zero, calibrated so that
+efficacy after 3 years equals the washed value. Negative values (efficacy
+increased with washing) are returned as fitted. To use the unwashed
+efficacy throughout, pass \code{insecticide_decay = FALSE} to
+\code{\link{build_intervention}}.
 }
 \examples{
 # Standard three-host model

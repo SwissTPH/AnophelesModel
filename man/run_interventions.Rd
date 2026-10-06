@@ -13,6 +13,7 @@ run_interventions(
   activity_sets = NULL,
   coverage_sets = NULL,
   duration_years = 3,
+  insecticide_decay = TRUE,
   npoints = NULL
 )
 }
@@ -26,25 +27,37 @@ Required columns:
     \code{[0,1]} (set to \code{0} for the dummy-host model)
   \item \code{postprandial}: initial post-prandial killing efficacy in
     \code{[0,1]}
-  \item \code{halflife_attrition}: attrition decay scale parameter (days)
-  \item \code{shape_attrition}: attrition decay shape parameter (set to
-    \code{NA} for linear / none)
+  \item \code{halflife_attrition}: attrition decay parameter \code{L}
+    (days): half-life for Weibull / exponential / Hill, time to zero for
+    linear / step / smooth-compact
+  \item \code{shape_attrition}: attrition decay shape parameter (required
+    for Weibull / Hill / smooth-compact; \code{NA} otherwise)
   \item \code{decay_attrition}: decay shape string (see
     \code{decay_function()})
 }
 Optional columns:
 \itemize{
   \item \code{host_seeking_killing}: activates the dummy-host (4-host) model
-  \item \code{halflife_det/pre/post}: insecticide half-life per component
-    (years, linear decay)
-  \item \code{decay_det/pre/post} + \code{L_det/pre/post} +
-    \code{kappa_det/pre/post}: general per-component decay
+  \item \code{halflife_det}, \code{halflife_pre}, \code{halflife_post},
+    \code{halflife_hsk}: per-component linear insecticide decay (years);
+    despite the name, the time at which the effect reaches zero (see
+    \code{halflife_insecticide} in \code{build_intervention()}).
+    \code{halflife_hsk} applies to \code{host_seeking_killing} in
+    dummy-host mode.
+  \item \code{decay_det}, \code{L_det}, \code{kappa_det} (and equivalently
+    \code{_pre}, \code{_post}, \code{_hsk}): general per-component decay
+    function, \code{L} (days; meaning depends on the shape, see
+    \code{decay_function()}), and shape. \code{_hsk} controls the decay of
+    \code{host_seeking_killing}. Overrides the corresponding
+    \code{halflife_*} column when both are present.
 }}
 
 \item{model_p}{Model object from \code{build_model_obj()}.}
 
 \item{coverage_vec}{Numeric vector of deployment coverages in \code{[0,1]}.
-The first element must be \code{0} (no-intervention baseline).}
+Coverage \code{0} is used internally as the no-intervention baseline for
+computing \code{avg_impact}; it is added automatically if not present, and
+the corresponding row is included in the output only when explicitly supplied.}
 
 \item{vec_param_sets}{Optional data frame of vector parameter draws (same
 columns as \code{vec_ent_param}). Each row is one draw. Adds a \code{draw}
@@ -62,6 +75,11 @@ replaces \code{coverage_vec} for that draw.}
 
 \item{duration_years}{Duration of the intervention period in years
 (one time point per day). Default 3 years.}
+
+\item{insecticide_decay}{Logical (default \code{TRUE}). If \code{FALSE}, the
+per-component insecticide decay columns (\code{halflife_*}, \code{decay_*},
+\code{L_*}, \code{kappa_*}) are ignored: efficacies keep their initial
+(e.g. unwashed) values and only attrition decays.}
 
 \item{npoints}{Deprecated. Use \code{duration_years} instead.}
 }

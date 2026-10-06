@@ -7,22 +7,35 @@
 decay_function(L, kappa = NULL, datej, decay)
 }
 \arguments{
-\item{L}{Half-life (or decay scale) parameter.}
+\item{L}{Half-life or time to zero (days), depending on the shape (see
+table). Ignored for \code{"none"} / \code{"constant"}.}
 
 \item{kappa}{Shape exponent (required for Weibull, Hill, smooth-compact;
-ignored for linear and none).}
+ignored otherwise).}
 
 \item{datej}{Numeric vector of time points (days) at which to evaluate the
 decay.}
 
-\item{decay}{String specifying the decay shape. One of \code{"weibull"},
-\code{"linear"}, \code{"hill"}, \code{"smooth-compact"}, \code{"none"}.}
+\item{decay}{String specifying the decay shape (see table).}
 }
 \value{
 Numeric vector of decay values in \code{[0, 1]}.
 }
 \description{
 Evaluates one of several decay functions at a vector of time
-points. Supported shapes: \code{"weibull"}, \code{"linear"}, \code{"hill"},
-\code{"smooth-compact"}, \code{"none"}.
+points, following the OpenMalaria decay conventions. With
+\eqn{x = t / L}:
+\tabular{lll}{
+  \strong{shape} \tab \strong{value} \tab \strong{meaning of L} \cr
+  \code{"weibull"} \tab \eqn{\exp(-x^\kappa \log 2)} \tab half-life \cr
+  \code{"exponential"} \tab \eqn{\exp(-x \log 2)} \tab half-life \cr
+  \code{"hill"} \tab \eqn{1 / (1 + x^\kappa)} \tab half-life \cr
+  \code{"linear"} \tab \eqn{\max(1 - x, 0)} \tab time to zero \cr
+  \code{"step"} \tab 1 if \eqn{t < L}, else 0 \tab time to zero \cr
+  \code{"smooth-compact"} \tab \eqn{\exp(\kappa - \kappa / (1 - x^2))} if
+    \eqn{t < L}, else 0 \tab time to zero \cr
+  \code{"none"} / \code{"constant"} \tab 1 \tab unused \cr
+}
+Shape names are case-insensitive; \code{"smoothcompact"} and
+\code{"no decay"} are accepted as aliases.
 }

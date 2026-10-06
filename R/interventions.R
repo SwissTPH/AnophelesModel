@@ -4,37 +4,67 @@
 #' @title Parametric decay functions for intervention effects
 #'
 #' @description Evaluates one of several decay functions at a vector of time
-#' points. Supported shapes: \code{"weibull"}, \code{"linear"}, \code{"hill"},
-#' \code{"smooth-compact"}, \code{"none"}.
+#' points, following the OpenMalaria decay conventions. With
+#' \eqn{x = t / L}:
+#' \tabular{lll}{
+#'   \strong{shape} \tab \strong{value} \tab \strong{meaning of L} \cr
+#'   \code{"weibull"} \tab \eqn{\exp(-x^\kappa \log 2)} \tab half-life \cr
+#'   \code{"exponential"} \tab \eqn{\exp(-x \log 2)} \tab half-life \cr
+#'   \code{"hill"} \tab \eqn{1 / (1 + x^\kappa)} \tab half-life \cr
+#'   \code{"linear"} \tab \eqn{\max(1 - x, 0)} \tab time to zero \cr
+#'   \code{"step"} \tab 1 if \eqn{t < L}, else 0 \tab time to zero \cr
+#'   \code{"smooth-compact"} \tab \eqn{\exp(\kappa - \kappa / (1 - x^2))} if
+#'     \eqn{t < L}, else 0 \tab time to zero \cr
+#'   \code{"none"} / \code{"constant"} \tab 1 \tab unused \cr
+#' }
+#' Shape names are case-insensitive; \code{"smoothcompact"} and
+#' \code{"no decay"} are accepted as aliases.
 #'
-#' @param L Half-life (or decay scale) parameter.
+#' @param L Half-life or time to zero (days), depending on the shape (see
+#' table). Ignored for \code{"none"} / \code{"constant"}.
 #' @param kappa Shape exponent (required for Weibull, Hill, smooth-compact;
-#' ignored for linear and none).
+#' ignored otherwise).
 #' @param datej Numeric vector of time points (days) at which to evaluate the
 #' decay.
-#' @param decay String specifying the decay shape. One of \code{"weibull"},
-#' \code{"linear"}, \code{"hill"}, \code{"smooth-compact"}, \code{"none"}.
+#' @param decay String specifying the decay shape (see table).
 #'
 #' @return Numeric vector of decay values in \code{[0, 1]}.
 #'
 #' @export
 decay_function = function(L, kappa = NULL, datej, decay) {
-    if (decay %in% c("weibull", "Weibull")) {
-        return(exp(-(datej / L)^kappa * log(2)))
-    }
-    if (decay %in% c("linear", "Linear")) {
-        return(1 - datej / L)
-    }
-    if (decay %in% c("hill", "Hill")) {
-        return(1 / (1 + (datej / L)^kappa))
-    }
-    if (decay %in% c("smooth-compact", "smoothcompact")) {
-        return(exp(kappa - kappa / (1 - (datej / L)^2)))
-    }
-    if (decay %in% c("none", "no decay")) {
-        return(rep(1, length(datej)))
-    }
-    stop(paste("Unknown decay type:", decay))
+    valid = c("weibull", "exponential", "hill", "linear", "step",
+              "smooth-compact", "none")
+    if (length(decay) != 1L || is.na(decay))
+        stop("decay must be a single string. Valid types: ",
+             paste(valid, collapse = ", "))
+    shape = tolower(as.character(decay))
+    shape = switch(shape, "smoothcompact" = "smooth-compact",
+                   "no decay" = , "constant" = "none", shape)
+    if (!(shape %in% valid))
+        stop("Unknown decay type: ", paste(decay, collapse = ", "),
+             ". Valid types: ", paste(valid, collapse = ", "))
+
+    if (shape == "none") return(rep(1, length(datej)))
+
+    if (!is.numeric(L) || length(L) != 1L || is.na(L) || L <= 0)
+        stop("decay '", shape, "' requires L to be a single positive number")
+    if (shape %in% c("weibull", "hill", "smooth-compact") &&
+        (!is.numeric(kappa) || length(kappa) != 1L || is.na(kappa) || kappa <= 0))
+        stop("decay '", shape, "' requires kappa to be a single positive number")
+
+    x = datej / L
+    switch(shape,
+        "weibull"     = exp(-x^kappa * log(2)),
+        "exponential" = exp(-x * log(2)),
+        "hill"        = 1 / (1 + x^kappa),
+        "linear"      = pmax(1 - x, 0),
+        "step"        = as.numeric(datej < L),
+        "smooth-compact" = {
+            out    = numeric(length(x))
+            inside = x < 1
+            out[inside] = exp(kappa - kappa / (1 - x[inside]^2))
+            out
+        })
 }
 
 
@@ -104,13 +134,18 @@ init_baseline_intervention = function(model_p, npoints, dummy_host = FALSE) {
 # Returns a list:
 #   surv_mat              [np x npoints] — attrition survival at each timepoint
 #   mult_det/pre/post/hsk [np x npoints] — dimensionless efficacy multipliers
+#   ins                   list(det, pre, post, hsk) of [np x npoints]
+#                         insecticide decay factors (all 1 when no decay)
 #   use_dummy             logical
 #
 # Column conventions (same as run_interventions param_sets):
 #   halflife_attrition / shape_attrition / decay_attrition  (attrition decay)
-#   halflife_det/pre/post/hsk  (linear insecticide half-life, years; legacy)
+#   halflife_det/pre/post/hsk  (linear insecticide time-to-zero, years)
 #   decay_det/pre/post/hsk + L_det/... + kappa_det/...  (general comp. decay)
-make_mult_matrices = function(ps, days) {
+#
+# insecticide_decay = FALSE ignores all per-component columns: efficacies stay
+# at their initial (unwashed) values and only attrition decays.
+make_mult_matrices = function(ps, days, insecticide_decay = TRUE) {
     npoints = length(days)
     np      = nrow(ps)
 
@@ -131,6 +166,7 @@ make_mult_matrices = function(ps, days) {
 
     comp_decay_mat = function(decay_col, L_col, kappa_col, hl_yrs) {
         mat = matrix(1.0, np, npoints)
+        if (!insecticide_decay) return(mat)
         for (p in seq_len(np)) {
             dc = if (!is.null(decay_col) && !is.na(decay_col[p])) decay_col[p] else NA
             Lc = if (!is.null(L_col)     && !is.na(L_col[p]))     L_col[p]     else NA
@@ -138,6 +174,8 @@ make_mult_matrices = function(ps, days) {
                 kc = if (!is.null(kappa_col) && !is.na(kappa_col[p])) kappa_col[p] else NULL
                 mat[p, ] = pmax(decay_function(L = Lc, kappa = kc, datej = days, decay = dc), 0)
             } else if (!is.na(hl_yrs[p])) {
+                # Linear time-to-zero in years; a negative value (washed > unwashed)
+                # gives an increasing factor, kept as fitted.
                 mat[p, ] = pmax(1 - days / (365 * hl_yrs[p]), 0)
             }
         }
@@ -170,7 +208,33 @@ make_mult_matrices = function(ps, days) {
     list(surv_mat  = surv_mat,
          mult_det  = mult_det, mult_pre  = mult_pre,
          mult_post = mult_post, mult_hsk = mult_hsk,
+         ins       = list(det = ins_det, pre = ins_pre,
+                          post = ins_post, hsk = ins_hsk),
          use_dummy = use_dummy)
+}
+
+
+# Internal: fit a Weibull a * exp(-(t/L)^kappa * log(2)) to a decay curve by
+# least squares (as in ITNcascades, RCT_validation/helpfunction_omu_gvi.R).
+# Used to express attrition x insecticide decay as a single Weibull per
+# efficacy component, e.g. for an OpenMalaria GVI export.
+#
+# Returns c(L, kappa, a, rmse); L in days.
+fit_weibull_decay = function(curve, days, L_start = NULL, kappa_start = 1) {
+    if (all(abs(curve - 1) < 1e-12))
+        return(c(L = Inf, kappa = NA_real_, a = 1, rmse = 0))
+    if (is.null(L_start) || !is.finite(L_start) || L_start <= 0) {
+        below   = which(curve <= 0.5 * curve[1])
+        L_start = if (length(below)) max(days[below[1]], 1) else 2 * max(days)
+    }
+    sse = function(par)
+        sum((par[3] * exp(-(days / par[1])^par[2] * log(2)) - curve)^2)
+    fit = optim(c(L_start, kappa_start, min(curve[1], 1)), sse,
+                       method = "L-BFGS-B",
+                       lower = c(1e-6, 1e-6, 0), upper = c(Inf, Inf, 1),
+                       control = list(parscale = c(L_start, 1, 1)))
+    c(L = fit$par[1], kappa = fit$par[2], a = fit$par[3],
+      rmse = sqrt(fit$value / length(days)))
 }
 
 
@@ -220,13 +284,15 @@ apply_eff_matrices = function(mm, alpha_h, PBi_h, PCi_h) {
 #'     host-seeking via a dummy-host mechanism. Dummy-host model only.
 #'     Values > 1 are valid (dummy host more attractive than unprotected humans).
 #' }
-#' @param halflife_attrition Attrition decay scale parameter (days).
+#' @param halflife_attrition Attrition decay parameter \code{L} (days): the
+#' half-life for Weibull / exponential / Hill, the time to zero for linear /
+#' step / smooth-compact (see \code{decay_function()}).
 #' @param shape_attrition Attrition decay shape exponent (for Weibull / Hill /
-#' smooth-compact; set to \code{NULL} for linear / none).
-#' @param decay_attrition Attrition decay shape string (see \code{decay_function()}).
+#' smooth-compact; set to \code{NULL} otherwise).
+#' @param decay_attrition Attrition decay shape string: \code{"weibull"},
+#' \code{"exponential"}, \code{"hill"}, \code{"linear"}, \code{"step"},
+#' \code{"smooth-compact"} or \code{"none"} (see \code{decay_function()}).
 #' Default \code{"weibull"}.
-#' @param decay_insecticide Decay shape for the per-component insecticide decay
-#' triggered by \code{halflife_insecticide}. Default \code{"linear"}.
 #' @param duration_years Duration of the intervention in years. One
 #' interpolation point per day is used, so \code{npoints = round(365 *
 #' duration_years)}. Default 3 years.
@@ -236,16 +302,30 @@ apply_eff_matrices = function(mm, alpha_h, PBi_h, PCi_h) {
 #' When supplied, overrides auto-detection from the names of \code{efficacy}.
 #' The object returned by \code{get_ITN_params()} includes a \code{mode} field
 #' that can be passed here directly.
-#' @param halflife_insecticide Optional named numeric vector with insecticide-
-#' specific half-lives in years, using the same names as \code{efficacy}.
-#' Triggers an additional per-component insecticide decay (shape controlled by
-#' \code{decay_insecticide}) on top of the main attrition.
-#' For more flexible per-component decay, use \code{component_decay} instead.
+#' @param halflife_insecticide Optional named numeric vector (years), using the
+#' same names as \code{efficacy}, triggering an additional per-component
+#' \strong{linear} insecticide decay on top of the main attrition: the efficacy
+#' of a component is multiplied by \eqn{1 - t / (365 \cdot hl)}. Despite its
+#' name, \eqn{hl} is the time at which the effect reaches zero (the effect
+#' halves at \eqn{hl / 2}). This is the convention of the Champagne et al.
+#' (2025) parameterisations returned by \code{get_ITN_params()}, where
+#' \eqn{hl = 3 / (1 - Washed / Unwashed)}, so that efficacy after 3 years
+#' equals the washed (20x) value. Negative values (washed efficacy higher than
+#' unwashed) make the effect increase linearly over time; \code{Inf} means no
+#' insecticide decay. For other decay shapes, use \code{component_decay}.
 #' @param component_decay Optional named list specifying an independent decay
 #' function for each efficacy component, using the same names as \code{efficacy}.
-#' Each element is a list with fields \code{decay} (string), \code{L} (scale in
-#' days), and optionally \code{kappa}. Overrides \code{halflife_insecticide} for
+#' Each element is a list with fields \code{decay} (string), \code{L} (days;
+#' meaning depends on the shape, see \code{decay_function()}), and optionally
+#' \code{kappa}. Overrides \code{halflife_insecticide} for
 #' the same component.
+#' @param insecticide_decay Logical (default \code{TRUE}). If \code{FALSE},
+#' \code{halflife_insecticide} and \code{component_decay} are ignored: the
+#' efficacies keep their initial (e.g. unwashed) values throughout and only
+#' attrition decays. If \code{TRUE}, the per-component insecticide decay is
+#' applied and, in addition, a Weibull decay is fitted for each efficacy
+#' component to the product attrition \eqn{\times} insecticide decay (see
+#' Value).
 #' @param npoints Deprecated. Use \code{duration_years} instead.
 #' @param L Deprecated. Use \code{halflife_attrition} instead.
 #' @param kappa Deprecated. Use \code{shape_attrition} instead.
@@ -254,20 +334,28 @@ apply_eff_matrices = function(mm, alpha_h, PBi_h, PCi_h) {
 #' @return A list of length 1 containing the intervention specification, ready
 #' to pass to \code{calculate_impact()}. Standard model: 3-column effects
 #' matrices. Dummy-host model: 4-column effects matrices.
+#' When \code{insecticide_decay = TRUE}, the element \code{fitted_decay} is a
+#' data frame with one row per efficacy component and columns
+#' \code{component}, \code{L} (Weibull half-life, days), \code{kappa},
+#' \code{a} (amplitude) and \code{rmse}: the single Weibull per component
+#' that best approximates attrition \eqn{\times} insecticide decay over the
+#' intervention duration (as used for OpenMalaria GVI parameterisations).
+#' The model itself always uses the exact (unfitted) decay.
 #'
+#' @importFrom stats optim
 #' @keywords internal
 #' @export
 build_intervention = function(efficacy,
                               halflife_attrition = NULL,
                               shape_attrition    = NULL,
                               decay_attrition    = "weibull",
-                              decay_insecticide  = "linear",
                               duration_years     = 3,
                               model_p            = NULL,
                               name               = NULL,
                               mode               = NULL,
                               halflife_insecticide = NULL,
                               component_decay    = NULL,
+                              insecticide_decay  = TRUE,
                               npoints            = NULL,
                               L = NULL, kappa = NULL, decay = NULL) {
     # Backward compatibility: old parameter names
@@ -323,7 +411,7 @@ build_intervention = function(efficacy,
         deterrency   = if ("Deterrency"   %in% names(efficacy)) unname(efficacy["Deterrency"])   else 0,
         preprandial  = if ("PrePrandial"  %in% names(efficacy)) unname(efficacy["PrePrandial"])  else 0,
         postprandial = if ("PostPrandial" %in% names(efficacy)) unname(efficacy["PostPrandial"]) else 0,
-        halflife_attrition = halflife_attrition,
+        halflife_attrition = if (!is.null(halflife_attrition)) halflife_attrition else NA_real_,
         shape_attrition    = if (!is.null(shape_attrition)) shape_attrition else NA_real_,
         decay_attrition    = decay_attrition,
         stringsAsFactors   = FALSE
@@ -339,14 +427,6 @@ build_intervention = function(efficacy,
                    HostSeekingKilling = "halflife_hsk")
         for (comp in intersect(names(halflife_insecticide), names(nm_map)))
             ps[[nm_map[[comp]]]] = unname(halflife_insecticide[comp])
-        if ("Deterrency"         %in% names(halflife_insecticide) && is.null(component_decay$Deterrency))
-            ps$decay_det = decay_insecticide
-        if ("PrePrandial"        %in% names(halflife_insecticide) && is.null(component_decay$PrePrandial))
-            ps$decay_pre = decay_insecticide
-        if ("PostPrandial"       %in% names(halflife_insecticide) && is.null(component_decay$PostPrandial))
-            ps$decay_post = decay_insecticide
-        if ("HostSeekingKilling" %in% names(halflife_insecticide) && is.null(component_decay$HostSeekingKilling))
-            ps$decay_hsk = decay_insecticide
     }
 
     # component_decay (list of lists) → per-component decay/L/kappa columns
@@ -365,7 +445,7 @@ build_intervention = function(efficacy,
     }
 
     days = seq(0L, npoints - 1L)
-    mm   = make_mult_matrices(ps, days)
+    mm   = make_mult_matrices(ps, days, insecticide_decay = insecticide_decay)
     h    = model_p$host_params
     eff  = apply_eff_matrices(mm, alpha_h = h$alphai[1], PBi_h = h$PBi[1], PCi_h = h$PCi[1])
 
@@ -382,6 +462,26 @@ build_intervention = function(efficacy,
 
     interv_list[[1]]$effects  = interv
     interv_list[[1]]$duration = npoints
+
+    # Single Weibull per component approximating attrition x insecticide decay
+    if (insecticide_decay) {
+        sfx = c(Deterrency = "det", PrePrandial = "pre",
+                PostPrandial = "post", HostSeekingKilling = "hsk")
+        is_weibull = tolower(decay_attrition) == "weibull"
+        comps = intersect(names(sfx), names(efficacy))
+        fits = lapply(comps, function(comp) {
+            curve = mm$surv_mat[1L, ] * mm$ins[[sfx[[comp]]]][1L, ]
+            fit_weibull_decay(curve, days,
+                              L_start     = if (is_weibull) halflife_attrition else NULL,
+                              kappa_start = if (is_weibull && !is.null(shape_attrition))
+                                                shape_attrition else 1)
+        })
+        interv_list[[1]]$fitted_decay = data.frame(
+            component = comps,
+            do.call(rbind, fits),
+            row.names = NULL, stringsAsFactors = FALSE)
+    }
+
     if (!is.null(name)) {
         interv_list[[1]]$parameterisation = name
         interv_list[[1]]$description      = name
@@ -421,9 +521,11 @@ build_intervention = function(efficacy,
 #'     \code{[0,1]} (set to \code{0} for the dummy-host model)
 #'   \item \code{postprandial}: initial post-prandial killing efficacy in
 #'     \code{[0,1]}
-#'   \item \code{halflife_attrition}: attrition decay scale parameter (days)
-#'   \item \code{shape_attrition}: attrition decay shape parameter (set to
-#'     \code{NA} for linear / none)
+#'   \item \code{halflife_attrition}: attrition decay parameter \code{L}
+#'     (days): half-life for Weibull / exponential / Hill, time to zero for
+#'     linear / step / smooth-compact
+#'   \item \code{shape_attrition}: attrition decay shape parameter (required
+#'     for Weibull / Hill / smooth-compact; \code{NA} otherwise)
 #'   \item \code{decay_attrition}: decay shape string (see
 #'     \code{decay_function()})
 #' }
@@ -431,12 +533,15 @@ build_intervention = function(efficacy,
 #' \itemize{
 #'   \item \code{host_seeking_killing}: activates the dummy-host (4-host) model
 #'   \item \code{halflife_det}, \code{halflife_pre}, \code{halflife_post},
-#'     \code{halflife_hsk}: per-component insecticide half-life (years, linear
-#'     decay). \code{halflife_hsk} applies to \code{host_seeking_killing} in
+#'     \code{halflife_hsk}: per-component linear insecticide decay (years);
+#'     despite the name, the time at which the effect reaches zero (see
+#'     \code{halflife_insecticide} in \code{build_intervention()}).
+#'     \code{halflife_hsk} applies to \code{host_seeking_killing} in
 #'     dummy-host mode.
 #'   \item \code{decay_det}, \code{L_det}, \code{kappa_det} (and equivalently
 #'     \code{_pre}, \code{_post}, \code{_hsk}): general per-component decay
-#'     function, half-life (days), and shape. \code{_hsk} controls the decay of
+#'     function, \code{L} (days; meaning depends on the shape, see
+#'     \code{decay_function()}), and shape. \code{_hsk} controls the decay of
 #'     \code{host_seeking_killing}. Overrides the corresponding
 #'     \code{halflife_*} column when both are present.
 #' }
@@ -457,6 +562,10 @@ build_intervention = function(efficacy,
 #' replaces \code{coverage_vec} for that draw.
 #' @param duration_years Duration of the intervention period in years
 #' (one time point per day). Default 3 years.
+#' @param insecticide_decay Logical (default \code{TRUE}). If \code{FALSE}, the
+#' per-component insecticide decay columns (\code{halflife_*}, \code{decay_*},
+#' \code{L_*}, \code{kappa_*}) are ignored: efficacies keep their initial
+#' (e.g. unwashed) values and only attrition decays.
 #' @param npoints Deprecated. Use \code{duration_years} instead.
 #'
 #' @return A \code{data.table} with one row per
@@ -473,6 +582,7 @@ run_interventions = function(param_sets, model_p, coverage_vec,
                              activity_sets     = NULL,
                              coverage_sets     = NULL,
                              duration_years = 3,
+                             insecticide_decay = TRUE,
                              npoints = NULL) {
     if (!is.null(npoints)) {
         warning("'npoints' is deprecated in run_interventions(); use 'duration_years' instead.")
@@ -517,7 +627,8 @@ run_interventions = function(param_sets, model_p, coverage_vec,
     days = seq(0L, npoints - 1L)
 
     # Pre-compute multiplier matrices once when intervention params are fixed
-    fixed_mult = if (is.null(interv_param_sets)) make_mult_matrices(param_sets, days) else NULL
+    fixed_mult = if (is.null(interv_param_sets))
+                     make_mult_matrices(param_sets, days, insecticide_decay) else NULL
 
     # Build draw-specific vector-param model objects
     vec_model_list = if (!is.null(vec_param_sets)) {
@@ -539,7 +650,8 @@ run_interventions = function(param_sets, model_p, coverage_vec,
 
     for (d in seq_len(n_draw)) {
         ps_d      = if (!is.null(interv_param_sets)) interv_param_sets[[d]] else param_sets
-        mm        = if (!is.null(interv_param_sets)) make_mult_matrices(ps_d, days) else fixed_mult
+        mm        = if (!is.null(interv_param_sets))
+                        make_mult_matrices(ps_d, days, insecticide_decay) else fixed_mult
         n_param_d = nrow(ps_d)
         n_host_d  = if (mm$use_dummy) 4L else 3L
 

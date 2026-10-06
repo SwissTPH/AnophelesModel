@@ -139,9 +139,13 @@
 #'      \code{alpha_0}, \code{mu_0}).
 #'   \item \code{Unwashed}: fitted efficacy for a new (unwashed) net.
 #'   \item \code{Washed}: fitted efficacy after washing / ageing.
-#'   \item \code{halflife_insecticide}: per-component step-decay half-life
-#'     (days). Negative values indicate the component efficacy increased
-#'     with washing (treated as \code{Inf} by \code{\link{get_ITN_params}}).
+#'   \item \code{halflife_insecticide}: per-component linear insecticide
+#'     decay (years), computed as \code{3 / (1 - Washed / Unwashed)}. Despite
+#'     the name, it is the time at which the effect reaches zero under linear
+#'     decay, calibrated so that efficacy after 3 years (20 washes) equals
+#'     \code{Washed}. Negative values indicate the component efficacy
+#'     increased with washing; they are kept as fitted (the effect then
+#'     increases linearly over time).
 #' }
 #'
 #' @author Clara Champagne, \email{clara.champagne@swisstph.ch}
