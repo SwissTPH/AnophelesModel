@@ -44,6 +44,11 @@ as its own dummy host, so for people covered by both interventions the
 dummy-host availabilities add up.
 
 The two interventions are evaluated over the shorter of their durations.
+
+Unlike \code{calculate_impact()}, there is no \code{exposure} argument:
+the protected exposure of two products overlaps (e.g. in-bed exposure for
+ITNs is part of indoor exposure for IRS), so supply exposure-adjusted
+coverages (e.g. \code{coverage * Exposure_Indoor_whileinbed}) directly.
 }
 \author{
 Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}

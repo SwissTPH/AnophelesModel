@@ -97,6 +97,43 @@ test_that("calculate_impact and run_interventions give the same avg_impact", {
 })
 
 # ---------------------------------------------------------------------------
+# 3b. Exposure acts on coverage (effective coverage = coverage x exposure)
+# ---------------------------------------------------------------------------
+test_that("calculate_impact exposure is equivalent to scaling the coverage", {
+    interv = bi(std)
+    with_e = calculate_impact(interv, cov, model_p, exposure = 0.6)$interventions_vec[[1]]
+    scaled = calculate_impact(interv, cov * 0.6, model_p)$interventions_vec[[1]]
+    expect_equal(with_e$effects$avg_impact, scaled$effects$avg_impact, tolerance = 1e-12)
+    expect_equal(with_e$coverages, cov)   # reported coverage stays nominal
+    expect_error(calculate_impact(interv, cov, model_p, exposure = 1.2), "exposure")
+    expect_error(calculate_impact(interv, cov, model_p, exposure = c(0.5, 0.6)), "exposure")
+})
+
+test_that("run_interventions applies exposure and exposure_sets", {
+    ps = data.frame(name = "x", deterrency = 0.5, preprandial = 0.4,
+                    postprandial = 0.3, halflife_attrition = 180,
+                    shape_attrition = 2, decay_attrition = "weibull",
+                    stringsAsFactors = FALSE)
+    run = function(...) suppressMessages(
+        run_interventions(ps, model_p, c(0.5, 1), duration_years = 60 / 365, ...))
+
+    e   = run(exposure = 0.6)
+    ref = run(coverage_sets = list(c(0.5, 1) * 0.6))
+    expect_equal(e$avg_impact, ref$avg_impact, tolerance = 1e-12)
+    expect_equal(e$coverage, c(0.5, 1))
+    expect_equal(unique(e$exposure), 0.6)
+
+    sets = run(exposure_sets = c(1, 0.6))
+    expect_equal(sort(unique(sets$draw)), 1:2)
+    expect_equal(sets$avg_impact[sets$draw == 2], e$avg_impact, tolerance = 1e-12)
+    expect_equal(sets$avg_impact[sets$draw == 1], run()$avg_impact, tolerance = 1e-12)
+
+    expect_error(run(exposure_sets = c(1, 0.6), coverage_sets = list(1, 1, 1)),
+                 "same number of draws")
+    expect_error(run(exposure = -0.1), "exposure")
+})
+
+# ---------------------------------------------------------------------------
 # 4. calculate_combined_impact, standard model
 # ---------------------------------------------------------------------------
 test_that("calculate_combined_impact matches the reference for standard interventions", {

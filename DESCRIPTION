@@ -20,10 +20,11 @@ Description: This package provides functions for parameterising and predicting
     quantify how vector bionomics influence the impact of vector control 
     interventions against malaria.
 Imports:
-    ggplot2,
+    ggplot2 (>= 3.4.0),
     data.table,
     checkmate,
-    XML
+    XML,
+    stats
 Suggests: 
     knitr,
     rmarkdown,

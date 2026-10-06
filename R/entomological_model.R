@@ -84,9 +84,9 @@ calc_psts = function(ts, tau, PA, Pdf) {
     kplus = floor(ts/tau) - 1
     kp_v = c(0:kplus)
     if (kplus > 0){
-        s_kplus = rowSums(rep.row(choose(ts - (kp_v+1) * tau + kp_v, kp_v), n_cov) *
-                              rep.col(PA, kplus+1) ^ rep.row(ts - (kp_v+1) * tau, n_cov) *
-                              rep.col(Pdf, kplus+1) ^ rep.row(kp_v, n_cov))
+        s_kplus = rowSums(rep_row(choose(ts - (kp_v+1) * tau + kp_v, kp_v), n_cov) *
+                              rep_col(PA, kplus+1) ^ rep_row(ts - (kp_v+1) * tau, n_cov) *
+                              rep_col(Pdf, kplus+1) ^ rep_row(kp_v, n_cov))
     } else {
         s_kplus = rep(0, n_cov)
     }
@@ -102,9 +102,9 @@ calc_psts = function(ts, tau, PA, Pdf) {
         klplus = floor((ts + l) / tau) - 2
         klp_v = c(0:klplus)
         if (klplus > 0) {
-            s_klplus = rowSums(rep.row(choose(ts + l - (klp_v+2) * tau + klp_v, klp_v), n_cov) *
-                                   rep.col(PA, klplus+1) ^ rep.row(ts + l - (klp_v + 2) * tau, n_cov) *
-                                   rep.col(Pdf, klplus+1) ^ rep.row(klp_v+1, n_cov))
+            s_klplus = rowSums(rep_row(choose(ts + l - (klp_v+2) * tau + klp_v, klp_v), n_cov) *
+                                   rep_col(PA, klplus+1) ^ rep_row(ts + l - (klp_v + 2) * tau, n_cov) *
+                                   rep_col(Pdf, klplus+1) ^ rep_row(klp_v+1, n_cov))
         } else {
             s_klplus = rep(0, n_cov)
         }
@@ -136,11 +136,11 @@ eval_entomological_model = function(interv, vec_p, host_p, Nv0,
     # Expand per-host vectors to full n_rows x n_host matrices when the
     # caller passes scalar-per-host values; leave matrices untouched.
     if (is.vector(interv$PBi)) {
-        PBi_m = rep.row(interv$PBi, n_rows)
-        PCi_m = rep.row(interv$PCi, n_rows)
-        PDi_m = rep.row(interv$PDi, n_rows)
-        PEi_m = rep.row(interv$PEi, n_rows)
-        Kvi_m = rep.row(interv$Kvi, n_rows)
+        PBi_m = rep_row(interv$PBi, n_rows)
+        PCi_m = rep_row(interv$PCi, n_rows)
+        PDi_m = rep_row(interv$PDi, n_rows)
+        PEi_m = rep_row(interv$PEi, n_rows)
+        Kvi_m = rep_row(interv$Kvi, n_rows)
     } else {
         PBi_m = interv$PBi
         PCi_m = interv$PCi
@@ -181,11 +181,11 @@ eval_entomological_model = function(interv, vec_p, host_p, Nv0,
     sr = (Pdif/(1 - PA - Pdf)) * (1 - Pdif / (1 - PA - Pduf)) * psts
 
     # host biting rate (eq. 15 Chitnis et al 2007); host_frac * N_total = Ni
-    sigmai = PAi * PBi_m * rep.col(Nv, n_host_types) /
+    sigmai = PAi * PBi_m * rep_col(Nv, n_host_types) /
              (host_frac * N_total * (host_frac > 0))
 
     # EIR (eq. 16 Chitnis et al. 2007)
-    eiri = sigmai * rep.col(sr, n_host_types)
+    eiri = sigmai * rep_col(sr, n_host_types)
 
     # vectorial capacity (eq. 21 Chitnis et al 2007);
     # N_total * rowSums(host_frac[,1:2]) = rowSums(Ni[,1:2])

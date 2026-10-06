@@ -67,7 +67,7 @@ plot_impact_var = function(species_name, plot_df) {
         ylim(c(0, 100)) + theme(legend.position = "bottom") +
         stat_summary(fun.data = mean_sdl, fun.args = list(mult = 2),
                      geom = "ribbon", alpha = 0.5, colour = NA) +
-        stat_summary(fun = mean, geom = "line", lwd = 0.5) +
+        stat_summary(fun = mean, geom = "line", linewidth = 0.5) +
         scale_color_manual(values = intervention_colors) +
         scale_fill_manual(values = intervention_colors) +
         guides(col="none") +

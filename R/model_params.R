@@ -72,7 +72,8 @@ def_vector_params = function(mosquito_species = "Anopheles gambiae",
                                    col.names = "named", add = assertCol)
         # with the same column names as vec_ent_params
         checkmate::assertSubset(colnames(vector_table), colnames(vec_ent_param),
-                                empty.ok = FALSE, fmatch = FALSE)
+                                empty.ok = FALSE, fmatch = FALSE,
+                                add = assertCol)
         # and numeric, positive entries except for the name of the species
         checkmate::assertDataFrame(subset(vector_table,
                                           select = -c(species_name)),
@@ -176,7 +177,8 @@ def_host_params = function(host_table = NULL, verbose = TRUE) {
                                  lower = 0, upper = 1,
                                  add = assertCol)
         # with values provided for both human and animal hosts
-        checkmate::checkSetEqual(host_table$species, c("human", "animal"))
+        checkmate::assertSetEqual(host_table$host, c("human", "animal"),
+                                  add = assertCol)
         checkmate::reportAssertions(collection = assertCol)
 
         if (verbose) {
@@ -202,7 +204,8 @@ def_host_params = function(host_table = NULL, verbose = TRUE) {
 #' @description \code{def_activity_patterns} This function creates an object
 #' that contains information about mosquito and human activity:
 #' the biting rhythms of the mosquitoes and the times when humans
-#' are indoors or in bed.
+#' are indoors or in bed. Pass the result to \code{calculate_exposure()} to
+#' derive the exposure factor applied to coverage.
 #' @param activity can be either a string corresponding to default entries:
 #' "default_Anopheles_gambiae", "default_Anopheles_albimanus"
 #' or a list object with the following attributes:

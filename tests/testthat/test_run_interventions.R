@@ -347,7 +347,7 @@ test_that("eval_entomological_model reparameterisation is numerically identical"
         frac  = cbind(frac1, frac2, frac3)
 
         n_cov     = nrow(frac)
-        t_avail   = rep.row(alphai_ip, n_cov) * frac
+        t_avail   = rep_row(alphai_ip, n_cov) * frac
         host_frac = frac / N_equiv
 
         res_new = AnophelesModel2:::eval_entomological_model(

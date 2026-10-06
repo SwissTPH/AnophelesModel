@@ -7,7 +7,7 @@
 list_all_species()
 }
 \value{
-Vector of species names (also printed to console).
+Vector of species names.
 }
 \description{
 Lists all mosquito species whose entomological parameters are

@@ -27,6 +27,13 @@ List with proportions of overall exposure:
 Calculates indoor and outdoor proportions of human exposure to
 mosquito biting, based on activity patterns and mosquito endophagy /
 endophily parameters.
+
+The relevant proportion is used as the \code{exposure} argument of
+\code{calculate_impact()} / \code{run_interventions()}, which reduces the
+effective coverage (\code{coverage * exposure}); it does not modify the
+intervention efficacies (unlike AnophelesModel). Typically
+\code{Exposure_Indoor_whileinbed} for ITNs and \code{Exposure_Indoor_total}
+for IRS.
 }
 \author{
 Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}

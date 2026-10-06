@@ -37,7 +37,7 @@ simulate_vc = function(eff, base, vec_p, host_p, coverage_vec,
     param_idx = rep(seq_len(np),    each  = n_cov)
     cov_idx   = rep(seq_len(n_cov), times = np)
 
-    Kvi_big = rep.row(if (use_dummy) c(base$Kvi, 0) else base$Kvi, n_rows)
+    Kvi_big = rep_row(if (use_dummy) c(base$Kvi, 0) else base$Kvi, n_rows)
 
     vc_sum     = matrix(0, np, n_cov)
     impact_sum = matrix(0, np, n_cov)
@@ -93,6 +93,16 @@ simulate_vc = function(eff, base, vec_p, host_p, coverage_vec,
          impact_t   = if (keep_time) impact_t else NULL)
 }
 
+# Internal: validate exposure factor(s) applied to coverage.
+check_exposure = function(exposure, scalar = FALSE) {
+    if (!is.numeric(exposure) || anyNA(exposure) ||
+        any(exposure < 0 | exposure > 1) ||
+        (scalar && length(exposure) != 1L))
+        stop("exposure must be ", if (scalar) "a single number" else "numeric",
+             " in [0, 1]")
+    invisible(exposure)
+}
+
 # Internal: constant parameters of unprotected humans and animals (base
 # argument of simulate_vc) from host parameters of build_model_obj().
 host_base = function(host_p) {
@@ -115,6 +125,12 @@ host_base = function(host_p) {
 #' \code{[0, 1]}). The impact is always computed relative to coverage 0 (no
 #' intervention), which is evaluated internally when not supplied.
 #' @param model_p Model object created with \code{build_model_obj()}.
+#' @param exposure Proportion of human exposure to bites that occurs where
+#' the intervention protects, in \code{[0, 1]} (default 1). The intervention
+#' acts on an effective coverage \code{coverage_vec * exposure}. Typically
+#' \code{calculate_exposure(...)$Exposure_Indoor_whileinbed} for ITNs or
+#' \code{$Exposure_Indoor_total} for IRS. Reported coverages remain the
+#' deployment coverages.
 #' @return List with:
 #' \itemize{
 #'   \item \code{vec_p}: vector parameters from \code{model_p}
@@ -137,7 +153,9 @@ host_base = function(host_p) {
 #'
 #' @export
 #'
-calculate_impact = function(interventions_vec, coverage_vec, model_p) {
+calculate_impact = function(interventions_vec, coverage_vec, model_p,
+                            exposure = 1) {
+    check_exposure(exposure, scalar = TRUE)
     for (i in seq_along(interventions_vec)) {
         e    = interventions_vec[[i]]$effects
         rows = seq_len(interventions_vec[[i]]$duration)
@@ -164,7 +182,7 @@ calculate_impact = function(interventions_vec, coverage_vec, model_p) {
                     Kvi   = e$Kvi[1:3])
 
         sim = simulate_vc(eff, base, model_p$vec_params, model_p$host_params,
-                          coverage_vec, keep_time = TRUE)
+                          coverage_vec * exposure, keep_time = TRUE)
 
         interventions_vec[[i]]$coverages          = coverage_vec
         interventions_vec[[i]]$effects$vc         = sim$vc_t
@@ -204,7 +222,7 @@ calculate_impact = function(interventions_vec, coverage_vec, model_p) {
 #'
 calculate_impact_timepoint = function(intervention_obj, model_obj, n_vec, Ni) {
     N_total   = sum(Ni[1, ])   # total units from user-supplied host fractions
-    t_avail   = rep.row(intervention_obj$alphai, nrow(Ni)) * Ni
+    t_avail   = rep_row(intervention_obj$alphai, nrow(Ni)) * Ni
     host_frac = Ni / N_total
     interv    = intervention_obj[setdiff(names(intervention_obj), "alphai")]
     eval_entomological_model(interv, model_obj$vec_params,
@@ -226,6 +244,11 @@ calculate_impact_timepoint = function(intervention_obj, model_obj, n_vec, Ni) {
 #' dummy-host availabilities add up.
 #'
 #' The two interventions are evaluated over the shorter of their durations.
+#'
+#' Unlike \code{calculate_impact()}, there is no \code{exposure} argument:
+#' the protected exposure of two products overlaps (e.g. in-bed exposure for
+#' ITNs is part of indoor exposure for IRS), so supply exposure-adjusted
+#' coverages (e.g. \code{coverage * Exposure_Indoor_whileinbed}) directly.
 #'
 #' @param combination_name String label for the combination.
 #' @param intervention1 Intervention object from \code{build_intervention()}.

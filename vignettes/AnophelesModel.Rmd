@@ -128,7 +128,11 @@ Time-series vectors can also be supplied directly as a named list with elements
 
 `calculate_exposure()` decomposes total human exposure into indoor/outdoor
 components. For example, `Exposure_Indoor_whileinbed` gives the fraction of bites received
-indoors while sleeping — the portion an ITN would protect against:
+indoors while sleeping — the portion an ITN would protect against
+(`Exposure_Indoor_total` plays the same role for IRS). Unlike in
+AnophelesModel, exposure does not modify the intervention efficacies: it
+reduces the **effective coverage** (`coverage × exposure`), passed via the
+`exposure` argument of `calculate_impact()` and `run_interventions()`:
 ```{r}
 exposure = calculate_exposure(activity_cycles = activity_gambiae,
                               vec_p           = gambiae_vec_p)
@@ -264,20 +268,18 @@ my_interv_compdecay = build_intervention(
 
 ### Step 6: Calculate impact
 
-Pass the intervention object to `calculate_impact()`, supplying the effective
-coverage. The exposure-weighted coverage can be derived from `calculate_exposure()`:
+Pass the intervention object to `calculate_impact()` with the deployment
+coverages. For an ITN, the protected share of exposure is the in-bed exposure
+from Step 3; the model then uses the effective coverage
+`coverage × exposure`, while results are reported against deployment coverage:
 ```{r}
-# Effective in-bed coverage = deployment coverage × fraction of exposure while in bed
-pop_coverage = 0.8
-eff_coverage = pop_coverage * exposure$Exposure_Indoor_whileinbed
-cat("Effective coverage:", round(eff_coverage, 3), "\n")
-
 coverages = seq(0, 1, by = 0.1)
 
 impacts = calculate_impact(
     interventions_vec = my_interv,
     coverage_vec      = coverages,
-    model_p           = model_p
+    model_p           = model_p,
+    exposure          = exposure$Exposure_Indoor_whileinbed
 )
 ```
 
@@ -293,7 +295,8 @@ plot_impact_var("Anopheles gambiae", plot_tab)
 `calculate_combined_impact()` handles two simultaneously deployed
 interventions. Effects combine multiplicatively; dummy-host interventions are
 also supported, with host-seeking killing adding up for people covered by
-both:
+both. There is no `exposure` argument here: pass exposure-adjusted coverages
+directly if needed.
 ```{r}
 interv_ITN = build_intervention(
     efficacy = c(Deterrency = 0.5, PrePrandial = 0.6, PostPrandial = 0.7),
@@ -351,7 +354,7 @@ head(results)
 
 ```{r, dpi=150, fig.cap="Vectorial capacity reduction for three efficacy scenarios."}
 ggplot(results, aes(x=coverage, y=avg_impact*100, colour=name, group=name)) +
-    geom_line(size=0.8) + theme_bw() +
+    geom_line(linewidth=0.8) + theme_bw() +
     labs(x="Coverage", y="Mean reduction in VC (%)", colour="Scenario")
 ```
 
@@ -483,7 +486,7 @@ added to the output. All active sources must supply the same `n_draw`.
 | `vec_param_sets` | data frame (`n_draw` rows) | Vector bionomic parameter draws |
 | `interv_param_sets` | list of `n_draw` data frames | Intervention parameter draws |
 | `coverage_sets` | list of `n_draw` numeric vectors | Coverage grid draws |
-| `activity_sets` | list of `n_draw` activity objects | Reserved for future use |
+| `exposure_sets` | numeric vector of `n_draw` exposure factors | Exposure (activity pattern) draws, e.g. from `calculate_exposure()` |
 
 **Vector parameter uncertainty** — 200 draws of *An. gambiae* bionomics:
 ```{r, dpi=150, fig.cap="Uncertainty band (median + 95% interval) across 200 draws of vector parameters."}
@@ -520,15 +523,15 @@ uncertainty_results = run_interventions(
 # parameters (M, Chi, A0, …) alongside avg_vc, avg_impact, and draw.
 head(uncertainty_results)
 
-library(dplyr)
-unc_summary = uncertainty_results %>%
-    group_by(coverage) %>%
-    summarise(med=median(avg_impact), lo=quantile(avg_impact,0.025),
-              hi=quantile(avg_impact,0.975), .groups="drop")
+# run_interventions() returns a data.table: summarise by coverage
+unc_summary = uncertainty_results[, .(med = median(avg_impact),
+                                      lo  = quantile(avg_impact, 0.025),
+                                      hi  = quantile(avg_impact, 0.975)),
+                                  by = coverage]
 
 ggplot(unc_summary, aes(x=coverage)) +
     geom_ribbon(aes(ymin=lo*100, ymax=hi*100), alpha=0.3, fill="#3182bd") +
-    geom_line(aes(y=med*100), colour="#3182bd", size=1) + theme_bw() +
+    geom_line(aes(y=med*100), colour="#3182bd", linewidth=1) + theme_bw() +
     labs(x="Coverage", y="Mean reduction in VC (%)",
          subtitle="Median + 95% interval, 200 draws (M sd=0.06, A0 sd=0.03)")
 ```

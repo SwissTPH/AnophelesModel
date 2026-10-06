@@ -117,11 +117,11 @@ init_baseline_intervention = function(model_p, npoints, dummy_host = FALSE) {
         effects = list(
             host_types = host_types,
             Kvi      = Kvi_vec,
-            alphai   = rep.row(alphai_row, npoints),
-            PBi      = rep.row(PBi_row,   npoints),
-            PCi      = rep.row(PCi_row,   npoints),
-            PDi      = rep.row(PDi_row,   npoints),
-            PEi      = rep.row(PEi_row,   npoints),
+            alphai   = rep_row(alphai_row, npoints),
+            PBi      = rep_row(PBi_row,   npoints),
+            PCi      = rep_row(PCi_row,   npoints),
+            PDi      = rep_row(PDi_row,   npoints),
+            PEi      = rep_row(PEi_row,   npoints),
             survival = rep(1, npoints)
         )
     )
@@ -330,10 +330,6 @@ apply_eff_matrices = function(mm, host_p) {
 #' applied and, in addition, a Weibull decay is fitted for each efficacy
 #' component to the product attrition \eqn{\times} insecticide decay (see
 #' Value).
-#' @param npoints Deprecated. Use \code{duration_years} instead.
-#' @param L Deprecated. Use \code{halflife_attrition} instead.
-#' @param kappa Deprecated. Use \code{shape_attrition} instead.
-#' @param decay Deprecated. Use \code{decay_attrition} instead.
 #'
 #' @return A list of length 1 containing the intervention specification, ready
 #' to pass to \code{calculate_impact()}. Standard model: 3-column effects
@@ -359,23 +355,7 @@ build_intervention = function(efficacy,
                               mode               = NULL,
                               halflife_insecticide = NULL,
                               component_decay    = NULL,
-                              insecticide_decay  = TRUE,
-                              npoints            = NULL,
-                              L = NULL, kappa = NULL, decay = NULL) {
-    # Backward compatibility: old parameter names
-    if (!is.null(L)) {
-        warning("'L' is deprecated in build_intervention(); use 'halflife_attrition' instead.")
-        if (is.null(halflife_attrition)) halflife_attrition = L
-    }
-    if (!is.null(kappa)) {
-        warning("'kappa' is deprecated in build_intervention(); use 'shape_attrition' instead.")
-        if (is.null(shape_attrition)) shape_attrition = kappa
-    }
-    if (!is.null(decay)) {
-        warning("'decay' is deprecated in build_intervention(); use 'decay_attrition' instead.")
-        decay_attrition = decay
-    }
-
+                              insecticide_decay  = TRUE) {
     if (is.null(model_p)) stop("model_p must be provided")
     prob_components = c("Deterrency", "PrePrandial", "PostPrandial")
     bad = names(efficacy)[names(efficacy) %in% prob_components & (efficacy < 0 | efficacy > 1)]
@@ -391,18 +371,20 @@ build_intervention = function(efficacy,
     if (length(unknown))
         stop("unrecognised efficacy component(s): ", paste(unknown, collapse = ", "),
              ". Valid names: ", paste(valid_components, collapse = ", "))
-    if (!is.null(npoints)) {
-        warning("'npoints' is deprecated in build_intervention(); use 'duration_years' instead.")
-        npoints = max(npoints, 1L)
-    } else {
-        npoints = max(round(365 * duration_years), 1L)
-    }
+    npoints = max(round(365 * duration_years), 1L)
 
-    use_dummy_host = if (!is.null(mode)) {
-        mode == "dummy_host"
-    } else {
-        "HostSeekingKilling" %in% names(efficacy)
+    has_hsk = "HostSeekingKilling" %in% names(efficacy)
+    if (!is.null(mode)) {
+        if (length(mode) != 1L || !(mode %in% c("standard", "dummy_host")))
+            stop("mode must be \"standard\" or \"dummy_host\"")
+        if (mode == "standard" && has_hsk)
+            stop("HostSeekingKilling requires mode = \"dummy_host\"")
     }
+    use_dummy_host = if (!is.null(mode)) mode == "dummy_host" else has_hsk
+    if (use_dummy_host && "PrePrandial" %in% names(efficacy) &&
+        efficacy[["PrePrandial"]] != 0)
+        stop("The dummy-host model (HostSeekingKilling) and PrePrandial are ",
+             "mutually exclusive: omit PrePrandial or set it to 0")
     if (use_dummy_host) {
         message("build_intervention: using dummy-host (4-host) model with HostSeekingKilling.")
     } else {
@@ -512,8 +494,8 @@ build_intervention = function(efficacy,
 #'     \code{postprandial}.
 #'   \item \strong{Dummy-host (4-host)}: \code{host_seeking_killing} column
 #'     present with at least one non-\code{NA} value. Uses \code{deterrency},
-#'     \code{host_seeking_killing}, \code{postprandial}. Set
-#'     \code{preprandial = 0}.
+#'     \code{host_seeking_killing}, \code{postprandial}. \code{preprandial}
+#'     must be \code{0} for all rows.
 #' }
 #'
 #' @param param_sets Data frame where each row defines one parameter set.
@@ -561,7 +543,9 @@ build_intervention = function(efficacy,
 #' same columns as \code{param_sets}. Row \code{d} replaces \code{param_sets}
 #' for draw \code{d}. A list of \code{n_draw} single-row data frames is also
 #' accepted for backward compatibility.
-#' @param activity_sets Reserved for future use.
+#' @param exposure_sets Optional numeric vector (or list) of \code{n_draw}
+#' exposure factors; each replaces \code{exposure} for that draw, e.g. to
+#' propagate uncertainty in activity patterns via \code{calculate_exposure()}.
 #' @param coverage_sets Optional list of \code{n_draw} coverage vectors; each
 #' replaces \code{coverage_vec} for that draw.
 #' @param duration_years Duration of the intervention period in years
@@ -570,28 +554,33 @@ build_intervention = function(efficacy,
 #' per-component insecticide decay columns (\code{halflife_*}, \code{decay_*},
 #' \code{L_*}, \code{kappa_*}) are ignored: efficacies keep their initial
 #' (e.g. unwashed) values and only attrition decays.
-#' @param npoints Deprecated. Use \code{duration_years} instead.
+#' @param exposure Proportion of human exposure to bites that occurs where
+#' the intervention protects, in \code{[0, 1]} (default 1). The intervention
+#' acts on an effective coverage \code{coverage * exposure}. Typically
+#' \code{calculate_exposure(...)$Exposure_Indoor_whileinbed} for ITNs or
+#' \code{$Exposure_Indoor_total} for IRS.
 #'
 #' @return A \code{data.table} with one row per
 #' \code{(parameter set × coverage [× draw])}. All columns of \code{param_sets}
 #' are included; when \code{vec_param_sets} is supplied the draw-specific vector
-#' parameter columns are appended. Output columns \code{coverage},
-#' \code{avg_vc}, \code{avg_impact}, and (when any uncertainty source is
-#' supplied) \code{draw} follow.
+#' parameter columns are appended. Output columns \code{coverage} (deployment
+#' coverage), \code{exposure}, \code{avg_vc}, \code{avg_impact}, and (when any
+#' uncertainty source is supplied) \code{draw} follow.
 #'
 #' @export
 run_interventions = function(param_sets, model_p, coverage_vec,
                              vec_param_sets    = NULL,
                              interv_param_sets = NULL,
-                             activity_sets     = NULL,
+                             exposure_sets     = NULL,
                              coverage_sets     = NULL,
                              duration_years = 3,
                              insecticide_decay = TRUE,
-                             npoints = NULL) {
-    if (!is.null(npoints)) {
-        warning("'npoints' is deprecated in run_interventions(); use 'duration_years' instead.")
-    } else {
-        npoints = round(365 * duration_years)
+                             exposure = 1) {
+    npoints = round(365 * duration_years)
+    check_exposure(exposure, scalar = TRUE)
+    if (!is.null(exposure_sets)) {
+        exposure_sets = unlist(exposure_sets)
+        check_exposure(exposure_sets)
     }
 
     # Normalise interv_param_sets: accept a data frame (n_draw rows) or a list
@@ -599,27 +588,32 @@ run_interventions = function(param_sets, model_p, coverage_vec,
         interv_param_sets = lapply(seq_len(nrow(interv_param_sets)),
                                    function(i) interv_param_sets[i, , drop = FALSE])
 
-    # Emit model-type message once, based on param_sets (or first draw)
-    ps_check = if (!is.null(interv_param_sets)) interv_param_sets[[1]] else param_sets
-    if (!is.null(ps_check$host_seeking_killing) && any(!is.na(ps_check$host_seeking_killing))) {
+    # Model type (message once) and mutual exclusivity of the two models
+    all_ps = if (!is.null(interv_param_sets)) interv_param_sets else list(param_sets)
+    is_dummy = function(ps) !is.null(ps$host_seeking_killing) &&
+                            any(!is.na(ps$host_seeking_killing))
+    if (is_dummy(all_ps[[1]])) {
         message("run_interventions: using dummy-host (4-host) model ",
-                "(host_seeking_killing column detected). ",
-                "Set preprandial = 0 for all rows.")
+                "(host_seeking_killing column detected).")
     } else {
         message("run_interventions: using standard (3-host) model.")
     }
+    for (ps in all_ps)
+        if (is_dummy(ps) && any(ps$preprandial != 0, na.rm = TRUE))
+            stop("The dummy-host model (host_seeking_killing) and pre-prandial ",
+                 "killing are mutually exclusive: set preprandial = 0 for all rows.")
 
     # Determine n_draw from any supplied uncertainty source
     n_draw_sources = c(
         if (!is.null(vec_param_sets))    nrow(vec_param_sets)       else NULL,
         if (!is.null(interv_param_sets)) length(interv_param_sets)  else NULL,
-        if (!is.null(activity_sets))     length(activity_sets)       else NULL,
+        if (!is.null(exposure_sets))     length(exposure_sets)       else NULL,
         if (!is.null(coverage_sets))     length(coverage_sets)       else NULL
     )
     if (length(n_draw_sources) > 0) {
         if (length(unique(n_draw_sources)) != 1L)
             stop("All uncertainty sources (vec_param_sets, interv_param_sets, ",
-                 "activity_sets, coverage_sets) must have the same number of draws. ",
+                 "exposure_sets, coverage_sets) must have the same number of draws. ",
                  "Got: ", paste(n_draw_sources, collapse = ", "))
         n_draw   = n_draw_sources[1L]
         draw_ids = seq_len(n_draw)
@@ -658,18 +652,20 @@ run_interventions = function(param_sets, model_p, coverage_vec,
                         make_mult_matrices(ps_d, days, insecticide_decay) else fixed_mult
         n_param_d = nrow(ps_d)
         cov_d     = if (!is.null(coverage_sets)) coverage_sets[[d]] else coverage_vec
+        exp_d     = if (!is.null(exposure_sets)) exposure_sets[[d]] else exposure
 
         mp     = vec_model_list[[d]]
         vec_p  = mp$vec_params
         host_p = mp$host_params
 
         # Pre-multiply decay multipliers by baseline host params, then run the
-        # shared time loop (coverage 0 baseline added / dropped internally)
+        # shared time loop on the effective coverage (coverage 0 baseline
+        # added / dropped internally, so outputs map 1:1 onto cov_d)
         sim = simulate_vc(apply_eff_matrices(mm, host_p), host_base(host_p),
-                          vec_p, host_p, cov_d)
+                          vec_p, host_p, cov_d * exp_d)
         avg_vc     = sim$avg_vc
         avg_impact = sim$avg_impact
-        cov_out    = sim$coverage
+        cov_out    = cov_d
         n_cov_out  = length(cov_out)
 
         out_param_idx = rep(seq_len(n_param_d), each = n_cov_out)
@@ -682,6 +678,7 @@ run_interventions = function(param_sets, model_p, coverage_vec,
                                        vp_row[rep(1L, nrow(ps_expanded)), , drop = FALSE])
         }
         ps_expanded$coverage   = rep(cov_out,          times = n_param_d)
+        ps_expanded$exposure   = exp_d
         ps_expanded$avg_vc     = as.vector(t(avg_vc))
         ps_expanded$avg_impact = as.vector(t(avg_impact))
         if (!is.null(draw_ids)) ps_expanded$draw = draw_ids[d]

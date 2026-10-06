@@ -23,7 +23,7 @@ plot_VC_red = function(plot_df, species_name) {
         theme(legend.position = "bottom") +
         ylim(c(0, 100)) +
         geom_line(aes(x=intervention_coverage, y=intervention_impact*100,
-                      col=factor(intervention_name)), size=1) +
+                      col=factor(intervention_name)), linewidth=1) +
         scale_color_manual(values = intervention_colors) +
         guides(color = guide_legend(nrow = 2,byrow = TRUE)) +
         labs(title = paste(species_name), fill="",

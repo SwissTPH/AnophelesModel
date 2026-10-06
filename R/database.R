@@ -6,7 +6,7 @@
 #' @description Lists all mosquito species whose entomological parameters are
 #' available in the package.
 #'
-#' @return Vector of species names (also printed to console).
+#' @return Vector of species names.
 #'
 #' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
 #'
@@ -18,7 +18,6 @@
 #'
 list_all_species = function() {
     species_vec = unique(vec_ent_param$species_name)
-    paste(species_vec, collapse = ", ")
     return(species_vec)
 }
 
@@ -73,6 +72,13 @@ list_activity = function(species = "Anopheles gambiae", sampling = "HBI",
 #' @description Calculates indoor and outdoor proportions of human exposure to
 #' mosquito biting, based on activity patterns and mosquito endophagy /
 #' endophily parameters.
+#'
+#' The relevant proportion is used as the \code{exposure} argument of
+#' \code{calculate_impact()} / \code{run_interventions()}, which reduces the
+#' effective coverage (\code{coverage * exposure}); it does not modify the
+#' intervention efficacies (unlike AnophelesModel). Typically
+#' \code{Exposure_Indoor_whileinbed} for ITNs and \code{Exposure_Indoor_total}
+#' for IRS.
 #'
 #' @param activity_cycles List with time-series attributes: \code{HBI},
 #' \code{HBO}, \code{humans_indoors}, \code{humans_in_bed}.

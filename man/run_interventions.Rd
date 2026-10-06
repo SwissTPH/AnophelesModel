@@ -10,11 +10,11 @@ run_interventions(
   coverage_vec,
   vec_param_sets = NULL,
   interv_param_sets = NULL,
-  activity_sets = NULL,
+  exposure_sets = NULL,
   coverage_sets = NULL,
   duration_years = 3,
   insecticide_decay = TRUE,
-  npoints = NULL
+  exposure = 1
 )
 }
 \arguments{
@@ -68,7 +68,9 @@ same columns as \code{param_sets}. Row \code{d} replaces \code{param_sets}
 for draw \code{d}. A list of \code{n_draw} single-row data frames is also
 accepted for backward compatibility.}
 
-\item{activity_sets}{Reserved for future use.}
+\item{exposure_sets}{Optional numeric vector (or list) of \code{n_draw}
+exposure factors; each replaces \code{exposure} for that draw, e.g. to
+propagate uncertainty in activity patterns via \code{calculate_exposure()}.}
 
 \item{coverage_sets}{Optional list of \code{n_draw} coverage vectors; each
 replaces \code{coverage_vec} for that draw.}
@@ -81,15 +83,19 @@ per-component insecticide decay columns (\code{halflife_*}, \code{decay_*},
 \code{L_*}, \code{kappa_*}) are ignored: efficacies keep their initial
 (e.g. unwashed) values and only attrition decays.}
 
-\item{npoints}{Deprecated. Use \code{duration_years} instead.}
+\item{exposure}{Proportion of human exposure to bites that occurs where
+the intervention protects, in \code{[0, 1]} (default 1). The intervention
+acts on an effective coverage \code{coverage * exposure}. Typically
+\code{calculate_exposure(...)$Exposure_Indoor_whileinbed} for ITNs or
+\code{$Exposure_Indoor_total} for IRS.}
 }
 \value{
 A \code{data.table} with one row per
 \code{(parameter set × coverage [× draw])}. All columns of \code{param_sets}
 are included; when \code{vec_param_sets} is supplied the draw-specific vector
-parameter columns are appended. Output columns \code{coverage},
-\code{avg_vc}, \code{avg_impact}, and (when any uncertainty source is
-supplied) \code{draw} follow.
+parameter columns are appended. Output columns \code{coverage} (deployment
+coverage), \code{exposure}, \code{avg_vc}, \code{avg_impact}, and (when any
+uncertainty source is supplied) \code{draw} follow.
 }
 \description{
 Fully vectorised runner: evaluates the entomological model for
@@ -108,7 +114,7 @@ model is auto-detected from \code{param_sets}:
     \code{postprandial}.
   \item \strong{Dummy-host (4-host)}: \code{host_seeking_killing} column
     present with at least one non-\code{NA} value. Uses \code{deterrency},
-    \code{host_seeking_killing}, \code{postprandial}. Set
-    \code{preprandial = 0}.
+    \code{host_seeking_killing}, \code{postprandial}. \code{preprandial}
+    must be \code{0} for all rows.
 }
 }

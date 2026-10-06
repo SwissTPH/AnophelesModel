@@ -4,7 +4,7 @@
 \alias{calculate_impact}
 \title{Calculate vectorial capacity reduction for a list of interventions}
 \usage{
-calculate_impact(interventions_vec, coverage_vec, model_p)
+calculate_impact(interventions_vec, coverage_vec, model_p, exposure = 1)
 }
 \arguments{
 \item{interventions_vec}{List of intervention objects created with
@@ -15,6 +15,13 @@ calculate_impact(interventions_vec, coverage_vec, model_p)
 intervention), which is evaluated internally when not supplied.}
 
 \item{model_p}{Model object created with \code{build_model_obj()}.}
+
+\item{exposure}{Proportion of human exposure to bites that occurs where
+the intervention protects, in \code{[0, 1]} (default 1). The intervention
+acts on an effective coverage \code{coverage_vec * exposure}. Typically
+\code{calculate_exposure(...)$Exposure_Indoor_whileinbed} for ITNs or
+\code{$Exposure_Indoor_total} for IRS. Reported coverages remain the
+deployment coverages.}
 }
 \value{
 List with:

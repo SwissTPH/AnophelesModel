@@ -15,11 +15,7 @@ build_intervention(
   mode = NULL,
   halflife_insecticide = NULL,
   component_decay = NULL,
-  insecticide_decay = TRUE,
-  npoints = NULL,
-  L = NULL,
-  kappa = NULL,
-  decay = NULL
+  insecticide_decay = TRUE
 )
 }
 \arguments{
@@ -88,14 +84,6 @@ attrition decays. If \code{TRUE}, the per-component insecticide decay is
 applied and, in addition, a Weibull decay is fitted for each efficacy
 component to the product attrition \eqn{\times} insecticide decay (see
 Value).}
-
-\item{npoints}{Deprecated. Use \code{duration_years} instead.}
-
-\item{L}{Deprecated. Use \code{halflife_attrition} instead.}
-
-\item{kappa}{Deprecated. Use \code{shape_attrition} instead.}
-
-\item{decay}{Deprecated. Use \code{decay_attrition} instead.}
 }
 \value{
 A list of length 1 containing the intervention specification, ready

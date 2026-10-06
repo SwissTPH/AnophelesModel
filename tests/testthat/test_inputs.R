@@ -432,3 +432,36 @@ test_that("build_intervention errors on unrecognised efficacy component names", 
     )
 })
 
+test_that("standard and dummy-host models are mutually exclusive", {
+    model_p = build_model_obj(def_vector_params("Anopheles gambiae"), def_host_params())
+    bi = function(efficacy, ...) suppressMessages(build_intervention(
+        efficacy = efficacy, halflife_attrition = 180, shape_attrition = 2,
+        duration_years = 1 / 365, model_p = model_p, ...))
+
+    expect_error(bi(c(Deterrency = 0.3, PostPrandial = 0.4), mode = "dummy"),
+                 "mode must be")
+    expect_error(bi(c(Deterrency = 0.3, HostSeekingKilling = 2), mode = "standard"),
+                 "requires mode")
+    expect_error(bi(c(Deterrency = 0.3, PrePrandial = 0.2, HostSeekingKilling = 2)),
+                 "mutually exclusive")
+    # PrePrandial = 0 alongside HostSeekingKilling is accepted
+    expect_no_error(bi(c(Deterrency = 0.3, PrePrandial = 0, HostSeekingKilling = 2)))
+
+    ps = data.frame(name = "x", deterrency = 0.3, preprandial = 0.2,
+                    postprandial = 0.4, host_seeking_killing = 2,
+                    halflife_attrition = 180, shape_attrition = 2,
+                    decay_attrition = "weibull", stringsAsFactors = FALSE)
+    expect_error(suppressMessages(run_interventions(ps, model_p, c(0, 1),
+                                                    duration_years = 1 / 365)),
+                 "mutually exclusive")
+})
+
+test_that("removed deprecated arguments are no longer accepted", {
+    model_p = build_model_obj(def_vector_params("Anopheles gambiae"), def_host_params())
+    expect_error(build_intervention(efficacy = c(Deterrency = 0.3), L = 180,
+                                    model_p = model_p), "unused argument")
+    expect_error(build_intervention(efficacy = c(Deterrency = 0.3), npoints = 10,
+                                    halflife_attrition = 180, shape_attrition = 2,
+                                    model_p = model_p), "unused argument")
+})
+

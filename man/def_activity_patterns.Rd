@@ -35,7 +35,8 @@ list object with the time series attributes:
 \code{def_activity_patterns} This function creates an object
 that contains information about mosquito and human activity:
 the biting rhythms of the mosquitoes and the times when humans
-are indoors or in bed.
+are indoors or in bed. Pass the result to \code{calculate_exposure()} to
+derive the exposure factor applied to coverage.
 }
 \examples{
 # Retrieve default human and mosquito activity patterns

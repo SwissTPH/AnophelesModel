@@ -148,7 +148,7 @@ get_ITN_params = function(net_type, EHT, mode = "standard",
         print(round(efficacy, 3))
         cat("Insecticide decay, linear time to zero (years; omitted = no decay):\n")
         if (length(halflife_insecticide) > 0) print(round(halflife_insecticide, 3))
-        else cat("  (none — all components constant)\n")
+        else cat("  (none - all components constant)\n")
     }
 
     list(efficacy             = efficacy,
