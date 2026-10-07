@@ -388,7 +388,7 @@ test_that("build_intervention output matches supplied efficacy inputs exactly at
 test_that("build_intervention errors on out-of-range probability efficacy values", {
     # Replaces old test that expected def_interventions_effects() to error when
     # alphai > 1 was passed. Deterrency/PrePrandial/PostPrandial are probabilities
-    # and must be in [0,1]; HostSeekingKilling is a rate multiplier (>= 0, can exceed 1).
+    # and must be in [0,1]; HostSeekingKilling is an absolute rate (>= 0, can exceed 1).
     model_p = build_model_obj(def_vector_params("Anopheles gambiae"), def_host_params())
 
     # Probability components outside [0,1] must error
@@ -408,7 +408,7 @@ test_that("build_intervention errors on out-of-range probability efficacy values
         ),
         regexp = "\\[0, 1\\]"
     )
-    # HostSeekingKilling > 1 is valid (rate multiplier, not a probability)
+    # HostSeekingKilling > 1 is valid (absolute rate, not a probability)
     expect_no_error(
         build_intervention(
             efficacy = c(Deterrency = 0.3, PostPrandial = 0.4, HostSeekingKilling = 3.58),
@@ -430,6 +430,16 @@ test_that("build_intervention errors on unrecognised efficacy component names", 
             duration_years = 1 / 365, model_p = model_p
         )
     )
+})
+
+test_that("HostSeekingKilling is used directly as the per-day dummy availability (no td)", {
+    # Provisional convention: a hut-night is treated as a day (see CLAUDE.md)
+    model_p = build_model_obj(def_vector_params("Anopheles gambiae"), def_host_params())
+    interv = suppressMessages(build_intervention(
+        efficacy = c(Deterrency = 0.3, HostSeekingKilling = 0.61, PostPrandial = 0.4),
+        halflife_attrition = 180, shape_attrition = 2,
+        duration_years = 1 / 365, model_p = model_p))
+    expect_equal(interv[[1]]$effects$alphai[1, 4], 0.61)
 })
 
 test_that("standard and dummy-host models are mutually exclusive", {

@@ -235,7 +235,12 @@ my_interv_custom = build_intervention(
 
 **Dummy-host model** — host-seeking killing replaces pre-prandial; deterrency
 and post-prandial killing remain. Use `mode = "dummy_host"` to load the
-corresponding parameters from the database:
+corresponding parameters from the database. In the hut trial fits,
+host-seeking killing is estimated relative to the availability `alpha_0` of
+the trial's control arm; since `alpha_0` varies widely between trials,
+`get_ITN_params()` multiplies it back by the control `alpha_0` of the same arm
+(unwashed or washed) to return an **absolute** value comparable across trials
+(`rescale_hsk = FALSE` skips this for datasets that are already absolute):
 ```{r}
 itn_dh_p = get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host")
 
@@ -398,7 +403,7 @@ dummyhost_ps = data.frame(
     deterrency           = 0.55,
     preprandial          = 0,      # required column; set to 0 in dummy-host mode
     postprandial         = 0.24,
-    host_seeking_killing = 1.10,   # rate multiplier; values > 1 are valid
+    host_seeking_killing = 1.10,   # absolute dummy-host availability (not a probability)
     halflife_attrition   = 180, shape_attrition = 2, decay_attrition = "weibull",
     stringsAsFactors     = FALSE
 )

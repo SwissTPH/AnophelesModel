@@ -37,7 +37,9 @@ Required columns:
 }
 Optional columns:
 \itemize{
-  \item \code{host_seeking_killing}: activates the dummy-host (4-host) model
+  \item \code{host_seeking_killing}: activates the dummy-host (4-host)
+    model; absolute availability of the dummy host (see
+    \code{HostSeekingKilling} in \code{build_intervention()})
   \item \code{halflife_det}, \code{halflife_pre}, \code{halflife_post},
     \code{halflife_hsk}: per-component linear insecticide decay (years);
     despite the name, the time at which the effect reaches zero (see

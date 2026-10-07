@@ -15,6 +15,9 @@ A data frame with columns:
     (\code{Repellent}, \code{Preprandialkilling},
      \code{Postprandialkilling}, \code{KillingDuringHostSeeking},
      \code{alpha_0}, \code{mu_0}).
+    \code{KillingDuringHostSeeking} is relative to the control-arm
+    availability \code{alpha_0} (rows with \code{netType == "control"});
+    \code{\link{get_ITN_params}} rescales it to an absolute value.
   \item \code{Unwashed}: fitted efficacy for a new (unwashed) net.
   \item \code{Washed}: fitted efficacy after washing / ageing.
   \item \code{halflife_insecticide}: per-component linear insecticide

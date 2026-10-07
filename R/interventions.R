@@ -250,7 +250,11 @@ apply_eff_matrices = function(mm, host_p) {
         PCi_1     = host_p$PCi[1]    * mm$mult_post,
         PDi_1     = const(host_p$PDi[1]),
         PEi_1     = const(host_p$PEi[1]),
-        alphai_4  = mm$mult_hsk,   # dummy-host column (zero when not dummy)
+        # Dummy-host availability (zero when not dummy): the absolute host-
+        # seeking killing is used directly as a per-day rate. EHT fits are per
+        # hut-night (no td); by provisional convention a hut-night is treated
+        # as a day (no division by vec_p$td), see build_intervention() docs.
+        alphai_4  = mm$mult_hsk,
         surv_mat  = mm$surv_mat,
         use_dummy = mm$use_dummy
     )
@@ -285,9 +289,25 @@ apply_eff_matrices = function(mm, host_p) {
 #'   \item \code{"PostPrandial"} in \code{[0,1]} — reduces post-feeding
 #'     survival (\code{PCi}) for protected humans.
 #'   \item \code{"HostSeekingKilling"} \eqn{\geq 0} — killing during
-#'     host-seeking via a dummy-host mechanism. Dummy-host model only.
-#'     Values > 1 are valid (dummy host more attractive than unprotected humans).
+#'     host-seeking via a dummy-host mechanism. Dummy-host model only. An
+#'     \strong{absolute} rate, not a probability: it is used directly as the
+#'     availability of the dummy host (one per protected person), in the
+#'     same units as the host availabilities \code{alphai}. Values from
+#'     experimental hut fits that are relative to the control availability
+#'     \code{alpha_0} must first be multiplied by \code{alpha_0}
+#'     (\code{get_ITN_params()} does this).
 #' }
+#'
+#' Note on time units: the experimental hut model has no time scale (its
+#' rates are per hut-night), whereas the rates of this package are per day,
+#' with \code{td} the duration of host seeking. By convention, a hut-night is
+#' treated as a day: \code{HostSeekingKilling} is used directly as a per-day
+#' rate, without dividing by \code{td}. This is provisional, until the
+#' experimental hut fitting model is improved. With this convention, the field
+#' impacts of the dummy-host parameterisations are of the same order as those
+#' of the standard parameterisations of the same trials, whereas dividing by
+#' \code{td} gives systematically higher impacts (the standard model is not a
+#' validated benchmark either).
 #' @param halflife_attrition Attrition decay parameter \code{L} (days): the
 #' half-life for Weibull / exponential / Hill, the time to zero for linear /
 #' step / smooth-compact (see \code{decay_function()}).
@@ -517,7 +537,9 @@ build_intervention = function(efficacy,
 #' }
 #' Optional columns:
 #' \itemize{
-#'   \item \code{host_seeking_killing}: activates the dummy-host (4-host) model
+#'   \item \code{host_seeking_killing}: activates the dummy-host (4-host)
+#'     model; absolute availability of the dummy host (see
+#'     \code{HostSeekingKilling} in \code{build_intervention()})
 #'   \item \code{halflife_det}, \code{halflife_pre}, \code{halflife_post},
 #'     \code{halflife_hsk}: per-component linear insecticide decay (years);
 #'     despite the name, the time at which the effect reaches zero (see

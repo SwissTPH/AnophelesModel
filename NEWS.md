@@ -16,9 +16,16 @@ rewritten and are **not backward compatible**.
   `interv_param_sets`, `exposure_sets`, `coverage_sets`).
 * `get_ITN_params()` / `list_ITN_params()` load ITN efficacies and insecticide
   decay fitted to experimental hut trials (`ITN_parameterisations_Champagne2025`).
-* **Dummy-host model**: host-seeking killing (`HostSeekingKilling`, a rate
-  multiplier that can exceed 1) adds a fourth host type. It is mutually
-  exclusive with pre-prandial killing.
+* **Dummy-host model**: host-seeking killing (`HostSeekingKilling`) adds a
+  fourth host type whose availability is the **absolute** killing rate (in
+  the units of the host availabilities, not a probability). It is mutually
+  exclusive with pre-prandial killing. `get_ITN_params(mode = "dummy_host")`
+  converts the hut-trial estimates, which are relative to the control-arm
+  availability `alpha_0`, to absolute values by multiplying by `alpha_0` of
+  the same arm (`rescale_hsk = FALSE` to skip). The hut model's rates are per
+  hut-night while the package uses per-day rates; by provisional convention a
+  hut-night is treated as a day (no conversion by the host-seeking duration
+  `td`), pending an improved experimental hut fitting model.
 * **Insecticide decay**: per-component linear decay (`halflife_insecticide`,
   years, a time-to-zero calibrated so that efficacy after 3 years equals the
   20x-washed value) or any decay shape (`component_decay`). The

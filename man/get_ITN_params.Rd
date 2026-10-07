@@ -9,6 +9,7 @@ get_ITN_params(
   EHT,
   mode = "standard",
   washed = FALSE,
+  rescale_hsk = TRUE,
   verbose = TRUE
 )
 }
@@ -27,6 +28,11 @@ or \code{"dummy_host"} for the four-host model.}
 \emph{Unwashed} (new net) efficacy values; if \code{TRUE}, returns
 \emph{Washed} values.}
 
+\item{rescale_hsk}{Logical (default \code{TRUE}); dummy-host mode only.
+If \code{TRUE}, multiply host-seeking killing by the control
+\code{alpha_0} of its arm (see Details). Set to \code{FALSE} for
+datasets whose host-seeking killing is already absolute.}
+
 \item{verbose}{Logical (default \code{TRUE}). Print a summary of the
 loaded parameterisation.}
 }
@@ -42,6 +48,9 @@ Named list with:
   \item \code{name}: suggested intervention label
     (\code{"net_type (EHT)"}).
   \item \code{reference}: citation string from the dataset.
+  \item \code{alpha_0}: control availabilities \code{c(Unwashed, Washed)}
+    used to rescale host-seeking killing, or \code{NULL} if no rescaling
+    was done.
 }
 }
 \description{
@@ -65,6 +74,16 @@ efficacy after 3 years equals the washed value. Negative values (efficacy
 increased with washing) are returned as fitted. To use the unwashed
 efficacy throughout, pass \code{insecticide_decay = FALSE} to
 \code{\link{build_intervention}}.
+
+In the experimental hut model, host-seeking killing is fitted
+\strong{relative} to the availability \code{alpha_0} of the trial's control
+arm (extra host-seeking mortality \code{KillingDuringHostSeeking * alpha_0}).
+Since \code{alpha_0} varies widely between trials, relative values are not
+comparable across trials. With \code{rescale_hsk = TRUE}, the returned
+\code{HostSeekingKilling} is the \strong{absolute} value
+\code{KillingDuringHostSeeking * alpha_0}, using the control \code{alpha_0}
+of the same arm (unwashed or washed fit), and its insecticide decay is
+recomputed from the absolute unwashed and washed values.
 }
 \examples{
 # Standard three-host model
