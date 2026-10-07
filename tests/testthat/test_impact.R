@@ -5,7 +5,7 @@ library(testthat)
 # simulate_vc() engine; they are checked against the pre-refactoring loops
 # kept in helper-reference.R.
 
-model_p = build_model_obj(def_vector_params("Anopheles gambiae"),
+model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"),
                           def_host_params())
 
 bi = function(efficacy, days = 60, ...) {

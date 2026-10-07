@@ -6,47 +6,70 @@
 #' @title define the vector-specific entomological parameters
 #'
 #' @description \code{def_vector_params} This function can be used to load
-#' entomological parameters for mosquito species available in the package
-#' database or to set the entomological parameters to new custom values
-#' provided by the user.
+#' entomological parameters for a mosquito taxon (species, complex or genus)
+#' from the package database (or another bionomics table), or to set the
+#' entomological parameters to new custom values provided by the user.
 #'
-#' @param mosquito_species string corresponding to the name of the
-#' mosquito species. Default value is "Anopheles gambiae".
-#' To be able to use the parameters from the package database, this name must
-#' match one of the Anopheles species provided in the package.
-#' To see all available Anopheles species, use the function
-#' \code{list_all_species()}.
+#' Taxa are identified by their name \strong{and} level: the same name can
+#' denote a species and a complex. \emph{An. gambiae s.s.} and \emph{An.
+#' coluzzii} are merged in the data as \code{"Anopheles gambiae ss/coluzzii"};
+#' the names \code{"Anopheles gambiae"}, \code{"Anopheles gambiae s.s."} and
+#' \code{"Anopheles coluzzii"} are accepted for it with a warning. Complexes
+#' are stored under their label (e.g. \code{"Gambiae"}); \code{"Anopheles
+#' gambiae complex"} is also accepted with \code{level = "complex"}.
+#'
+#' @param mosquito_species string, name of the taxon. Default
+#' \code{"Anopheles gambiae ss/coluzzii"}. Use \code{list_all_species()} to see
+#' the available taxa.
+#'
+#' @param level taxonomic level of \code{mosquito_species}: \code{"species"}
+#' (default), \code{"complex"} or \code{"genus"}.
+#'
+#' @param hbi human blood index used as \code{Chi}: \code{"indoor"} (default,
+#' indoor HBI), \code{"outdoor"} (outdoor HBI) or \code{"weighted"}
+#' (\code{HBI_indoor * endophagy + HBI_outdoor * (1 - endophagy)}; its
+#' standard deviation is approximated assuming independent estimates). For a
+#' custom \code{vector_table}, \code{Chi} is used as supplied unless
+#' \code{hbi} is \code{"outdoor"} or \code{"weighted"}.
 #'
 #' @param vector_table data frame with custom vector entomological values.
 #' Must be provided if custom parameter values should be used instead of
 #' the ones in the package database.
-#' The data frame should have the same structure (column names) as the database
+#' The data frame should use (a subset of) the column names of the database
 #' object \code{vec_ent_param}. Default value is NULL.
+#'
+#' @param bionomics_table optional bionomics table with the same structure as
+#' \code{vec_ent_param} (e.g. from \code{read_bionomics_table()}), used instead
+#' of the package database to look up \code{mosquito_species}.
 #'
 #' @param verbose boolean specifying whether any messages should be displayed
 #' during the execution of the function. Default value is TRUE.
 #'
 #' @return list object with the following attributes
-#' (same as \code{vec_ent_param}):
+#' (same as \code{vec_ent_param}, plus \code{hbi_source}):
 #' \itemize{
-#' \item \code{species_name}: name of the mosquito species
+#' \item \code{species_name}, \code{level}, \code{complex}: taxon
+#' \item \code{imputed_traits}: parameters without data for this taxon
 #' \item \code{M}: parous rate (proportion of host seeking mosquitoes that have
 #' laid eggs at least once)
-#' #' \item \code{M.sd}: standard deviation of the parous rate
+#' \item \code{M.sd}: standard deviation of the parous rate
 #' \item \code{Chi}: human blood index (proportion of mosquito blood meals
-#' derived from humans)
+#' derived from humans), chosen with \code{hbi}
+#' \item \code{HBI_indoor}, \code{HBI_outdoor}: indoor and outdoor human
+#' blood indices
 #' \item \code{A0}: sac rate (proportion of mosquitoes who laid eggs in a day)
 #' \item \code{A0.sd}: standard deviation of the sac rate
 #' \item \code{zeta.3}: relative availability of different non-human hosts
 #' \item \code{td}: proportion of a day that a mosquito actively seeks a host
-#' \item \code{tau}: time required for a mosquito that has encountered a host to
-#' return to host seeking
+#' \item \code{tau}: resting duration, time required for a mosquito that has
+#' encountered a host to return to host seeking
 #' \item \code{ts}: duration of the extrinsic incubation period (time required
 #' for sporozoites to develop in mosquitoes)
 #' \item \code{endophily:} proportion of indoor resting mosquitoes
 #' \item \code{endophily.sd:} standard deviation of the endophily
 #' \item \code{endophagy:} proportion of indoor feeding mosquitoes
 #' \item \code{endophagy.sd:} standard deviation of the endophagy
+#' \item \code{hbi_source}: which human blood index is used as \code{Chi}
 #' }
 #'
 #' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
@@ -54,52 +77,52 @@
 #' @import checkmate
 #'
 #' @examples
-#' # Retrieve the vector entomological parameters for An. gambiae
+#' # Retrieve the vector entomological parameters for An. gambiae s.s./coluzzii
 #' gambiae_vec_p = def_vector_params()
 #'
-#' # Print all the parameters
-#' print(gambiae_vec_p)
+#' # The whole Gambiae complex, using the outdoor human blood index
+#' gambiae_complex = def_vector_params("Gambiae", level = "complex",
+#'                                     hbi = "outdoor")
 #'
 #' @export
 #'
-def_vector_params = function(mosquito_species = "Anopheles gambiae",
-                             vector_table = NULL, verbose = TRUE) {
+def_vector_params = function(mosquito_species = "Anopheles gambiae ss/coluzzii",
+                             level = "species", hbi = "indoor",
+                             vector_table = NULL, bionomics_table = NULL,
+                             verbose = TRUE) {
+    level = match.arg(level, .TAXON_LEVELS)
+    hbi   = match.arg(hbi, c("indoor", "outdoor", "weighted"))
+
     if(!is.null(vector_table)) {
         # Check if input is correct
         assertCol = checkmate::makeAssertCollection()
         # Input needs to be a data frame
-        checkmate::assertDataFrame(vector_table, any.missing = FALSE,
-                                   col.names = "named", add = assertCol)
-        # with the same column names as vec_ent_params
+        checkmate::assertDataFrame(vector_table, col.names = "named",
+                                   add = assertCol)
+        # with column names from vec_ent_param
         checkmate::assertSubset(colnames(vector_table), colnames(vec_ent_param),
                                 empty.ok = FALSE, fmatch = FALSE,
                                 add = assertCol)
-        # and numeric, positive entries except for the name of the species
-        checkmate::assertDataFrame(subset(vector_table,
-                                          select = -c(species_name)),
-                                   types = "numeric", add = assertCol)
-        checkmate::assertNumeric(unlist(subset(vector_table, select =
-                                                   -c(species_name))),
-                                 lower = 0,
+        # and numeric, non-missing, positive entries except for the text
+        # columns (taxon name, level, complex, imputed traits)
+        num_table = vector_table[setdiff(colnames(vector_table),
+                                         .BIONOMICS_TEXT_COLS)]
+        checkmate::assertDataFrame(num_table, types = "numeric",
+                                   any.missing = FALSE, add = assertCol)
+        checkmate::assertNumeric(unlist(num_table), lower = 0,
                                  add = assertCol)
         checkmate::reportAssertions(collection = assertCol)
 
         vec_p = as.list(vector_table)
+        if (hbi != "indoor") vec_p = apply_hbi(vec_p, hbi)
         if(verbose) {
             print(paste("Object with vector entomological parameters defined",
                         "using values provided by the user."))
         }
     } else {
-        # First check if the given mosquito species is in the package database
-        if(!(mosquito_species %in% vec_ent_param$species_name)) {
-            err_msg = paste0("The provided mosquito species is not in ",
-                             "the package database. To retrieve the list of",
-                             "available species use list_all_species().")
-            stop(err_msg)
-        } else {
-            vec_p = as.list(vec_ent_param[vec_ent_param$species_name ==
-                                              mosquito_species,])
-        }
+        tab = if (!is.null(bionomics_table)) check_bionomics_table(bionomics_table)
+              else vec_ent_param
+        vec_p = apply_hbi(as.list(select_taxon(tab, mosquito_species, level)), hbi)
     }
     return(vec_p)
 }

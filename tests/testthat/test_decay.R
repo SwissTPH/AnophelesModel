@@ -88,7 +88,7 @@ test_that("decay_function errors clearly on invalid input", {
 # 5. Attrition shorter than the intervention duration, through the pipeline
 # ---------------------------------------------------------------------------
 test_that("build_intervention survival stays in [0, 1] after L", {
-    model_p = build_model_obj(def_vector_params("Anopheles gambiae"),
+    model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"),
                               def_host_params())
     for (shape in c("smooth-compact", "linear", "step")) {
         interv = suppressMessages(build_intervention(
@@ -102,7 +102,7 @@ test_that("build_intervention survival stays in [0, 1] after L", {
 })
 
 test_that("run_interventions handles attrition reaching zero before the end", {
-    model_p = build_model_obj(def_vector_params("Anopheles gambiae"),
+    model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"),
                               def_host_params())
     param_sets = data.frame(
         name               = c("linear", "step", "smooth-compact"),
@@ -125,7 +125,7 @@ test_that("run_interventions handles attrition reaching zero before the end", {
 # 6. Linear insecticide decay (halflife_insecticide, years) and its switch
 # ---------------------------------------------------------------------------
 build_ins = function(insecticide_decay, ...) {
-    model_p = build_model_obj(def_vector_params("Anopheles gambiae"),
+    model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"),
                               def_host_params())
     suppressMessages(build_intervention(
         efficacy = c(Deterrency = 0.4, PrePrandial = 0.2, PostPrandial = 0.3),
@@ -154,7 +154,7 @@ test_that("insecticide_decay = FALSE keeps initial efficacies throughout", {
 })
 
 test_that("run_interventions insecticide_decay = FALSE ignores insecticide columns", {
-    model_p = build_model_obj(def_vector_params("Anopheles gambiae"),
+    model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"),
                               def_host_params())
     base = data.frame(name = "x", deterrency = 0.4, preprandial = 0.2,
                       postprandial = 0.3, halflife_attrition = 180,

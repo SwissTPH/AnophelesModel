@@ -6,7 +6,7 @@ library(testthat)
 # ---------------------------------------------------------------------------
 
 make_model_p = function() {
-    vec_p  = def_vector_params("Anopheles gambiae")
+    vec_p  = def_vector_params("Anopheles gambiae ss/coluzzii")
     host_p = def_host_params()
     build_model_obj(vec_p, host_p)
 }
@@ -160,7 +160,7 @@ test_that("run_interventions with vec_param_sets adds draw column and correct ro
 
     # Two draws: slightly perturbed gambiae params
     base_row = AnophelesModel2::vec_ent_param[
-        AnophelesModel2::vec_ent_param$species_name == "Anopheles gambiae", ][1, ]
+        AnophelesModel2::vec_ent_param$species_name == "Anopheles gambiae ss/coluzzii", ][1, ]
     draw1    = base_row; draw1$M = base_row$M * 0.95
     draw2    = base_row; draw2$M = base_row$M * 1.05
     vec_ps   = rbind(draw1, draw2)

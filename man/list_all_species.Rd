@@ -2,20 +2,27 @@
 % Please edit documentation in R/database.R
 \name{list_all_species}
 \alias{list_all_species}
-\title{Print all species with entomological parameters in the package database}
+\title{List the taxa with entomological parameters in the package database}
 \usage{
-list_all_species()
+list_all_species(level = NULL)
+}
+\arguments{
+\item{level}{Optional; \code{"species"}, \code{"complex"} or \code{"genus"}
+to list only taxa of that level. Default \code{NULL} lists all taxa.}
 }
 \value{
-Vector of species names.
+Data frame with columns \code{species_name}, \code{level},
+\code{complex} (parent complex of a species, \code{NA} otherwise) and
+\code{imputed_traits} (parameters without data for this taxon, whose values
+come from its complex or the genus).
 }
 \description{
-Lists all mosquito species whose entomological parameters are
-available in the package.
+Lists the mosquito taxa (species, complexes and the genus)
+whose entomological parameters are available in the package.
 }
 \examples{
-species_vec = list_all_species()
-print(species_vec)
+species = list_all_species(level = "species")
+head(species)
 
 }
 \author{

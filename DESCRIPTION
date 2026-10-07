@@ -24,7 +24,8 @@ Imports:
     data.table,
     checkmate,
     XML,
-    stats
+    stats,
+    utils
 Suggests: 
     knitr,
     rmarkdown,

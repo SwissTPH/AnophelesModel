@@ -72,7 +72,13 @@ calc_hosts_ent_params = function(vec_p, h_p) {
 # Calculates the probability that a mosquito survives the extrinsic
 # incubation period (eq. 3c Chitnis et al. 2007). This probability is then used
 # to calculate the sporozoite rate and the vectorial capacity.
+#
+# The formula is defined for a whole number of days per feeding cycle, so the
+# resting duration tau (estimated, non-integer) is rounded to whole days here,
+# with at least 1 day (floor(tau + 0.5), not round(), which rounds halves to
+# even). The exact tau is used elsewhere (e.g. the feeding cycle duration f).
 calc_psts = function(ts, tau, PA, Pdf) {
+    tau = max(1, floor(tau + 0.5))
     # TO DO: add this in the general checking function
     if(ts < tau) {
         ts = tau
@@ -91,13 +97,11 @@ calc_psts = function(ts, tau, PA, Pdf) {
         s_kplus = rep(0, n_cov)
     }
 
-    # There there is an issue when tau is less than 2
-    if (tau < 2) {
-        tau = 2
-    }
+    # Sum over the days l = 1, ..., tau - 1 of a feeding cycle (no terms when
+    # tau = 1 day)
     suml = rep(0, n_cov)
     sumlv = matrix(0, nrow = tau-1, ncol = n_cov);
-    for(l in 1:(tau-1)) {
+    for(l in seq_len(tau - 1)) {
         # eq. 4 Chitnis et al. 2007
         klplus = floor((ts + l) / tau) - 2
         klp_v = c(0:klplus)

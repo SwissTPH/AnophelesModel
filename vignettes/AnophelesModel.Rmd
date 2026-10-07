@@ -54,25 +54,47 @@ probabilities (`PBi`, `PCi`, `PDi`, `PEi`, `Kvi`) for human and animal hosts
 in the absence of interventions.
 
 **Mosquito bionomics** (`vec_ent_param`): parameterisations for 57 *Anopheles*
-species and 17 complexes, estimated with a Bayesian hierarchical model
-[@lemant2021] from published field data [@Massey2016; @briet2019].
+species, 17 complexes and the genus, from the
+[AnophelesBionomics](https://github.com/SwissTPH/AnophelesBionomics) package,
+which estimates each parameter with a hierarchical Bayesian model (genus,
+complex, species) from published field data. Taxa are identified by their name
+**and** level (`species`, `complex`, `genus`); `imputed_traits` lists the
+parameters for which a taxon has no data of its own (values from its complex
+or the genus). The resting duration `tau` is estimated from the ratio of fed to
+gravid females in resting collections.
 
 ```{r}
 head(vec_ent_param)
+head(list_all_species(level = "complex"))
 ```
 
 **Activity patterns** (`activity_patterns`): mosquito biting rhythms and human
 sleeping activity [@Sherrard-Smith15086; @briet2019]. Query with
-`list_all_species()` and `list_activity()`.
+`list_activity()`.
 
 ## Estimating the impact of vector control interventions
 
 ### Step 1: Define vector entomological parameters
 
-Choose an existing species from the database:
+Choose an existing taxon from the database. *An. gambiae s.s.* and *An.
+coluzzii* are merged in the data; "Anopheles gambiae" is also accepted for this
+species, with a warning:
 ```{r}
-gambiae_vec_p = def_vector_params(mosquito_species = "Anopheles gambiae")
+gambiae_vec_p = def_vector_params(mosquito_species = "Anopheles gambiae ss/coluzzii")
 ```
+
+A complex is selected with `level = "complex"` (e.g. the whole Gambiae
+complex). By default the human blood index `Chi` is the **indoor** HBI;
+`hbi = "outdoor"` or `hbi = "weighted"` (indoor and outdoor HBI weighted by
+endophagy) are alternatives:
+```{r, eval=FALSE}
+gambiae_complex = def_vector_params("Gambiae", level = "complex")
+gambiae_outdoor = def_vector_params("Anopheles gambiae ss/coluzzii", hbi = "outdoor")
+```
+
+A newer version of the bionomics table (same columns) can be used without
+reinstalling the package:
+`def_vector_params(..., bionomics_table = read_bionomics_table("file.csv"))`.
 
 Or supply a custom data frame with the same column names as `vec_ent_param`
 (key columns: `M` = parous rate, `Chi` = Human Blood Index (HBI), `A0` = sac
@@ -294,7 +316,7 @@ plot_tab = data.frame(
     intervention_coverage = coverages,
     intervention_impact   = impacts$interventions_vec[[1]]$effects$avg_impact
 )
-plot_impact_var("Anopheles gambiae", plot_tab)
+plot_impact_var("Anopheles gambiae ss/coluzzii", plot_tab)
 ```
 
 `calculate_combined_impact()` handles two simultaneously deployed
@@ -469,15 +491,6 @@ comp_results = run_interventions(
     duration_years = 3
 )
 head(comp_results[, c("name", "coverage", "avg_impact")])
-```
-
-```{r, dpi=150, fig.cap="Effect of per-component insecticide decay on average impact at 70% coverage."}
-# Compare with a tolerance: seq() does not produce exactly 0.7
-ggplot(comp_results[abs(comp_results$coverage - 0.7) < 1e-8, ],
-       aes(x = name, y = avg_impact * 100, fill = name)) +
-    geom_col(width = 0.5) + theme_bw() +
-    labs(x = NULL, y = "Mean reduction in VC (%)", fill = NULL) +
-    theme(legend.position = "none")
 ```
 
 #### Parameter uncertainty

@@ -100,7 +100,7 @@ test_that("build_intervention output has correct structure and exact initial eff
     # removed def_interventions_effects() function. Uses An. gambiae whose
     # baseline alphai[1] = 0.8464341 (verified by test_model block 1).
     # At t=0 (day index 1): survival=1, no insecticide decay, so ratios are exact.
-    model_p = build_model_obj(def_vector_params("Anopheles gambiae"), def_host_params())
+    model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"), def_host_params())
     duration_years = 1   # 365 days — needed so survival[181] exists for the halflife check
     npoints = max(round(365 * duration_years), 1L)
 

@@ -3,8 +3,34 @@
 AnophelesModel2 is a refactoring of
 [AnophelesModel](https://github.com/SwissTPH/AnophelesModel). It keeps the
 entomological model of the mosquito feeding cycle (Chitnis et al.) and the
-bionomics / activity databases, but the intervention framework and API were
+host / activity databases, but the intervention framework and API were
 rewritten and are **not backward compatible**.
+
+## Vector bionomics from AnophelesBionomics
+
+* `vec_ent_param` now comes from
+  [AnophelesBionomics](https://github.com/SwissTPH/AnophelesBionomics)
+  (posterior means and sds of its hierarchical Bayesian model), replacing the
+  older parameterisation. **Results differ from AnophelesModel.**
+* Taxa have an explicit `level` (`species`, `complex`, `genus`), a parent
+  `complex` and `imputed_traits` (parameters without data of their own).
+  `def_vector_params()` gains `level`; `list_all_species()` returns a data
+  frame of taxa.
+* *An. gambiae s.s.* and *An. coluzzii* are merged as
+  `"Anopheles gambiae ss/coluzzii"`, the new default species; the old names
+  are accepted with a warning. Complexes are named by their label
+  (e.g. `"Gambiae"`).
+* `tau` (resting duration) is estimated per taxon from the fed / gravid ratio
+  (1.07 days for *An. gambiae ss/coluzzii*, about 2 days for the genus)
+  instead of the fixed value 3. In the survival over the extrinsic incubation
+  period it is rounded to whole days (at least one); the former silent
+  replacement of `tau < 2` by 2 is removed.
+* `Chi` is the **indoor** human blood index by default; indoor and outdoor HBI
+  are both stored and `def_vector_params(hbi = "outdoor" | "weighted")`
+  selects another one.
+* `read_bionomics_table()` and `def_vector_params(bionomics_table = )` use a
+  newer bionomics table without reinstalling. The dataset is regenerated with
+  the scripts in `data-raw/`.
 
 ## New
 

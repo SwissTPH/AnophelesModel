@@ -367,7 +367,7 @@ test_that("build_intervention output matches supplied efficacy inputs exactly at
     # Replaces old test that checked def_interventions_effects() stored custom
     # matrix values verbatim. At t=0: survival=1, no insecticide decay, so the
     # ratio protected/unprotected equals (1 - efficacy) exactly.
-    model_p = build_model_obj(def_vector_params("Anopheles gambiae"), def_host_params())
+    model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"), def_host_params())
     det = 0.45; pre = 0.53; post = 0.34
     interv  = build_intervention(
         efficacy = c(Deterrency = det, PrePrandial = pre, PostPrandial = post),
@@ -389,7 +389,7 @@ test_that("build_intervention errors on out-of-range probability efficacy values
     # Replaces old test that expected def_interventions_effects() to error when
     # alphai > 1 was passed. Deterrency/PrePrandial/PostPrandial are probabilities
     # and must be in [0,1]; HostSeekingKilling is an absolute rate (>= 0, can exceed 1).
-    model_p = build_model_obj(def_vector_params("Anopheles gambiae"), def_host_params())
+    model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"), def_host_params())
 
     # Probability components outside [0,1] must error
     expect_error(
@@ -422,7 +422,7 @@ test_that("build_intervention errors on unrecognised efficacy component names", 
     # Replaces old test that checked wrong-dimension matrix inputs to
     # def_interventions_effects(). With the current API, dimensions are computed
     # internally; the analogous validation is rejecting unknown component names.
-    model_p = build_model_obj(def_vector_params("Anopheles gambiae"), def_host_params())
+    model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"), def_host_params())
     expect_error(
         build_intervention(
             efficacy = c(Typo = 0.5, PostPrandial = 0.3),
@@ -434,7 +434,7 @@ test_that("build_intervention errors on unrecognised efficacy component names", 
 
 test_that("HostSeekingKilling is used directly as the per-day dummy availability (no td)", {
     # Provisional convention: a hut-night is treated as a day (see CLAUDE.md)
-    model_p = build_model_obj(def_vector_params("Anopheles gambiae"), def_host_params())
+    model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"), def_host_params())
     interv = suppressMessages(build_intervention(
         efficacy = c(Deterrency = 0.3, HostSeekingKilling = 0.61, PostPrandial = 0.4),
         halflife_attrition = 180, shape_attrition = 2,
@@ -443,7 +443,7 @@ test_that("HostSeekingKilling is used directly as the per-day dummy availability
 })
 
 test_that("standard and dummy-host models are mutually exclusive", {
-    model_p = build_model_obj(def_vector_params("Anopheles gambiae"), def_host_params())
+    model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"), def_host_params())
     bi = function(efficacy, ...) suppressMessages(build_intervention(
         efficacy = efficacy, halflife_attrition = 180, shape_attrition = 2,
         duration_years = 1 / 365, model_p = model_p, ...))
@@ -467,7 +467,7 @@ test_that("standard and dummy-host models are mutually exclusive", {
 })
 
 test_that("removed deprecated arguments are no longer accepted", {
-    model_p = build_model_obj(def_vector_params("Anopheles gambiae"), def_host_params())
+    model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"), def_host_params())
     expect_error(build_intervention(efficacy = c(Deterrency = 0.3), L = 180,
                                     model_p = model_p), "unused argument")
     expect_error(build_intervention(efficacy = c(Deterrency = 0.3), npoints = 10,

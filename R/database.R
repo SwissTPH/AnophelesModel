@@ -1,24 +1,35 @@
 # This file contains functions for querying the package database.
 
 #########list_all_species############
-#' @title Print all species with entomological parameters in the package database
+#' @title List the taxa with entomological parameters in the package database
 #'
-#' @description Lists all mosquito species whose entomological parameters are
-#' available in the package.
+#' @description Lists the mosquito taxa (species, complexes and the genus)
+#' whose entomological parameters are available in the package.
 #'
-#' @return Vector of species names.
+#' @param level Optional; \code{"species"}, \code{"complex"} or \code{"genus"}
+#' to list only taxa of that level. Default \code{NULL} lists all taxa.
+#'
+#' @return Data frame with columns \code{species_name}, \code{level},
+#' \code{complex} (parent complex of a species, \code{NA} otherwise) and
+#' \code{imputed_traits} (parameters without data for this taxon, whose values
+#' come from its complex or the genus).
 #'
 #' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
 #'
 #' @examples
-#' species_vec = list_all_species()
-#' print(species_vec)
+#' species = list_all_species(level = "species")
+#' head(species)
 #'
 #' @export
 #'
-list_all_species = function() {
-    species_vec = unique(vec_ent_param$species_name)
-    return(species_vec)
+list_all_species = function(level = NULL) {
+    taxa = vec_ent_param[, c("species_name", "level", "complex", "imputed_traits")]
+    if (!is.null(level)) {
+        level = match.arg(level, .TAXON_LEVELS)
+        taxa  = taxa[taxa$level == level, ]
+    }
+    rownames(taxa) = NULL
+    taxa
 }
 
 #########list_activity############
