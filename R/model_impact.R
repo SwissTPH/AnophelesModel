@@ -74,9 +74,24 @@ simulate_vc = function(eff, base, vec_p, host_p, coverage_vec,
                  PDi = PDi_big, PEi = PEi_big, Kvi = Kvi_big),
             vec_p, host_p, 1L, alphai_big * frac_big, frac_big / 2L, 2L)
 
-        vc_mat     = matrix(ent$vc_all, nrow = np, ncol = n_cov, byrow = TRUE)
-        impact_mat = 1 - vc_mat / vc_mat[, zero_col]
-        impact_mat[!is.finite(impact_mat)] = 0
+        vc_mat = matrix(ent$vc_all, nrow = np, ncol = n_cov, byrow = TRUE)
+        baseline_vc = vc_mat[, zero_col]
+        if (any(!is.finite(baseline_vc)))
+            stop("simulate_vc: non-finite baseline vectorial capacity at time point ", t,
+                 where_rows(!is.finite(baseline_vc)))
+        if (any(baseline_vc == 0))
+            stop("simulate_vc: baseline vectorial capacity is zero at time point ", t,
+                 where_rows(baseline_vc == 0), "; relative impact is undefined")
+        if (any(baseline_vc < 0))
+            stop("simulate_vc: negative baseline vectorial capacity at time point ", t,
+                 where_rows(baseline_vc < 0))
+        if (any(!is.finite(vc_mat)))
+            stop("simulate_vc: non-finite vectorial capacity at time point ", t,
+                 where_rows(rowSums(!is.finite(vc_mat)) > 0))
+        impact_mat = 1 - vc_mat / baseline_vc
+        if (any(!is.finite(impact_mat)))
+            stop("simulate_vc: non-finite relative impact at time point ", t,
+                 where_rows(rowSums(!is.finite(impact_mat)) > 0))
 
         vc_sum     = vc_sum     + vc_mat
         impact_sum = impact_sum + impact_mat
@@ -93,9 +108,19 @@ simulate_vc = function(eff, base, vec_p, host_p, coverage_vec,
          impact_t   = if (keep_time) impact_t else NULL)
 }
 
+# Internal: " for parameter set(s) i, j, ..." from a logical vector over the
+# parameter sets (rows of param_sets) of simulate_vc(), for error messages.
+where_rows = function(bad) {
+    idx = which(bad)
+    shown = paste(utils::head(idx, 10L), collapse = ", ")
+    paste0(" for parameter set(s) ", shown,
+           if (length(idx) > 10L) paste0(" and ", length(idx) - 10L, " more") else "")
+}
+
 # Internal: validate exposure factor(s) applied to coverage.
 check_exposure = function(exposure, scalar = FALSE) {
-    if (!is.numeric(exposure) || anyNA(exposure) ||
+    if (!is.numeric(exposure) || !is.null(dim(exposure)) || length(exposure) == 0L ||
+        any(!is.finite(exposure)) ||
         any(exposure < 0 | exposure > 1) ||
         (scalar && length(exposure) != 1L))
         stop("exposure must be ", if (scalar) "a single number" else "numeric",
@@ -155,6 +180,7 @@ host_base = function(host_p) {
 #'
 calculate_impact = function(interventions_vec, coverage_vec, model_p,
                             exposure = 1) {
+    check_coverage(coverage_vec)
     check_exposure(exposure, scalar = TRUE)
     for (i in seq_along(interventions_vec)) {
         e    = interventions_vec[[i]]$effects
@@ -181,8 +207,14 @@ calculate_impact = function(interventions_vec, coverage_vec, model_p,
                     PDi   = e$PDi[1, 2:3], PEi = e$PEi[1, 2:3],
                     Kvi   = e$Kvi[1:3])
 
-        sim = simulate_vc(eff, base, model_p$vec_params, model_p$host_params,
-                          coverage_vec * exposure, keep_time = TRUE)
+        # One parameter set per intervention: report the intervention instead
+        sim = tryCatch(
+            simulate_vc(eff, base, model_p$vec_params, model_p$host_params,
+                        coverage_vec * exposure, keep_time = TRUE),
+            error = function(err) stop(
+                "calculate_impact, intervention ", i, ": ",
+                sub(" for parameter set\\(s\\) 1", "", conditionMessage(err)),
+                call. = FALSE))
 
         interventions_vec[[i]]$coverages          = coverage_vec
         interventions_vec[[i]]$effects$vc         = sim$vc_t
@@ -272,6 +304,10 @@ calculate_combined_impact = function(combination_name = "combination",
                                      cov_intervention1, cov_intervention2,
                                      cov_combination = NULL,
                                      model_p) {
+    check_coverage(cov_intervention1, "cov_intervention1", scalar = TRUE)
+    check_coverage(cov_intervention2, "cov_intervention2", scalar = TRUE)
+    if (!is.null(cov_combination))
+        check_coverage(cov_combination, "cov_combination", scalar = TRUE)
     C_i  = cov_intervention1
     C_j  = cov_intervention2
     C_ij = if (is.null(cov_combination)) C_i * C_j else cov_combination
@@ -333,18 +369,34 @@ calculate_combined_impact = function(combination_name = "combination",
                     C_jEff  - C_ijEff,
                     C_ijEff)
 
+    # Conditional probabilities of later feeding stages are irrelevant when
+    # no mosquitoes reach the preceding stage. Only this exact 0/0 case is
+    # assigned zero; other invalid values must remain visible to simulate_vc.
+    conditional_probability = function(numerator, denominator) {
+        result = numerator / denominator
+        unreachable = is.finite(numerator) & is.finite(denominator) &
+                      numerator == 0 & denominator == 0
+        result[unreachable] = 0
+        result
+    }
+
     # Weighted-average parameters for the two-host-type model
     alphaw = CovEff[,1]*alphau  + CovEff[,2]*alphai  + CovEff[,3]*alphaj  + CovEff[,4]*alphaij
-    PBw  = (CovEff[,1]*alphau*P_Bu + CovEff[,2]*alphai*P_Bi +
-            CovEff[,3]*alphaj*P_Bj + CovEff[,4]*alphaij*P_Bij) / alphaw
-    PCw  = (CovEff[,1]*alphau*P_Bu*P_Cu + CovEff[,2]*alphai*P_Bi*P_Ci +
-            CovEff[,3]*alphaj*P_Bj*P_Cj + CovEff[,4]*alphaij*P_Bij*P_Cij) / (PBw * alphaw)
-    PDw  = (CovEff[,1]*alphau*P_Bu*P_Cu*P_Du + CovEff[,2]*alphai*P_Bi*P_Ci*P_Di +
-            CovEff[,3]*alphaj*P_Bj*P_Cj*P_Dj + CovEff[,4]*alphaij*P_Bij*P_Cij*P_Dij) /
-           (PCw * PBw * alphaw)
-    PEw  = (CovEff[,1]*alphau*P_Bu*P_Cu*P_Du*P_Eu + CovEff[,2]*alphai*P_Bi*P_Ci*P_Di*P_Ei +
-            CovEff[,3]*alphaj*P_Bj*P_Cj*P_Dj*P_Ej + CovEff[,4]*alphaij*P_Bij*P_Cij*P_Dij*P_Eij) /
-           (PDw * PCw * PBw * alphaw)
+    PBw  = conditional_probability(
+        CovEff[,1]*alphau*P_Bu + CovEff[,2]*alphai*P_Bi +
+        CovEff[,3]*alphaj*P_Bj + CovEff[,4]*alphaij*P_Bij, alphaw)
+    PCw  = conditional_probability(
+        CovEff[,1]*alphau*P_Bu*P_Cu + CovEff[,2]*alphai*P_Bi*P_Ci +
+        CovEff[,3]*alphaj*P_Bj*P_Cj + CovEff[,4]*alphaij*P_Bij*P_Cij,
+        PBw * alphaw)
+    PDw  = conditional_probability(
+        CovEff[,1]*alphau*P_Bu*P_Cu*P_Du + CovEff[,2]*alphai*P_Bi*P_Ci*P_Di +
+        CovEff[,3]*alphaj*P_Bj*P_Cj*P_Dj + CovEff[,4]*alphaij*P_Bij*P_Cij*P_Dij,
+        PCw * PBw * alphaw)
+    PEw  = conditional_probability(
+        CovEff[,1]*alphau*P_Bu*P_Cu*P_Du*P_Eu + CovEff[,2]*alphai*P_Bi*P_Ci*P_Di*P_Ei +
+        CovEff[,3]*alphaj*P_Bj*P_Cj*P_Dj*P_Ej + CovEff[,4]*alphaij*P_Bij*P_Cij*P_Dij*P_Eij,
+        PDw * PCw * PBw * alphaw)
 
     # Dummy hosts (host-seeking killing), additive for people covered by both
     d_i = if (ncol(e1$alphai) == 4L) e1$alphai[rows, 4] else 0

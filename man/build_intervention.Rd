@@ -19,7 +19,8 @@ build_intervention(
 )
 }
 \arguments{
-\item{efficacy}{Named numeric vector with any subset of the following
+\item{efficacy}{Non-empty numeric vector with unique component names and
+finite, non-missing values, using any subset of the following
 efficacy parameters:
 \itemize{
   \item \code{"Deterrency"} in \code{[0,1]} — reduces host availability
@@ -61,9 +62,9 @@ smooth-compact; set to \code{NULL} otherwise).}
 \code{"smooth-compact"} or \code{"none"} (see \code{decay_function()}).
 Default \code{"weibull"}.}
 
-\item{duration_years}{Duration of the intervention in years. One
-interpolation point per day is used, so \code{npoints = round(365 *
-duration_years)}. Default 3 years.}
+\item{duration_years}{Single finite positive duration in years. One
+interpolation point per day is used, with at least one point:
+\code{npoints = max(round(365 * duration_years), 1)}. Default 3 years.}
 
 \item{model_p}{Model object from \code{build_model_obj()}.}
 

@@ -39,7 +39,8 @@ Optional columns:
 \itemize{
   \item \code{host_seeking_killing}: activates the dummy-host (4-host)
     model; absolute availability of the dummy host (see
-    \code{HostSeekingKilling} in \code{build_intervention()})
+    \code{HostSeekingKilling} in \code{build_intervention()}). Non-missing
+    values must be finite and non-negative; \code{NA} means inactive.
   \item \code{halflife_det}, \code{halflife_pre}, \code{halflife_post},
     \code{halflife_hsk}: per-component linear insecticide decay (years);
     despite the name, the time at which the effect reaches zero (see
@@ -56,7 +57,8 @@ Optional columns:
 
 \item{model_p}{Model object from \code{build_model_obj()}.}
 
-\item{coverage_vec}{Numeric vector of deployment coverages in \code{[0,1]}.
+\item{coverage_vec}{Non-empty numeric vector of finite deployment coverages
+in \code{[0,1]}.
 Coverage \code{0} is used internally as the no-intervention baseline for
 computing \code{avg_impact}; it is added automatically if not present, and
 the corresponding row is included in the output only when explicitly supplied.}
@@ -77,8 +79,8 @@ propagate uncertainty in activity patterns via \code{calculate_exposure()}.}
 \item{coverage_sets}{Optional list of \code{n_draw} coverage vectors; each
 replaces \code{coverage_vec} for that draw.}
 
-\item{duration_years}{Duration of the intervention period in years
-(one time point per day). Default 3 years.}
+\item{duration_years}{Single finite positive duration in years
+(one time point per day, with at least one point). Default 3 years.}
 
 \item{insecticide_decay}{Logical (default \code{TRUE}). If \code{FALSE}, the
 per-component insecticide decay columns (\code{halflife_*}, \code{decay_*},

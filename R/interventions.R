@@ -279,7 +279,8 @@ apply_eff_matrices = function(mm, host_p) {
 #'     Do not supply \code{PrePrandial} together with \code{HostSeekingKilling}.
 #' }
 #'
-#' @param efficacy Named numeric vector with any subset of the following
+#' @param efficacy Non-empty numeric vector with unique component names and
+#' finite, non-missing values, using any subset of the following
 #' efficacy parameters:
 #' \itemize{
 #'   \item \code{"Deterrency"} in \code{[0,1]} — reduces host availability
@@ -317,9 +318,9 @@ apply_eff_matrices = function(mm, host_p) {
 #' \code{"exponential"}, \code{"hill"}, \code{"linear"}, \code{"step"},
 #' \code{"smooth-compact"} or \code{"none"} (see \code{decay_function()}).
 #' Default \code{"weibull"}.
-#' @param duration_years Duration of the intervention in years. One
-#' interpolation point per day is used, so \code{npoints = round(365 *
-#' duration_years)}. Default 3 years.
+#' @param duration_years Single finite positive duration in years. One
+#' interpolation point per day is used, with at least one point:
+#' \code{npoints = max(round(365 * duration_years), 1)}. Default 3 years.
 #' @param model_p Model object from \code{build_model_obj()}.
 #' @param name Optional label for the intervention.
 #' @param mode Optional character; \code{"standard"} or \code{"dummy_host"}.
@@ -380,21 +381,21 @@ build_intervention = function(efficacy,
                               component_decay    = NULL,
                               insecticide_decay  = TRUE) {
     if (is.null(model_p)) stop("model_p must be provided")
+    if (!is.numeric(efficacy) || !is.null(dim(efficacy)) || length(efficacy) == 0L)
+        stop("efficacy must be a non-empty named numeric vector")
+    if (is.null(names(efficacy)) || anyNA(names(efficacy)) ||
+        any(names(efficacy) == "") || anyDuplicated(names(efficacy)))
+        stop("efficacy must have non-empty, unique component names")
     prob_components = c("Deterrency", "PrePrandial", "PostPrandial")
-    bad = names(efficacy)[names(efficacy) %in% prob_components & (efficacy < 0 | efficacy > 1)]
-    if (length(bad))
-        stop("efficacy values must be in [0, 1]; out-of-range components: ",
-             paste(bad, collapse = ", "))
-    if (!is.null(efficacy["HostSeekingKilling"]) &&
-        !is.na(efficacy["HostSeekingKilling"]) &&
-        efficacy["HostSeekingKilling"] < 0)
-        stop("HostSeekingKilling must be >= 0")
     valid_components = c("Deterrency", "PrePrandial", "PostPrandial", "HostSeekingKilling")
     unknown = setdiff(names(efficacy), valid_components)
     if (length(unknown))
         stop("unrecognised efficacy component(s): ", paste(unknown, collapse = ", "),
              ". Valid names: ", paste(valid_components, collapse = ", "))
-    npoints = max(round(365 * duration_years), 1L)
+    for (comp in names(efficacy))
+        check_efficacy_values(efficacy[comp], paste0("efficacy$", comp),
+                             probability = comp %in% prob_components)
+    npoints = intervention_npoints(duration_years)
 
     has_hsk = "HostSeekingKilling" %in% names(efficacy)
     if (!is.null(mode)) {
@@ -426,7 +427,7 @@ build_intervention = function(efficacy,
         stringsAsFactors   = FALSE
     )
     if (use_dummy_host)
-        ps$host_seeking_killing = unname(efficacy["HostSeekingKilling"])
+        ps$host_seeking_killing = if (has_hsk) unname(efficacy["HostSeekingKilling"]) else 0
 
     # halflife_insecticide (named vector, years) → per-component columns
     if (!is.null(halflife_insecticide)) {
@@ -553,7 +554,8 @@ build_intervention = function(efficacy,
 #' \itemize{
 #'   \item \code{host_seeking_killing}: activates the dummy-host (4-host)
 #'     model; absolute availability of the dummy host (see
-#'     \code{HostSeekingKilling} in \code{build_intervention()})
+#'     \code{HostSeekingKilling} in \code{build_intervention()}). Non-missing
+#'     values must be finite and non-negative; \code{NA} means inactive.
 #'   \item \code{halflife_det}, \code{halflife_pre}, \code{halflife_post},
 #'     \code{halflife_hsk}: per-component linear insecticide decay (years);
 #'     despite the name, the time at which the effect reaches zero (see
@@ -568,7 +570,8 @@ build_intervention = function(efficacy,
 #'     \code{halflife_*} column when both are present.
 #' }
 #' @param model_p Model object from \code{build_model_obj()}.
-#' @param coverage_vec Numeric vector of deployment coverages in \code{[0,1]}.
+#' @param coverage_vec Non-empty numeric vector of finite deployment coverages
+#' in \code{[0,1]}.
 #' Coverage \code{0} is used internally as the no-intervention baseline for
 #' computing \code{avg_impact}; it is added automatically if not present, and
 #' the corresponding row is included in the output only when explicitly supplied.
@@ -584,8 +587,8 @@ build_intervention = function(efficacy,
 #' propagate uncertainty in activity patterns via \code{calculate_exposure()}.
 #' @param coverage_sets Optional list of \code{n_draw} coverage vectors; each
 #' replaces \code{coverage_vec} for that draw.
-#' @param duration_years Duration of the intervention period in years
-#' (one time point per day). Default 3 years.
+#' @param duration_years Single finite positive duration in years
+#' (one time point per day, with at least one point). Default 3 years.
 #' @param insecticide_decay Logical (default \code{TRUE}). If \code{FALSE}, the
 #' per-component insecticide decay columns (\code{halflife_*}, \code{decay_*},
 #' \code{L_*}, \code{kappa_*}) are ignored: efficacies keep their initial
@@ -612,7 +615,16 @@ run_interventions = function(param_sets, model_p, coverage_vec,
                              duration_years = 3,
                              insecticide_decay = TRUE,
                              exposure = 1) {
-    npoints = round(365 * duration_years)
+    npoints = intervention_npoints(duration_years)
+    if (is.null(coverage_sets)) {
+        check_coverage(coverage_vec)
+    } else {
+        if (!is.list(coverage_sets) || length(coverage_sets) == 0L)
+            stop("coverage_sets must be a non-empty list of coverage vectors")
+        if (!missing(coverage_vec)) check_coverage(coverage_vec)
+        for (d in seq_along(coverage_sets))
+            check_coverage(coverage_sets[[d]], paste0("coverage_sets[[", d, "]]"))
+    }
     check_exposure(exposure, scalar = TRUE)
     if (!is.null(exposure_sets)) {
         exposure_sets = unlist(exposure_sets)
@@ -623,9 +635,18 @@ run_interventions = function(param_sets, model_p, coverage_vec,
     if (is.data.frame(interv_param_sets))
         interv_param_sets = lapply(seq_len(nrow(interv_param_sets)),
                                    function(i) interv_param_sets[i, , drop = FALSE])
+    if (!is.null(interv_param_sets) &&
+        (!is.list(interv_param_sets) || length(interv_param_sets) == 0L))
+        stop("interv_param_sets must be a non-empty data frame or list of data frames")
+    if (!is.null(vec_param_sets) &&
+        (!is.data.frame(vec_param_sets) || nrow(vec_param_sets) == 0L))
+        stop("vec_param_sets must be a non-empty data frame")
 
     # Model type (message once) and mutual exclusivity of the two models
     all_ps = if (!is.null(interv_param_sets)) interv_param_sets else list(param_sets)
+    for (d in seq_along(all_ps))
+        check_intervention_params(all_ps[[d]], if (is.null(interv_param_sets))
+            "param_sets" else paste0("interv_param_sets[[", d, "]]"))
     is_dummy = function(ps) !is.null(ps$host_seeking_killing) &&
                             any(!is.na(ps$host_seeking_killing))
     if (is_dummy(all_ps[[1]])) {
@@ -697,8 +718,13 @@ run_interventions = function(param_sets, model_p, coverage_vec,
         # Pre-multiply decay multipliers by baseline host params, then run the
         # shared time loop on the effective coverage (coverage 0 baseline
         # added / dropped internally, so outputs map 1:1 onto cov_d)
-        sim = simulate_vc(apply_eff_matrices(mm, host_p), host_base(host_p),
-                          vec_p, host_p, cov_d * exp_d)
+        # Errors name the rows of param_sets (simulate_vc) and the draw
+        sim = tryCatch(
+            simulate_vc(apply_eff_matrices(mm, host_p), host_base(host_p),
+                        vec_p, host_p, cov_d * exp_d),
+            error = function(err) stop(
+                "run_interventions", if (!is.null(draw_ids)) paste0(", draw ", d), ": ",
+                conditionMessage(err), call. = FALSE))
         avg_vc     = sim$avg_vc
         avg_impact = sim$avg_impact
         cov_out    = cov_d

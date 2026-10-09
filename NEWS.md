@@ -6,6 +6,27 @@ entomological model of the mosquito feeding cycle (Chitnis et al.) and the
 host / activity databases, but the intervention framework and API were
 rewritten and are **not backward compatible**.
 
+## Numerical correctness
+
+* Intervention interfaces reject unnamed, duplicate, missing or invalid
+  efficacies, out-of-range coverages (including uncertainty draws), and
+  non-positive or non-finite durations. Positive subday durations use one
+  time point consistently. Host-seeking killing remains a non-negative rate
+  that can exceed one; optional batch `NA` values still mean inactive.
+* `def_host_params()` orders custom host tables as human then animal, so
+  reversing input rows no longer changes host parameters or model results.
+* Incubation-survival sums now include the term at index zero when it is
+  their only term. This corrects custom parameterisations with longer
+  resting durations or shorter incubation periods; bundled parameterisations
+  retain their existing results.
+* `calculate_combined_impact()` handles complete deterrency and killing
+  without dividing by zero when no mosquitoes reach a feeding stage.
+* Impact calculations now raise an error for a zero baseline vectorial
+  capacity (relative reduction is undefined) or non-finite results, instead
+  of silently reporting zero impact. The message names the time point and the
+  parameter sets concerned (and the draw in `run_interventions()`, or the
+  intervention in `calculate_impact()`).
+
 ## Vector bionomics from AnophelesBionomics
 
 * `vec_ent_param` now comes from

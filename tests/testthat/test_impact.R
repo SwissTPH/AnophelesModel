@@ -215,3 +215,90 @@ test_that("dummy-host combinations run and add host-seeking killing", {
                           cov_intervention1 = 0.6, cov_intervention2 = 0.6),
                  tolerance = 1e-10)
 })
+
+test_that("complete protection survives combination with a null intervention", {
+    constant = function(efficacy) suppressMessages(build_intervention(
+        efficacy, decay_attrition = "none", duration_years = 2 / 365,
+        model_p = model_p, insecticide_decay = FALSE))[[1]]
+    none = constant(null)
+    for (component in names(null)) {
+        efficacy = null
+        efficacy[component] = 1
+        protected = constant(efficacy)
+        for (coverage in c(0.7, 1)) {
+            single = avg_impact(calculate_impact(list(protected), coverage, model_p))
+            if (coverage == 1) expect_equal(single, 1)
+            for (null_coverage in c(0, 0.5, 1)) {
+                result = combined(intervention1 = protected, intervention2 = none,
+                                  cov_intervention1 = coverage,
+                                  cov_intervention2 = null_coverage)
+                expect_equal(result, single, tolerance = 1e-12, info = component)
+                expect_equal(result,
+                    combined(intervention1 = none, intervention2 = protected,
+                             cov_intervention1 = null_coverage,
+                             cov_intervention2 = coverage),
+                    tolerance = 1e-12, info = component)
+            }
+        }
+    }
+})
+
+test_that("combined impact approaches complete protection continuously", {
+    constant = function(efficacy) suppressMessages(build_intervention(
+        efficacy, decay_attrition = "none", duration_years = 2 / 365,
+        model_p = model_p, insecticide_decay = FALSE))[[1]]
+    none = constant(null)
+    for (component in names(null)) {
+        impacts = vapply(c(0.99, 0.9999, 1), function(value) {
+            efficacy = null
+            efficacy[component] = value
+            combined(intervention1 = constant(efficacy), intervention2 = none,
+                     cov_intervention1 = 1, cov_intervention2 = 0)
+        }, numeric(1))
+        expect_true(all(is.finite(impacts)), info = component)
+        expect_true(all(diff(impacts) >= 0), info = component)
+        expect_equal(impacts[3], 1, info = component)
+        expect_equal(impacts[2], impacts[3], tolerance = 1e-3, info = component)
+    }
+})
+
+test_that("complete dummy-host protection can be combined with an active intervention", {
+    constant = function(efficacy) suppressMessages(build_intervention(
+        efficacy, decay_attrition = "none", duration_years = 2 / 365,
+        model_p = model_p, insecticide_decay = FALSE))[[1]]
+    other = constant(std)
+    for (component in c("Deterrency", "PostPrandial")) {
+        efficacy = c(Deterrency = 0, HostSeekingKilling = 2, PostPrandial = 0)
+        efficacy[component] = 1
+        protected = constant(efficacy)
+        expect_equal(avg_impact(calculate_impact(list(protected), 1, model_p)), 1)
+        expect_equal(combined(intervention1 = protected, intervention2 = other,
+                              cov_intervention1 = 1, cov_intervention2 = 0.6), 1)
+        expect_equal(combined(intervention1 = other, intervention2 = protected,
+                              cov_intervention1 = 0.6, cov_intervention2 = 1), 1)
+    }
+})
+
+test_that("zero baseline VC gives an explicit undefined-relative-impact error", {
+    vec_p = def_vector_params()
+    vec_p$Chi = 0
+    zero_model = build_model_obj(vec_p, def_host_params())
+    interv = suppressMessages(build_intervention(
+        std, decay_attrition = "none", duration_years = 2 / 365,
+        model_p = zero_model, insecticide_decay = FALSE))
+    expect_error(calculate_impact(interv, c(0, 1), zero_model),
+                 "baseline vectorial capacity.*zero.*undefined")
+    ps = data.frame(deterrency = 0.5, preprandial = 0.4, postprandial = 0.3,
+                    halflife_attrition = 180, shape_attrition = 2,
+                    decay_attrition = "none")
+    expect_error(suppressMessages(run_interventions(
+        ps, zero_model, 1, duration_years = 2 / 365)),
+        "baseline vectorial capacity.*zero.*undefined")
+})
+
+test_that("non-finite VC is reported instead of becoming zero impact", {
+    interv = bi(std, days = 2)
+    interv[[1]]$effects$PBi[2, 1] = NA_real_
+    expect_error(calculate_impact(interv, 1, model_p),
+                 "non-finite.*vectorial capacity.*time point 2")
+})
