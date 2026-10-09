@@ -32,6 +32,26 @@ rewritten and are **not backward compatible**.
   newer bionomics table without reinstalling. The dataset is regenerated with
   the scripts in `data-raw/`.
 
+## Export to OpenMalaria
+
+* `get_OM_ento_snippet()` is rewritten: it returns the input lists of
+  `openMalariaUtilities::defineEntomology()` (no XML nodes; the XML dependency
+  is removed). It fixes the mapping of the original version, which wrote the
+  resting duration `tau` as `mosqSeekingDuration` and hardcoded
+  `mosqRestDuration = 2`: now `mosqRestDuration` = `tau` in whole days and
+  `mosqSeekingDuration` = `td`. With activity patterns, each species is split
+  into `_indoor1` / `_indoor2` / `_outdoor` populations by human exposure,
+  with indoor / outdoor human blood indices.
+* New `get_OM_GVI_snippet()`: generic vector intervention for
+  `openMalariaUtilities::defineVectorControl()`, one component per effect with
+  its own decay (exact when possible, fitted Weibull for attrition x
+  insecticide decay), acting on populations exposed in bed (ITN) or resting
+  indoors (IRS). Dummy-host interventions cannot be exported yet.
+* New `add_OM_GVI()`: writes these interventions into an openMalariaUtilities
+  `baseList`, as a single component when the three decays are identical and
+  one component per effect otherwise (openMalariaUtilities in Suggests).
+* `build_intervention()` keeps its inputs in `$settings`.
+
 ## New
 
 * `build_intervention()` builds an intervention from user-supplied efficacies
@@ -95,5 +115,5 @@ rewritten and are **not backward compatible**.
   `calculate_combined_impact_var()`; use `run_interventions()` for
   variability and uncertainty.
 * `get_exposure_multiplier()` (exposure now acts on coverage, see above).
-* `get_OM_GVI_snippet()`: the OpenMalaria intervention export is being
-  redesigned for the new framework. `get_OM_ento_snippet()` is unchanged.
+* The XML-node outputs of `get_OM_ento_snippet()` / `get_OM_GVI_snippet()`
+  (see "Export to OpenMalaria" above for their replacements).

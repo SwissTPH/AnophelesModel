@@ -112,6 +112,9 @@ data frame with one row per efficacy component and columns
 that best approximates attrition \eqn{\times} insecticide decay over the
 intervention duration (as used for OpenMalaria GVI parameterisations).
 The model itself always uses the exact (unfitted) decay.
+The element \code{settings} keeps the inputs (efficacy, mode, attrition and
+per-component decays, \code{insecticide_decay}), used by
+\code{get_OM_GVI_snippet()}.
 }
 \description{
 Constructs an intervention effects object from user-supplied

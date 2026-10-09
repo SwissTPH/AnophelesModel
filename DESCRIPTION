@@ -23,7 +23,6 @@ Imports:
     ggplot2 (>= 3.4.0),
     data.table,
     checkmate,
-    XML,
     stats,
     utils
 Suggests: 
@@ -31,7 +30,10 @@ Suggests:
     rmarkdown,
     testthat,
     ggpubr,
-    Hmisc
+    Hmisc,
+    openMalariaUtilities
+Remotes:
+    SwissTPH/r-openMalariaUtilities
 VignetteBuilder: knitr
 License: GPL (>=2)
 Encoding: UTF-8

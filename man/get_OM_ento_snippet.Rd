@@ -2,33 +2,104 @@
 % Please edit documentation in R/xml_export.R
 \name{get_OM_ento_snippet}
 \alias{get_OM_ento_snippet}
-\title{Create an OpenMalaria entomology XML snippet}
+\title{Mosquito parameters for an OpenMalaria scenario}
 \usage{
-get_OM_ento_snippet(vec_params, hosts_params)
+get_OM_ento_snippet(
+  taxa,
+  level = "species",
+  activity = NULL,
+  hbi = "weighted",
+  hosts_p = def_host_params(),
+  propInfected = 0.078,
+  propInfectious = 0.021,
+  bionomics_table = NULL
+)
 }
 \arguments{
-\item{vec_params}{List of vector-specific entomological parameters
-(see \code{def_vector_params}).}
+\item{taxa}{Character vector of taxon names (see
+\code{\link{list_all_species}}); the usual synonyms of
+\emph{An. gambiae ss/coluzzii} are accepted with a warning.}
 
-\item{hosts_params}{List of host-specific entomological parameters
-(see \code{def_host_params}).}
+\item{level}{Taxonomic level(s) of \code{taxa}: \code{"species"} (default),
+\code{"complex"} or \code{"genus"}; recycled.}
+
+\item{activity}{Optional activity patterns (from
+\code{\link{def_activity_patterns}}), one per taxon (a single pattern is
+used for all taxa). Triggers the indoor/outdoor split.}
+
+\item{hbi}{Human blood index of unsplit populations: \code{"weighted"}
+(default, indoor and outdoor HBI weighted by endophagy), \code{"indoor"}
+or \code{"outdoor"}.}
+
+\item{hosts_p}{Host parameters from \code{\link{def_host_params}}.}
+
+\item{propInfected, propInfectious}{Initial proportions of infected and
+infectious mosquitoes, written to \code{seasonalityParameters}.}
+
+\item{bionomics_table}{Optional bionomics table used instead of
+\code{vec_ent_param} (see \code{\link{read_bionomics_table}}).}
 }
 \value{
-List with two XML node objects: \code{mosq_snippet} and
-\code{nonHumanHosts_snippet}.
+List with
+\itemize{
+  \item \code{mosquitoParameters}: named list (one element per mosquito
+    population) for \code{defineEntomology(mosquitoParameters = )};
+  \item \code{seasonalityParameters}: named list skeleton for
+    \code{defineEntomology(seasonalityParameters = )}, with placeholders
+    \code{"@EIR_<name>@"} for \code{annualEIR} and \code{"@m1@"},
+    ..., \code{"@m12@"} for the seasonality, to be replaced (with R >= 4.3,
+    \code{defineEntomology()} currently rejects monthly placeholders;
+    replace them with numeric values, or a fixed openMalariaUtilities);
+  \item \code{shares}: data frame with \code{mosquito}, \code{taxon},
+    \code{type} (\code{indoor1}, \code{indoor2}, \code{outdoor} or
+    \code{all}), \code{share} within the taxon, and the logical columns
+    \code{in_bed} and \code{indoor_resting} (exposure to interventions
+    acting in bed, e.g. ITNs, or on indoor resting mosquitoes, e.g. IRS).
+}
 }
 \description{
-Generates the \code{<mosq>} and \code{<nonHumanHosts>} XML
-tags for the \code{<entomology>} section of an OpenMalaria scenario file,
-based on vector and host entomological parameters.
+Builds the mosquito (entomology) parameters of an OpenMalaria
+scenario (schema 44) from the bionomics in \code{vec_ent_param}, as the
+input lists of \code{openMalariaUtilities::defineEntomology()}.
+
+With \code{activity}, each taxon is split into three mosquito populations
+according to human exposure (\code{\link{calculate_exposure}}): with
+\code{in_bed} the exposure indoors while in bed and \code{resting} the
+proportion resting indoors (endophily),
+\itemize{
+  \item \code{<taxon>_indoor1}: share \code{min(in_bed, resting)}, exposed
+    both in bed and while resting indoors;
+  \item \code{<taxon>_indoor2}: share \code{max(in_bed, resting) -
+    min(in_bed, resting)}, exposed in bed only (if \code{in_bed > resting})
+    or while resting indoors only;
+  \item \code{<taxon>_outdoor}: the rest, not exposed indoors.
+}
+The populations share all parameters except the human blood index: indoor
+populations use the indoor HBI, the outdoor population the outdoor HBI.
+Without \code{activity}, each taxon is a single population whose human blood
+index is chosen with \code{hbi}.
+
+Mapping to OpenMalaria: \code{mosqRestDuration} = resting duration
+\code{tau} in whole days (at least 1), \code{mosqSeekingDuration} =
+\code{td}, \code{extrinsicIncubationPeriod} = \code{ts},
+\code{mosqLaidEggsSameDayProportion} = \code{A0},
+\code{mosqSurvivalFeedingCycleProbability} = \code{M} (parous rate), human
+host probabilities from \code{hosts_p}. Each population also carries a
+\code{nonHumanHosts} entry with the animal host probabilities of
+\code{hosts_p}; note that \code{defineEntomology()} currently writes fixed
+animal values and ignores this entry.
 }
 \examples{
-vec_params   = def_vector_params()
-hosts_params = def_host_params()
-xml_snippets = get_OM_ento_snippet(vec_params, hosts_params)
-print(xml_snippets)
+om = get_OM_ento_snippet("Anopheles gambiae ss/coluzzii",
+                         activity = def_activity_patterns())
+names(om$mosquitoParameters)
+om$shares
+\dontrun{
+baseList = openMalariaUtilities::defineEntomology(
+    baseList, om$seasonalityParameters, om$mosquitoParameters)
+}
 
 }
-\author{
-Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
+\seealso{
+\code{\link{get_OM_GVI_snippet}}
 }

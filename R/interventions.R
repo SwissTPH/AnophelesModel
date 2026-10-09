@@ -361,6 +361,9 @@ apply_eff_matrices = function(mm, host_p) {
 #' that best approximates attrition \eqn{\times} insecticide decay over the
 #' intervention duration (as used for OpenMalaria GVI parameterisations).
 #' The model itself always uses the exact (unfitted) decay.
+#' The element \code{settings} keeps the inputs (efficacy, mode, attrition and
+#' per-component decays, \code{insecticide_decay}), used by
+#' \code{get_OM_GVI_snippet()}.
 #'
 #' @importFrom stats optim
 #' @keywords internal
@@ -487,6 +490,17 @@ build_intervention = function(efficacy,
             do.call(rbind, fits),
             row.names = NULL, stringsAsFactors = FALSE)
     }
+
+    # Inputs, kept to reproduce the decays exactly (e.g. get_OM_GVI_snippet())
+    interv_list[[1]]$settings = list(
+        efficacy             = efficacy,
+        mode                 = if (use_dummy_host) "dummy_host" else "standard",
+        decay_attrition      = decay_attrition,
+        halflife_attrition   = halflife_attrition,
+        shape_attrition      = shape_attrition,
+        halflife_insecticide = halflife_insecticide,
+        component_decay      = component_decay,
+        insecticide_decay    = insecticide_decay)
 
     if (!is.null(name)) {
         interv_list[[1]]$parameterisation = name

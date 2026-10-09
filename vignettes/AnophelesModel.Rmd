@@ -593,12 +593,46 @@ cat("Joint rows:", nrow(joint_results),
     "= 1 x", length(coverage_grid), "x", n_draws_joint, "\n")
 ```
 
-## Generating entomology XML snippets for OpenMalaria
+## Export to OpenMalaria
 
-`get_OM_ento_snippet()` creates the `<mosq>` and `<nonHumanHosts>` XML tags:
+The package produces the inputs of the
+[openMalariaUtilities](https://github.com/SwissTPH/r-openMalariaUtilities)
+functions that write OpenMalaria (schema 44) scenarios.
+
+**Entomology.** `get_OM_ento_snippet()` returns the mosquito parameters for
+`defineEntomology()`. With activity patterns, each species is split into
+populations by human exposure: `_indoor1` (exposed in bed and resting
+indoors), `_indoor2` (only one of the two) and `_outdoor`; indoor populations
+use the indoor HBI, the outdoor population the outdoor HBI. `shares` gives the
+share of each population within its species, to set its `annualEIR`
+(placeholders in `seasonalityParameters`):
 ```{r}
-xml_snippets = get_OM_ento_snippet(gambiae_vec_p, host_p)
-print(xml_snippets)
+om_ento = get_OM_ento_snippet(c("Anopheles gambiae ss/coluzzii", "Anopheles funestus"),
+                              activity = activity_gambiae)
+om_ento$shares
+str(om_ento$mosquitoParameters[[1]][c("mosqRestDuration", "mosqSeekingDuration",
+                                      "mosqHumanBloodIndex")])
 ```
+
+**Vector control.** `get_OM_GVI_snippet()` turns an intervention into the
+generic vector intervention for `defineVectorControl()`: one component per
+effect, each with its own decay (attrition and insecticide decay combined;
+fitted Weibull when they cannot be expressed as a single OpenMalaria decay),
+acting on the populations exposed in bed (ITN) or resting indoors (IRS):
+```{r}
+om_gvi = get_OM_GVI_snippet(my_interv, om_ento, intervention_type = "ITN")
+om_gvi[[1]]$deterrency$decay
+```
+
+```{r, eval=FALSE}
+baseList = openMalariaUtilities::defineEntomology(
+    baseList, om_ento$seasonalityParameters, om_ento$mosquitoParameters)
+# One component when the three decays are identical, otherwise one per effect
+# (to deploy together); baseList$interventions$human must exist
+baseList = add_OM_GVI(baseList, om_gvi)
+# (or openMalariaUtilities::defineVectorControl(baseList, om_gvi): always one
+#  component per effect)
+```
+Dummy-host interventions cannot be exported yet.
 
 ## References
