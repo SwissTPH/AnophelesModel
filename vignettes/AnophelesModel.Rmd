@@ -210,7 +210,7 @@ ggplot(decay_df, aes(x=day, y=value, colour=shape)) +
 ```
 
 **Standard model** — built-in parameterisation for Interceptor G2 from the
-Kibondo EHT [@champagne2025], with Weibull attrition (half-life 6 months) and
+Kibondo EHT [@champagne2025], with Weibull attrition (half-life 3 years) and
 per-component **linear** insecticide decay, passed via `halflife_insecticide`
 (in years). Despite its name, this is the time at which the effect would
 reach zero, calibrated so that efficacy after 3 years equals the efficacy of

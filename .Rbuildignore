@@ -1,0 +1,11 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^doc$
+^Meta$
+^docs$
+^LICENSE$
+^_pkgdown\.yml$
+^data-raw$
+^CLAUDE\.md$
+^\.RData$
+^.*\.Rapp\.history$

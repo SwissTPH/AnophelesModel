@@ -1,4 +1,4 @@
-# AnophelesModel2 0.1.0
+# AnophelesModel2 1.0.0
 
 AnophelesModel2 is a refactoring of
 [AnophelesModel](https://github.com/SwissTPH/AnophelesModel). It keeps the
