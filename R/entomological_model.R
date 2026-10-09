@@ -88,8 +88,10 @@ calc_psts = function(ts, tau, PA, Pdf) {
     n_cov = length(PA)
     # eq. 4 Chitnis et al. 2007
     kplus = floor(ts/tau) - 1
-    kp_v = c(0:kplus)
-    if (kplus > 0){
+    # An upper index of zero still contributes the term at k=0.
+    # Build the index sequence only for non-empty sums.
+    if (kplus >= 0){
+        kp_v = seq.int(0L, kplus)
         s_kplus = rowSums(rep_row(choose(ts - (kp_v+1) * tau + kp_v, kp_v), n_cov) *
                               rep_col(PA, kplus+1) ^ rep_row(ts - (kp_v+1) * tau, n_cov) *
                               rep_col(Pdf, kplus+1) ^ rep_row(kp_v, n_cov))
@@ -104,8 +106,8 @@ calc_psts = function(ts, tau, PA, Pdf) {
     for(l in seq_len(tau - 1)) {
         # eq. 4 Chitnis et al. 2007
         klplus = floor((ts + l) / tau) - 2
-        klp_v = c(0:klplus)
-        if (klplus > 0) {
+        if (klplus >= 0) {
+            klp_v = seq.int(0L, klplus)
             s_klplus = rowSums(rep_row(choose(ts + l - (klp_v+2) * tau + klp_v, klp_v), n_cov) *
                                    rep_col(PA, klplus+1) ^ rep_row(ts + l - (klp_v + 2) * tau, n_cov) *
                                    rep_col(Pdf, klplus+1) ^ rep_row(klp_v+1, n_cov))

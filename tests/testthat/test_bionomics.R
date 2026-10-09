@@ -135,3 +135,43 @@ test_that("calc_psts rounds tau to whole days (at least one)", {
     expect_false(isTRUE(all.equal(psts(1), psts(2))))
     expect_true(all(is.finite(psts(1))))
 })
+
+test_that("calc_psts includes the term at a zero upper summation index", {
+    # ts=10, tau=6: the first sum contains only PA^4. In the inner
+    # sums, l=1 has no terms; l=2:5 contribute Pdf * PA^(l-2).
+    PA = c(0.5, 0.6)
+    Pdf = c(0.3, 0.2)
+    res = AnophelesModel2:::calc_psts(10, 6, PA, Pdf)
+    expect_equal(res$sumkplus, PA^4)
+    expect_equal(res$sumlv, unname(rbind(c(0, 0), Pdf, Pdf * PA,
+                                         Pdf * PA^2, Pdf * PA^3)))
+    expect_equal(res$psts, c(0.625, 0.5648), tolerance = 1e-12)
+})
+
+test_that("calc_psts includes inner zero-index terms when the first sum has several terms", {
+    # ts=10, tau=5: first sum = PA^5 + Pdf; each inner sum has
+    # one term, Pdf * PA^l for l=1:4.
+    res = AnophelesModel2:::calc_psts(10, 5, 0.5, 0.3)
+    expect_equal(res$sumkplus, 0.33125)
+    expect_equal(res$sumlv, matrix(c(0.15, 0.075, 0.0375, 0.01875), ncol = 1))
+    expect_equal(res$psts, 0.6125)
+})
+
+test_that("calc_psts leaves negative-index sums empty", {
+    # ts=10, tau=9: first sum = PA, inner sums l=1:7 are empty,
+    # and l=8 contributes Pdf.
+    res = AnophelesModel2:::calc_psts(10, 9, 0.5, 0.3)
+    expect_equal(res$sumkplus, 0.5)
+    expect_equal(res$sumlv, matrix(c(rep(0, 7), 0.3), ncol = 1))
+    expect_equal(res$psts, 0.8)
+})
+
+test_that("calc_psts handles incubation equal to resting duration", {
+    for (tau in c(1, 10)) {
+        # The first sum is PA^0 = 1 and all inner sums are empty.
+        res = AnophelesModel2:::calc_psts(tau, tau, c(0.5, 0.6), c(0.3, 0.2))
+        expect_equal(res$sumkplus, c(1, 1))
+        expect_equal(res$sumlv, matrix(0, nrow = tau - 1, ncol = 2))
+        expect_equal(res$psts, c(1, 1))
+    }
+})

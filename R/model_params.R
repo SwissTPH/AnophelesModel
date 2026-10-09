@@ -204,6 +204,10 @@ def_host_params = function(host_table = NULL, verbose = TRUE) {
                                   add = assertCol)
         checkmate::reportAssertions(collection = assertCol)
 
+        # Model calculations use positional host parameters: humans first,
+        # animals second, regardless of the input table's row order.
+        host_table = host_table[order(match(host_table$host, c("human", "animal"))), ]
+
         if (verbose) {
             print(paste("Using host-specific entomological parameters",
                         "provided by the user."))

@@ -125,6 +125,35 @@ test_that("test: check loading custom host entomological parameter values", {
     expect_equal(c_sol, my_host_obj)
 })
 
+test_that("custom host row order does not change parameters or model results", {
+    custom = as.data.frame(def_host_params(verbose = FALSE))
+    custom$PBi = c(0.95, 0.9)
+    custom$PCi = c(0.96, 0.94)
+    custom$PDi = c(0.99, 0.98)
+    custom$PEi = c(0.88, 0.87)
+    custom$Kvi = c(0.03, 0)
+
+    human_first = def_host_params(custom, verbose = FALSE)
+    animal_first = def_host_params(custom[2:1, ], verbose = FALSE)
+    expect_equal(human_first, as.list(custom))
+    expect_equal(animal_first$host, c("human", "animal"))
+    expect_equal(animal_first$Kvi, c(0.03, 0))
+    expect_equal(animal_first, human_first)
+
+    vec_p = def_vector_params()
+    models = list(build_model_obj(vec_p, human_first),
+                  build_model_obj(vec_p, animal_first))
+    expect_equal(models[[2]], models[[1]])
+    impacts = lapply(models, function(model_p) {
+        interv = suppressMessages(build_intervention(
+            c(Deterrency = 0.5, PrePrandial = 0.4, PostPrandial = 0.3),
+            decay_attrition = "none", duration_years = 2 / 365,
+            model_p = model_p, insecticide_decay = FALSE))
+        calculate_impact(interv, c(0, 0.5, 1), model_p)
+    })
+    expect_equal(impacts[[2]], impacts[[1]])
+})
+
 # This test checks whether non-numeric custom values cannot be provided
 # for the host entomological parameters.
 test_that("test: check loading non-numeric host parameter values", {
