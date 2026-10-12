@@ -24,7 +24,8 @@ description).}
 }
 \value{
 Named list (one element, \code{name}) with \code{deterrency},
-\code{preprandialKillingEffect} and \code{postprandialKillingEffect}, each
+\code{preprandialKillingEffect} (standard model only) and
+\code{postprandialKillingEffect}, each
 with \code{decay} and per-mosquito \code{anophelesParams}
 (\code{propActive}, \code{value}), for
 \code{defineVectorControl(vectorInterventionParameters = )}.
@@ -60,7 +61,10 @@ The effects act on the mosquito populations exposed to the intervention
 (see \code{\link{get_OM_ento_snippet}}): in bed for ITNs, resting indoors for
 IRS; other populations get \code{propActive = 0}.
 
-Dummy-host interventions (\code{HostSeekingKilling}) cannot be exported yet.
+Dummy-host interventions (\code{HostSeekingKilling}) have no pre-prandial
+killing: their GVI has deterrency and post-prandial killing only, and the
+host-seeking killing, which has no GVI equivalent, is exported by
+\code{\link{define_OM_vector_control}}.
 }
 \examples{
 model_p = build_model_obj(def_vector_params(), def_host_params())

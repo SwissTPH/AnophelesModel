@@ -633,6 +633,30 @@ baseList = add_OM_GVI(baseList, om_gvi)
 # (or openMalariaUtilities::defineVectorControl(baseList, om_gvi): always one
 #  component per effect)
 ```
-Dummy-host interventions cannot be exported yet.
+
+**Define and deploy.** `define_OM_vector_control()` and
+`deploy_OM_vector_control()` write a whole intervention, for both model
+structures. The deployment holds all components of the intervention, so that
+all effects reach the same people. For dummy-host nets, the GVI has
+deterrency and post-prandial killing, and the host-seeking killing becomes an
+increase of the host-seeking death rate (`seekingDeathRateIncrease`), written
+as one step per campaign (the define message compares the vectorial capacity
+reduction of the steps with the exact curve). With a named list of nets, all
+values are placeholders, so scenarios can loop over net types;
+`om_vector_control_values()` gives their values for each net and coverage
+scenario:
+```{r, eval=FALSE}
+nets = list(IG2 = ig2, OlysetPlus = olyset_plus)   # build_intervention() outputs
+schedule = data.frame(date     = c("2021-01-01", "2024-01-01", "2027-01-01"),
+                      coverage = c("@cov2021@", "@cov2024@", "@cov2027@"))
+baseList = define_OM_vector_control(baseList, nets, om_ento, schedule,
+                                    end_date = "2030-01-01", name = "ITN")
+baseList = deploy_OM_vector_control(baseList, "ITN", schedule)
+values = om_vector_control_values(nets, om_ento, schedule, end_date = "2030-01-01",
+    coverages = expand.grid(cov2021 = c(0.5, 0.8), cov2024 = 0.6, cov2027 = 0.6),
+    name = "ITN")
+```
+The interventions must last (`duration_years`) from the first campaign to
+`end_date`, as nets of earlier campaigns still kill mosquitoes.
 
 ## References

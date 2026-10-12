@@ -25,7 +25,7 @@ The updated \code{baseList}.
 \description{
 Writes the generic vector interventions from
 \code{\link{get_OM_GVI_snippet}} into an openMalariaUtilities
-\code{baseList}. When the three effects of an intervention share the same
+\code{baseList}. When the effects of an intervention share the same
 decay (e.g. no insecticide decay, or the same insecticide decay for all
 effects), they are written as \strong{one} component named after the
 intervention, as in ITNcascades; otherwise as one component per effect
@@ -33,7 +33,9 @@ intervention, as in ITNcascades; otherwise as one component per effect
 \code{<name>-postprandialKillingEffect}), as
 \code{openMalariaUtilities::defineVectorControl()} does. The component ids
 are printed: when there are several per intervention, they must be deployed
-together, to the same people.
+together, to the same people (\code{\link{deploy_OM_vector_control}}).
+Dummy-host interventions have no pre-prandial component (its value is
+written as 0).
 
 Requires the openMalariaUtilities package (uses its internal functions
 \code{.defineInterventionsHeader()} and \code{.xmlAddList()}).

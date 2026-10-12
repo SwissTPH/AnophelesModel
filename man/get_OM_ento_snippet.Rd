@@ -54,7 +54,13 @@ List with
     \code{type} (\code{indoor1}, \code{indoor2}, \code{outdoor} or
     \code{all}), \code{share} within the taxon, and the logical columns
     \code{in_bed} and \code{indoor_resting} (exposure to interventions
-    acting in bed, e.g. ITNs, or on indoor resting mosquitoes, e.g. IRS).
+    acting in bed, e.g. ITNs, or on indoor resting mosquitoes, e.g. IRS),
+    and \code{muvA}, the host-seeking death rate without interventions
+    (per day, with the population's HBI), used to export host-seeking
+    killing (\code{\link{define_OM_vector_control}});
+  \item \code{model_params}: named list (one element per mosquito
+    population) of \code{\link{build_model_obj}} outputs with the
+    population's HBI (\code{NULL} if the bionomics give no valid death rate).
 }
 }
 \description{
@@ -101,5 +107,5 @@ baseList = openMalariaUtilities::defineEntomology(
 
 }
 \seealso{
-\code{\link{get_OM_GVI_snippet}}
+\code{\link{get_OM_GVI_snippet}}, \code{\link{define_OM_vector_control}}
 }

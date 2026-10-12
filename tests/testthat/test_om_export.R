@@ -17,8 +17,12 @@ test_that("mosquito parameters follow the OMU format and the bionomics", {
     om  = get_OM_ento_snippet(gss)
     vec = def_vector_params(gss, hbi = "weighted")
     hp  = def_host_params()
-    expect_named(om, c("mosquitoParameters", "seasonalityParameters", "shares"))
+    expect_named(om, c("mosquitoParameters", "seasonalityParameters", "shares",
+                       "model_params"))
     expect_named(om$mosquitoParameters, gss)
+    # Host-seeking death rate of the population's model (its HBI)
+    expect_equal(om$shares$muvA,
+                 build_model_obj(vec, hp)$host_params$muvA)
 
     m = om$mosquitoParameters[[gss]]
     expect_equal(m$mosqRestDuration$value, as.character(max(1, floor(vec$tau + 0.5))))
@@ -130,13 +134,17 @@ test_that("attrition x insecticide decay is exported as the fitted Weibull", {
                  list(L = "2", "function" = "weibull", k = "2"))
 })
 
-test_that("unsupported cases give clear errors or warnings", {
+test_that("dummy-host GVI has no pre-prandial killing", {
     dh = suppressMessages(build_intervention(
         efficacy = c(Deterrency = 0.3, HostSeekingKilling = 0.6, PostPrandial = 0.4),
         halflife_attrition = 365, shape_attrition = 2, duration_years = 1,
         model_p = model_p))
-    expect_error(get_OM_GVI_snippet(dh, om, "ITN"), "Dummy-host")
+    expect_message(gvi <- get_OM_GVI_snippet(dh, om, "ITN"), "define_OM_vector_control")
+    expect_named(gvi[[1]], c("deterrency", "postprandialKillingEffect"))
+    expect_equal(gvi[[1]]$postprandialKillingEffect$anophelesParams[[1]]$value, "0.4")
+})
 
+test_that("unsupported cases give clear errors or warnings", {
     neg = bi(decay_attrition = "none", halflife_insecticide = c(Deterrency = -5))
     expect_error(suppressWarnings(get_OM_GVI_snippet(neg, om, "ITN")), "Negative")
 
@@ -145,7 +153,81 @@ test_that("unsupported cases give clear errors or warnings", {
 })
 
 # ---------------------------------------------------------------------------
-# 3. Compatibility with openMalariaUtilities (if installed)
+# 3. Host-seeking killing (dummy host) as seekingDeathRateIncrease steps
+# ---------------------------------------------------------------------------
+dh_net = function(hsk = 0.6, ...) suppressMessages(build_intervention(
+    efficacy = c(Deterrency = 0.3, HostSeekingKilling = hsk, PostPrandial = 0.4),
+    halflife_attrition = 365, shape_attrition = 2, duration_years = 2,
+    model_p = model_p, ...))
+sched_num = data.frame(date = c("2021-01-01", "2022-01-01"), coverage = c(0.8, 0.5))
+sched_ph  = data.frame(date = c("2021-01-01", "2022-01-01"),
+                       coverage = c("@cov2021@", "@cov2022@"))
+end_date  = "2023-01-01"   # 730 days after the first campaign = net duration
+
+test_that("step factors are the step means of the summed campaign curves", {
+    net = dh_net(halflife_insecticide = c(HostSeekingKilling = 3))[[1]]
+    sch = AnophelesModel2:::om_schedule(sched_num, end_date)
+    fac = AnophelesModel2:::om_hsk_factors(net, sch)
+    g = net$effects$alphai[, 4] * net$effects$survival
+    # Brute force, day by day
+    d = sapply(0:729, function(t) 0.8 * g[t + 1] + if (t >= 365) 0.5 * g[t - 365 + 1] else 0)
+    expect_equal(as.vector(fac$B %*% c(0.8, 0.5)),
+                 c(mean(d[1:365]), mean(d[366:730])))
+    expect_equal(fac$B[1, 2], 0)                       # no nets before campaign 2
+    expect_equal(fac$B[2, 1], mean(g[366:730]))        # leftover nets of campaign 1
+    expect_equal(fac$L_years, c(1, 1))
+    # Linear in the coverage
+    expect_equal(fac$B %*% c(0.3, 0.2) + fac$B %*% c(0.5, 0.3), fac$B %*% c(0.8, 0.5))
+})
+
+test_that("schedules and durations are validated", {
+    s = AnophelesModel2:::om_schedule
+    expect_error(s(data.frame(date = "2021-01-01")), "columns date and coverage")
+    expect_error(s(data.frame(date = c("2022-01-01", "2021-01-01"), coverage = 1)),
+                 "increasing")
+    expect_error(s(data.frame(date = "2021-01-01", coverage = 1.2)), "coverage")
+    expect_error(s(data.frame(date = "2021-01-01", coverage = "cov")), "coverage")
+    expect_error(s(sched_num, "2021-06-01"), "after the last campaign")
+    sch = s(data.frame(date = "2021-01-01", coverage = 0.5), "2025-01-01")
+    expect_error(AnophelesModel2:::om_hsk_factors(dh_net()[[1]], sch), "duration_years")
+})
+
+test_that("placeholder values: per net and coverage scenario, in-bed populations only", {
+    nets = list(A = dh_net(0.6), B = dh_net(1.2))
+    cov  = data.frame(cov2021 = c(0.8, 0.4), cov2022 = c(0.5, 0.5))
+    v = suppressMessages(om_vector_control_values(nets, om, sched_ph, end_date,
+                                                  coverages = cov, name = "ITN"))
+    expect_equal(nrow(v), 4)
+    expect_equal(v$net, c("A", "A", "B", "B"))
+    expect_equal(v$cov2021, c(0.8, 0.4, 0.8, 0.4))
+    expect_true(all(c("ITN_deterrency", "ITN_deterrency_L", "ITN_deterrency_k",
+                      "ITN_postprandial", "ITN_hsk_1_pop1", "ITN_hsk_2_pop1") %in% names(v)))
+    expect_false(any(grepl("preprandial", names(v))))
+    expect_equal(v$ITN_deterrency, rep(0.3, 4))
+    expect_equal(v$ITN_deterrency_L, rep(1, 4))          # exact Weibull, years
+    # HSK only for in-bed populations, value = step mean / muvA
+    pops = which(om$shares$in_bed)
+    expect_setequal(grep("_hsk_1_", names(v), value = TRUE),
+                    paste0("ITN_hsk_1_pop", pops))
+    sch = AnophelesModel2:::om_schedule(sched_ph, end_date)
+    fac = AnophelesModel2:::om_hsk_factors(nets$A[[1]], sch)
+    expect_equal(v$ITN_hsk_2_pop1[1], sum(fac$B[2, ] * c(0.8, 0.5)) / om$shares$muvA[1])
+    expect_equal(v$ITN_hsk_1_pop1[3], 2 * v$ITN_hsk_1_pop1[1])   # proportional to HSK
+
+    # A single intervention with placeholder coverages: HSK columns only
+    v1 = om_vector_control_values(nets$A, om, sched_ph, end_date, coverages = cov,
+                                  name = "ITN")
+    expect_equal(v1$ITN_hsk_1_pop1, v$ITN_hsk_1_pop1[1:2])
+    expect_false("ITN_deterrency" %in% names(v1))
+    expect_error(om_vector_control_values(nets$A, om, sched_ph, end_date), "coverages")
+    expect_error(om_vector_control_values(list(A = nets$A, S = bi(halflife_attrition = 730,
+                                                                 shape_attrition = 2)),
+                                          om, sched_ph,
+                                          end_date, coverages = cov), "same model")
+})
+
+# ---------------------------------------------------------------------------
+# 4. Compatibility with openMalariaUtilities (if installed)
 # ---------------------------------------------------------------------------
 test_that("outputs are accepted by openMalariaUtilities", {
     skip_if_not_installed("openMalariaUtilities")
@@ -185,4 +267,101 @@ test_that("add_OM_GVI writes one component when the decays are identical", {
     unmerged = suppressMessages(add_OM_GVI(base, gvi, merge = FALSE))
     expect_equal(n_components(unmerged), 3 + 3)
     expect_error(add_OM_GVI(list(interventions = list()), gvi), "must exist")
+})
+
+om_base = function() list(expName = "test", OMVersion = 44L, demography = list(),
+                          monitoring = list(), interventions = list(human = list()),
+                          healthSystem = list(), entomology = list(), model = list())
+by_name = function(l, nm) l[names(l) == nm]
+
+test_that("define / deploy a dummy-host net with numeric coverages", {
+    skip_if_not_installed("openMalariaUtilities")
+    net = dh_net(name = "IG2")
+    expect_message(b <- define_OM_vector_control(om_base(), net, om, sched_num, end_date),
+                   "exact vs steps")
+    # GVI without pre-prandial killing, merged (identical decays)
+    ids = sapply(by_name(b$interventions$human, "component"), `[[`, "id")
+    expect_equal(unname(ids), "IG2")
+    # One step per campaign, deployed at its date, 0 for populations not in bed
+    steps = by_name(b$interventions$vectorPop, "intervention")
+    expect_equal(unname(sapply(steps, `[[`, "name")), c("IG2_hsk_1", "IG2_hsk_2"))
+    expect_equal(steps[[2]]$timed$deploy$time, "2022-01-01")
+    an = by_name(steps[[1]]$description, "anopheles")
+    expect_equal(an[[3]]$seekingDeathRateIncrease$initial, "0")          # outdoor
+    expect_equal(an[[1]]$seekingDeathRateIncrease$decay,
+                 list("function" = "step", L = "1"))
+    sch = AnophelesModel2:::om_schedule(sched_num, end_date)
+    fac = AnophelesModel2:::om_hsk_factors(net[[1]], sch)
+    expect_equal(as.numeric(an[[1]]$seekingDeathRateIncrease$initial),
+                 sum(fac$B[1, ] * c(0.8, 0.5)) / om$shares$muvA[1], tolerance = 1e-5)
+    expect_error(suppressMessages(define_OM_vector_control(b, net, om, sched_num, end_date)),
+                 "already")
+
+    # The deployment must match the schedule used for the killing steps
+    other_cov = sched_num
+    other_cov$coverage = c(0, 0.5)
+    expect_error(deploy_OM_vector_control(b, "IG2", other_cov), "schedule differs")
+    for (args in list(list(subpop = "x"), list(cumulative = TRUE), list(minAge = 5),
+                      list(maxAge = 10)))
+        expect_error(do.call(deploy_OM_vector_control, c(list(b, "IG2", sched_num), args)),
+                     "not supported for dummy-host")
+
+    b = suppressMessages(deploy_OM_vector_control(b, "IG2", sched_num))
+    dep = by_name(b$interventions$human, "deployment")
+    expect_length(dep, 1)
+    deploys = by_name(dep[[1]]$timed, "deploy")
+    expect_equal(unname(sapply(deploys, `[[`, "coverage")), c("0.8", "0.5"))
+    expect_error(deploy_OM_vector_control(b, "IG2", sched_num[1, ]), "schedule differs")
+    expect_error(deploy_OM_vector_control(b, "other", sched_num), "define_OM_vector_control")
+})
+
+test_that("define / deploy a template of nets: one deployment with all components", {
+    skip_if_not_installed("openMalariaUtilities")
+    nets = list(A = dh_net(0.6, halflife_insecticide = c(Deterrency = 3)), B = dh_net(1.2))
+    b = suppressMessages(define_OM_vector_control(om_base(), nets, om, sched_ph,
+                                                  end_date, name = "ITN"))
+    comps = by_name(b$interventions$human, "component")
+    expect_equal(unname(sapply(comps, `[[`, "id")),
+                 c("ITN-deterrency", "ITN-postprandialKillingEffect"))
+    expect_equal(comps[[1]]$GVI$decay,
+                 list(L = "@ITN_deterrency_L@", "function" = "weibull", k = "@ITN_deterrency_k@"))
+    an = by_name(by_name(b$interventions$vectorPop, "intervention")[[2]]$description,
+                 "anopheles")
+    expect_equal(an[[1]]$seekingDeathRateIncrease$initial, "@ITN_hsk_2_pop1@")
+
+    sched_other = sched_ph
+    sched_other$coverage = c("@cov2021@", "@covB@")
+    expect_error(deploy_OM_vector_control(b, "ITN", sched_other), "schedule differs")
+    b = suppressMessages(deploy_OM_vector_control(b, "ITN", sched_ph))
+    dep = by_name(b$interventions$human, "deployment")[[1]]
+    expect_equal(unname(sapply(by_name(dep, "component"), `[[`, "id")),
+                 c("ITN-deterrency", "ITN-postprandialKillingEffect"))
+    expect_equal(unname(sapply(by_name(dep$timed, "deploy"), `[[`, "coverage")),
+                 c("@cov2021@", "@cov2022@"))
+    # Every placeholder of the XML has a value
+    v = suppressMessages(om_vector_control_values(nets, om, sched_ph, end_date,
+        coverages = data.frame(cov2021 = 0.8, cov2022 = 0.5), name = "ITN"))
+    strings = unlist(b)
+    all_ph = unique(gsub("@", "", unlist(regmatches(strings, gregexpr("@[^@]+@", strings)))))
+    expect_setequal(all_ph, names(v)[-1])
+})
+
+test_that("standard model: pre-prandial component and no host-seeking killing", {
+    skip_if_not_installed("openMalariaUtilities")
+    b = suppressMessages(define_OM_vector_control(
+        om_base(), list(A = bi(halflife_attrition = 730, shape_attrition = 2),
+                        B = bi(halflife_attrition = 365, shape_attrition = 1.5)),
+        om, sched_ph, end_date, name = "ITN"))
+    expect_true("ITN-preprandialKillingEffect" %in%
+                sapply(by_name(b$interventions$human, "component"), `[[`, "id"))
+    expect_null(b$interventions$vectorPop)
+
+    # Restricted / cumulative deployments: one deployment with all components
+    b = suppressMessages(deploy_OM_vector_control(b, "ITN", sched_ph, subpop = "eligible",
+                                                  cumulative = TRUE))
+    dep = by_name(b$interventions$human, "deployment")[[1]]
+    expect_length(by_name(dep, "component"), 3)
+    expect_equal(dep$timed$restrictToSubPop$id, "ITN-eligible")
+    expect_equal(dep$timed$cumulativeCoverage$component, "ITN-eligible")
+    expect_length(by_name(dep$timed, "deploy"), 2)
 })

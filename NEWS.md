@@ -67,7 +67,23 @@ rewritten and are **not backward compatible**.
   `openMalariaUtilities::defineVectorControl()`, one component per effect with
   its own decay (exact when possible, fitted Weibull for attrition x
   insecticide decay), acting on populations exposed in bed (ITN) or resting
-  indoors (IRS). Dummy-host interventions cannot be exported yet.
+  indoors (IRS). For dummy-host interventions it has deterrency and
+  post-prandial killing only (no pre-prandial killing).
+* New `define_OM_vector_control()` / `deploy_OM_vector_control()`: write a
+  whole ITN / IRS intervention into an openMalariaUtilities `baseList`, with
+  one `<deployment>` holding all its components (same people) and one deploy
+  per campaign of a `schedule` (dates, numeric or placeholder coverages).
+  Host-seeking killing of dummy-host nets is exported as OpenMalaria's
+  `seekingDeathRateIncrease` (exact equivalent of the dummy host, `d / muvA`),
+  written as one step per campaign (step mean over the campaign interval,
+  including nets of earlier campaigns); the message compares the vectorial
+  capacity reduction of the steps with the exact curve. A named list of
+  interventions gives a template whose values are all placeholders (Weibull
+  decays), e.g. to loop scenarios over net types; new
+  `om_vector_control_values()` computes the placeholder values per net and
+  coverage scenario.
+* `get_OM_ento_snippet()` also returns `muvA` (in `shares`) and the model of
+  each mosquito population (`model_params`).
 * New `add_OM_GVI()`: writes these interventions into an openMalariaUtilities
   `baseList`, as a single component when the three decays are identical and
   one component per effect otherwise (openMalariaUtilities in Suggests).
