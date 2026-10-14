@@ -91,13 +91,14 @@ Requires the openMalariaUtilities package (see \code{\link{add_OM_GVI}}).
 \examples{
 \dontrun{
 model_p = build_model_obj(def_vector_params(), def_host_params())
-nets = lapply(c(IG2 = "Interceptor G2", OlysetPlus = "Olyset Plus"),
-    function(n) {
-        p = get_ITN_params(n, EHT = ..., mode = "dummy_host")
-        build_intervention(p$efficacy, halflife_attrition = 2 * 365,
-            shape_attrition = 2, duration_years = 9, model_p = model_p,
-            mode = p$mode, halflife_insecticide = p$halflife_insecticide)
-    })
+# Two parameterisations of one net (other nets: list_ITN_params())
+p = get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host")
+make_net = function(...) build_intervention(p$efficacy,
+    halflife_attrition = 2 * 365, shape_attrition = 2, duration_years = 9,
+    model_p = model_p, mode = p$mode,
+    halflife_insecticide = p$halflife_insecticide, ...)
+nets = list(IG2 = make_net(),
+            IG2_no_insecticide_decay = make_net(insecticide_decay = FALSE))
 om_ento  = get_OM_ento_snippet("Anopheles gambiae ss/coluzzii",
                                activity = def_activity_patterns())
 schedule = data.frame(date = c("2021-01-01", "2024-01-01", "2027-01-01"),

@@ -392,8 +392,16 @@ om_gvi_list = function(interv, om_ento, intervention_type, name) {
 #' @export
 #'
 add_OM_GVI = function(baseList, gvi, merge = TRUE, append = TRUE) {
+    om_add_components(baseList, om_gvi_components(gvi, merge), append)
+}
+
+
+# Internal: writes <component> lists into baseList$interventions$human with
+# the openMalariaUtilities internals (as its own define functions do)
+om_add_components = function(baseList, components, append = TRUE) {
     if (!requireNamespace("openMalariaUtilities", quietly = TRUE))
-        stop("add_OM_GVI() requires the openMalariaUtilities package")
+        stop("Writing into a baseList requires the openMalariaUtilities package ",
+             "(get_OM_xml() writes XML text without it)")
     xml_add = utils::getFromNamespace(".xmlAddList", "openMalariaUtilities")
     header  = utils::getFromNamespace(".defineInterventionsHeader",
                                       "openMalariaUtilities")
@@ -401,9 +409,27 @@ add_OM_GVI = function(baseList, gvi, merge = TRUE, append = TRUE) {
         stop("To append, baseList$interventions$human must exist ",
              "(or use append = FALSE).")
 
-    effects  = unname(om_gvi_effects)
     baseList = header(baseList = baseList)
-    ids = character(0)
+    for (cm in components) {
+        baseList = xml_add(data = baseList, sublist = c("interventions", "human"),
+                           append = append, entry = "component", input = cm)
+        append = TRUE
+    }
+    ids = vapply(components, `[[`, character(1), "id")
+    message("Components written (deploy those of the same intervention ",
+            "together): ", paste(ids, collapse = ", "))
+    baseList
+}
+
+
+# Internal: <component> lists (XML structure of openMalariaUtilities) of GVIs
+# from get_OM_GVI_snippet(): one component per intervention when the decays of
+# its effects are identical (and merge = TRUE), otherwise one per effect
+# (<name>-<effect>). Shared by add_OM_GVI(), define_OM_vector_control() and
+# get_OM_xml().
+om_gvi_components = function(gvi, merge = TRUE) {
+    effects = unname(om_gvi_effects)
+    out = list()
     for (k in names(gvi)) {
         comp  = gvi[[k]]
         # Effects of the intervention (no pre-prandial killing with the dummy
@@ -425,18 +451,12 @@ add_OM_GVI = function(baseList, gvi, merge = TRUE, append = TRUE) {
                   vals)
             })
             names(params) = rep("anophelesParams", length(params))
-            baseList = xml_add(data = baseList, sublist = c("interventions", "human"),
-                               append = append, entry = "component",
-                               input = list(id = id, name = id,
-                                            GVI = c(list(decay = comp[[g[1]]]$decay),
-                                                    params)))
-            append = TRUE
-            ids = c(ids, id)
+            out = c(out, list(component = list(
+                id = id, name = id,
+                GVI = c(list(decay = comp[[g[1]]]$decay), params))))
         }
     }
-    message("add_OM_GVI: components written (deploy those of the same ",
-            "intervention together): ", paste(ids, collapse = ", "))
-    baseList
+    out
 }
 
 
@@ -694,13 +714,14 @@ om_muvA = function(om_ento, active) {
 #' @examples
 #' \dontrun{
 #' model_p = build_model_obj(def_vector_params(), def_host_params())
-#' nets = lapply(c(IG2 = "Interceptor G2", OlysetPlus = "Olyset Plus"),
-#'     function(n) {
-#'         p = get_ITN_params(n, EHT = ..., mode = "dummy_host")
-#'         build_intervention(p$efficacy, halflife_attrition = 2 * 365,
-#'             shape_attrition = 2, duration_years = 9, model_p = model_p,
-#'             mode = p$mode, halflife_insecticide = p$halflife_insecticide)
-#'     })
+#' # Two parameterisations of one net (other nets: list_ITN_params())
+#' p = get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host")
+#' make_net = function(...) build_intervention(p$efficacy,
+#'     halflife_attrition = 2 * 365, shape_attrition = 2, duration_years = 9,
+#'     model_p = model_p, mode = p$mode,
+#'     halflife_insecticide = p$halflife_insecticide, ...)
+#' nets = list(IG2 = make_net(),
+#'             IG2_no_insecticide_decay = make_net(insecticide_decay = FALSE))
 #' om_ento  = get_OM_ento_snippet("Anopheles gambiae ss/coluzzii",
 #'                                activity = def_activity_patterns())
 #' schedule = data.frame(date = c("2021-01-01", "2024-01-01", "2027-01-01"),
@@ -719,6 +740,31 @@ define_OM_vector_control = function(baseList, interv, om_ento, schedule, end_dat
                                     intervention_type = c("ITN", "IRS"),
                                     name = NULL) {
     intervention_type = match.arg(intervention_type)
+    b = om_vc_build(interv, om_ento, schedule, end_date, intervention_type, name)
+
+    if (length(b$steps)) {
+        vp = baseList$interventions$vectorPop
+        existing = vapply(vp[names(vp) == "intervention"],
+                          function(v) as.character(v$name), character(1))
+        if (any(vapply(b$steps, `[[`, character(1), "name") %in% existing))
+            stop("baseList already has host-seeking killing steps named ",
+                 b$name, "_hsk_*")
+    }
+    baseList = om_add_components(baseList, b$components)
+    if (length(b$steps))
+        baseList$interventions$vectorPop = c(baseList$interventions$vectorPop, b$steps)
+    om_vc_messages(b, "define_OM_vector_control")
+    baseList
+}
+
+
+# Internal: everything define_OM_vector_control() writes, as lists in the XML
+# structure of openMalariaUtilities (no baseList, no openMalariaUtilities
+# needed): <component> lists, host-seeking killing steps (vectorPop
+# <intervention> lists, dummy host only) and what the messages report.
+# Shared by define_OM_vector_control() and get_OM_xml().
+om_vc_build = function(interv, om_ento, schedule, end_date, intervention_type,
+                       name) {
     x    = om_nets(interv)
     sch  = om_schedule(schedule, end_date)
     name = om_name(x, name, intervention_type)
@@ -726,6 +772,7 @@ define_OM_vector_control = function(baseList, interv, om_ento, schedule, end_dat
     mode = x$nets[[1]]$settings$mode
     mosq   = om_ento$shares$mosquito
     active = om_active(om_ento, intervention_type)
+    out = list(name = name, sch = sch, mode = mode, steps = list())
 
     # GVI: values, or placeholders for a list of interventions
     if (x$template) {
@@ -742,25 +789,19 @@ define_OM_vector_control = function(baseList, interv, om_ento, schedule, end_dat
                  anophelesParams = params)
         })
         names(gvi) = unname(om_gvi_effects[comps])
-        baseList = add_OM_GVI(baseList, stats::setNames(list(gvi), name), merge = FALSE)
+        out$components = om_gvi_components(stats::setNames(list(gvi), name), merge = FALSE)
     } else {
-        baseList = add_OM_GVI(baseList, om_gvi_list(x$nets[[1]], om_ento,
-                                                     intervention_type, name))
+        out$components = om_gvi_components(om_gvi_list(x$nets[[1]], om_ento,
+                                                       intervention_type, name))
     }
-    if (mode != "dummy_host") return(baseList)
+    if (mode != "dummy_host") return(out)
 
     # Host-seeking killing: one seekingDeathRateIncrease step per campaign
     muvA = om_muvA(om_ento, active)
     facs = lapply(x$nets, om_hsk_factors, sch = sch)
     numeric_values = !x$template && !any(sch$placeholder)
     if (numeric_values) d_step = as.vector(facs[[1]]$B %*% sch$num)
-    vp = baseList$interventions$vectorPop
-    existing = vapply(vp[names(vp) == "intervention"],
-                      function(v) as.character(v$name), character(1))
     K = length(sch$dates)
-    step_names = paste0(name, "_hsk_", seq_len(K))
-    if (any(step_names %in% existing))
-        stop("baseList already has host-seeking killing steps named ", name, "_hsk_*")
     for (k in seq_len(K)) {
         anoph = lapply(seq_along(mosq), function(j) list(
             mosquito = mosq[j],
@@ -770,34 +811,48 @@ define_OM_vector_control = function(baseList, interv, om_ento, schedule, end_dat
                           else paste0("@", pn, "_hsk_", k, "_pop", j, "@"),
                 decay = list("function" = "step", L = om_num(facs[[1]]$L_years[k])))))
         names(anoph) = rep("anopheles", length(anoph))
-        step = list(name = step_names[k], description = anoph,
+        step = list(name = paste0(name, "_hsk_", k), description = anoph,
                     timed = list(deploy = list(time = format(sch$dates[k]))))
         # Schedule the values were computed for, checked by
         # deploy_OM_vector_control() (an R attribute, not written to the XML)
         attr(step, "om_schedule") = list(dates = sch$dates, coverage = sch$coverage)
-        vp = c(vp, list(intervention = step))
+        out$steps = c(out$steps, list(intervention = step))
     }
-    baseList$interventions$vectorPop = vp
 
     # Approximation check: VC reduction from host-seeking killing alone
-    if (!any(active)) return(baseList)
-    p1  = which(active)[1]
-    cov = ifelse(sch$placeholder, 0.8, sch$num)
-    mp  = om_ento$model_params[[mosq[p1]]]
-    chk = vapply(facs, om_hsk_check, numeric(2), cov = cov, model_p = mp)
-    labels = if (x$template) paste0(names(interv), ": ") else ""
-    message("define_OM_vector_control: host-seeking killing as ", K,
-            " seekingDeathRateIncrease steps (vectorPop ", name, "_hsk_1..", K,
-            ", deployed on the schedule dates).\n",
-            "  Average VC reduction from host-seeking killing alone (", mosq[p1],
-            ", coverages ", paste(om_num(cov), collapse = ", "), "), exact vs steps: ",
-            paste0(labels, om_num(100 * chk[1, ]), "% vs ", om_num(100 * chk[2, ]), "%",
-                   collapse = "; "))
+    if (any(active)) {
+        p1  = which(active)[1]
+        cov = ifelse(sch$placeholder, 0.8, sch$num)
+        mp  = om_ento$model_params[[mosq[p1]]]
+        out$check = list(
+            mosquito = mosq[p1], coverage = cov,
+            impact   = vapply(facs, om_hsk_check, numeric(2), cov = cov, model_p = mp),
+            labels   = if (x$template) paste0(names(interv), ": ") else "")
+    }
     if (!numeric_values)
-        message("  Placeholders @", pn, "_hsk_<k>_pop<j>@ (fill with ",
+        out$placeholders = paste0("pop", which(active), " = ", mosq[active])
+    out
+}
+
+# Internal: messages of define_OM_vector_control() / get_OM_xml() about the
+# host-seeking killing steps
+om_vc_messages = function(b, caller) {
+    if (!length(b$steps)) return(invisible())
+    K = length(b$steps)
+    if (!is.null(b$check))
+        message(caller, ": host-seeking killing as ", K,
+                " seekingDeathRateIncrease steps (vectorPop ", b$name, "_hsk_1..", K,
+                ", deployed on the schedule dates).\n",
+                "  Average VC reduction from host-seeking killing alone (",
+                b$check$mosquito, ", coverages ",
+                paste(om_num(b$check$coverage), collapse = ", "), "), exact vs steps: ",
+                paste0(b$check$labels, om_num(100 * b$check$impact[1, ]), "% vs ",
+                       om_num(100 * b$check$impact[2, ]), "%", collapse = "; "))
+    if (!is.null(b$placeholders))
+        message("  Placeholders @", om_ph_name(b$name), "_hsk_<k>_pop<j>@ (fill with ",
                 "om_vector_control_values()): ",
-                paste0("pop", which(active), " = ", mosq[active], collapse = ", "))
-    baseList
+                paste(b$placeholders, collapse = ", "))
+    invisible()
 }
 
 
@@ -862,10 +917,7 @@ deploy_OM_vector_control = function(baseList, name, schedule, subpop = NULL,
     is_step = startsWith(step_names, prefix) &
         grepl("^[0-9]+$", substring(step_names, nchar(prefix) + 1L))
     if (any(is_step)) {
-        if (!is.null(subpop) || isTRUE(cumulative) || !is.null(minAge) || !is.null(maxAge))
-            stop("subpop, cumulative, minAge and maxAge are not supported for ",
-                 "dummy-host interventions: the host-seeking killing steps assume ",
-                 "campaigns covering the whole population at the schedule coverages")
+        om_check_hsk_deploy(subpop, cumulative, minAge, maxAge)
         defined = attr(vp[is_step][[1]], "om_schedule")
         if (is.null(defined))
             stop("Cannot check the schedule of the host-seeking killing steps ",
@@ -878,6 +930,28 @@ deploy_OM_vector_control = function(baseList, name, schedule, subpop = NULL,
                  paste(defined$coverage, collapse = ", "), ")")
     }
 
+    baseList$interventions$human = c(human, list(deployment = om_deployment(
+        name, ids, sch, subpop, cumulative, minAge, maxAge)))
+    message("deploy_OM_vector_control: deployment '", name, "' with components ",
+            paste(ids, collapse = ", "), " at ", paste(format(sch$dates), collapse = ", "))
+    baseList
+}
+
+
+# Internal: dummy-host interventions cannot be restricted (the host-seeking
+# killing steps assume campaigns covering the whole population)
+om_check_hsk_deploy = function(subpop, cumulative, minAge, maxAge) {
+    if (!is.null(subpop) || isTRUE(cumulative) || !is.null(minAge) || !is.null(maxAge))
+        stop("subpop, cumulative, minAge and maxAge are not supported for ",
+             "dummy-host interventions: the host-seeking killing steps assume ",
+             "campaigns covering the whole population at the schedule coverages")
+}
+
+# Internal: <deployment> list of an intervention: all its components (same
+# people), then one deploy per campaign. Shared by deploy_OM_vector_control()
+# and get_OM_xml().
+om_deployment = function(name, ids, sch, subpop = NULL, cumulative = FALSE,
+                         minAge = NULL, maxAge = NULL) {
     timed = list()
     if (!is.null(subpop))
         timed$restrictToSubPop = list(id = paste0(name, "-", subpop))
@@ -892,11 +966,7 @@ deploy_OM_vector_control = function(baseList, name, schedule, subpop = NULL,
     }
     components = lapply(unname(ids), function(i) list(id = i))
     names(components) = rep("component", length(components))
-    baseList$interventions$human = c(human, list(deployment = c(
-        list(name = name), components, list(timed = timed))))
-    message("deploy_OM_vector_control: deployment '", name, "' with components ",
-            paste(ids, collapse = ", "), " at ", paste(format(sch$dates), collapse = ", "))
-    baseList
+    c(list(name = name), components, list(timed = timed))
 }
 
 
@@ -983,4 +1053,220 @@ om_vector_control_values = function(interv, om_ento, schedule, end_date,
     if (ncol(out) == 0L)
         message("om_vector_control_values: no placeholders to fill")
     out
+}
+
+
+#########get_OM_xml####
+#' @title OpenMalaria XML snippets, as text
+#'
+#' @description Writes the entomology and the vector control of an
+#' OpenMalaria scenario (schema 44) as XML text, to paste into an existing
+#' scenario, without openMalariaUtilities. The vector control snippets are
+#' those that \code{\link{define_OM_vector_control}} and
+#' \code{\link{deploy_OM_vector_control}} write into a \code{baseList}
+#' (same lists, same checks and messages):
+#' \itemize{
+#'   \item \code{entomology}: the \code{<vector>} element, with one
+#'     \code{<anopheles>} per mosquito population of \code{om_ento} and the
+#'     declaration of the non-human hosts, to paste inside
+#'     \code{<entomology>} (replacing its \code{<vector>}). Same structure as
+#'     \code{openMalariaUtilities::defineEntomology()}, but with the animal
+#'     host parameters of \code{om_ento} (\code{defineEntomology()} writes
+#'     fixed values); the \code{annualEIR} and seasonality placeholders of
+#'     \code{om_ento$seasonalityParameters} are kept (replace them there, or
+#'     in the text, with 12 monthly or 365 daily values);
+#'   \item \code{define}: the \code{<component>} elements of the intervention,
+#'     to paste inside \code{<interventions><human>};
+#'   \item \code{deploy}: its \code{<deployment>} (all components, so that all
+#'     effects reach the same people, and one \code{<deploy>} per campaign),
+#'     to paste inside \code{<interventions><human>} after all
+#'     \code{<component>} elements (OpenMalaria requires the components
+#'     first);
+#'   \item \code{hsk}: dummy-host interventions only, the host-seeking
+#'     killing steps (vector population \code{<intervention>} elements, with
+#'     their deployment dates), to paste inside
+#'     \code{<interventions><vectorPop>}.
+#' }
+#' Placeholders (coverages, values of a list of interventions) are kept in
+#' the text; \code{\link{om_vector_control_values}} gives their values.
+#' Printing the result shows each snippet with a comment saying where to
+#' paste it. For several interventions, call the function once per
+#' intervention (with \code{entomology = FALSE} after the first).
+#'
+#' @inheritParams define_OM_vector_control
+#' @inheritParams deploy_OM_vector_control
+#' @param interv Intervention object from \code{\link{build_intervention}}, or
+#'   a named list of them (template, see
+#'   \code{\link{define_OM_vector_control}}). \code{NULL} (default): entomology
+#'   only.
+#' @param schedule,end_date As in \code{\link{define_OM_vector_control}};
+#'   needed with \code{interv}.
+#' @param entomology Logical (default \code{TRUE}): include the entomology
+#'   snippet.
+#'
+#' @return Object of class \code{om_xml}: named list with \code{entomology},
+#' \code{define}, \code{deploy} and \code{hsk}, each a single string (XML
+#' text) or \code{NULL}.
+#'
+#' @seealso \code{\link{define_OM_vector_control}},
+#'   \code{\link{om_vector_control_values}}
+#'
+#' @examples
+#' model_p = build_model_obj(def_vector_params(), def_host_params())
+#' itn = build_intervention(
+#'     efficacy = c(Deterrency = 0.5, PrePrandial = 0.4, PostPrandial = 0.3),
+#'     halflife_attrition = 2 * 365, shape_attrition = 2,
+#'     duration_years = 3, model_p = model_p, name = "ITN")
+#' om_ento = get_OM_ento_snippet("Anopheles gambiae ss/coluzzii",
+#'                               activity = def_activity_patterns())
+#' schedule = data.frame(date = c("2021-01-01", "2024-01-01"),
+#'                       coverage = c("@cov2021@", "@cov2024@"))
+#' xml = get_OM_xml(om_ento, itn, schedule, end_date = "2027-01-01")
+#' xml
+#' \dontrun{
+#' writeLines(unlist(xml), "ITN_snippets.xml")
+#' }
+#'
+#' @export
+#'
+get_OM_xml = function(om_ento, interv = NULL, schedule = NULL, end_date = NULL,
+                      intervention_type = c("ITN", "IRS"), name = NULL,
+                      subpop = NULL, cumulative = FALSE, minAge = NULL,
+                      maxAge = NULL, entomology = TRUE) {
+    intervention_type = match.arg(intervention_type)
+    to_text = function(tag, items)
+        paste(unlist(lapply(items, function(it) om_list_to_xml(tag, it))),
+              collapse = "\n")
+    out = list(entomology = if (isTRUE(entomology))
+                                to_text("vector", list(om_vector_list(om_ento))),
+               define = NULL, deploy = NULL, hsk = NULL)
+    if (is.null(interv)) {
+        if (!isTRUE(entomology)) stop("Nothing to write: give interv or entomology = TRUE")
+        return(structure(out, class = "om_xml"))
+    }
+    if (is.null(schedule) || is.null(end_date))
+        stop("schedule and end_date are needed with interv")
+
+    b = om_vc_build(interv, om_ento, schedule, end_date, intervention_type, name)
+    if (length(b$steps)) om_check_hsk_deploy(subpop, cumulative, minAge, maxAge)
+    ids = vapply(b$components, `[[`, character(1), "id")
+    out$define = to_text("component", b$components)
+    out$deploy = to_text("deployment", list(om_deployment(
+        b$name, ids, b$sch, subpop, cumulative, minAge, maxAge)))
+    if (length(b$steps)) out$hsk = to_text("intervention", b$steps)
+    om_vc_messages(b, "get_OM_xml")
+    structure(out, class = "om_xml")
+}
+
+
+# Internal: <vector> element of the entomology (OpenMalaria schema 44), as a
+# list in the XML structure of openMalariaUtilities: one <anopheles> per
+# mosquito population of get_OM_ento_snippet(), then the declaration of the
+# non-human hosts. Same structure and conventions as
+# openMalariaUtilities::defineEntomology() (mean -> value for
+# mosqProbOvipositing and mosqHumanBloodIndex, availability "const",
+# minInfectedThreshold 0.001), except that the animal host parameters are those
+# of hosts_p (defineEntomology() writes fixed values).
+om_vector_list = function(om_ento) {
+    mp  = om_ento$mosquitoParameters
+    sp  = om_ento$seasonalityParameters
+    nhh = NULL
+    out = list()
+    for (k in names(mp)) {
+        m = mp[[k]]
+        s = sp[[k]]
+        if (is.null(s)) stop("No seasonalityParameters for ", k)
+        n_seas = length(s$seasonality)
+        if (!n_seas %in% c(12L, 365L))
+            stop("seasonality of ", k, " must have 12 (monthly) or 365 (daily) values")
+        values = lapply(s$seasonality, function(v) list(v))
+        names(values) = rep("value", n_seas)
+        seas = list(annualEIR = s$annualEIR, input = "EIR")
+        seas[[if (n_seas == 12L) "monthlyValues" else "dailyValues"]] =
+            c(list(smoothing = "fourier"), values)
+
+        value_of = function(p) list(value = m[[p]]$value)
+        beta_of  = function(p) list(mean = m[[p]]$mean, variance = m[[p]]$variance)
+        mosq = list(
+            minInfectedThreshold                = "0.001",
+            mosqRestDuration                    = value_of("mosqRestDuration"),
+            extrinsicIncubationPeriod           = value_of("extrinsicIncubationPeriod"),
+            mosqLaidEggsSameDayProportion       = value_of("mosqLaidEggsSameDayProportion"),
+            mosqSeekingDuration                 = value_of("mosqSeekingDuration"),
+            mosqSurvivalFeedingCycleProbability = value_of("mosqSurvivalFeedingCycleProbability"),
+            availability                        = list(distr = "const"),
+            mosqProbBiting                      = beta_of("mosqProbBiting"),
+            mosqProbFindRestSite                = beta_of("mosqProbFindRestSite"),
+            mosqProbResting                     = beta_of("mosqProbResting"),
+            mosqProbOvipositing                 = list(value = m$mosqProbOvipositing$mean),
+            mosqHumanBloodIndex                 = list(value = m$mosqHumanBloodIndex$mean))
+
+        anoph = list(mosquito = k, propInfected = s$propInfected,
+                     propInfectious = s$propInfectious,
+                     seasonality = seas, mosq = mosq)
+        if (!is.null(m$nonHumanHosts)) {
+            anoph$nonHumanHosts = m$nonHumanHosts
+            nhh = union(nhh, m$nonHumanHosts$name)
+        }
+        out = c(out, list(anopheles = anoph))
+    }
+    # Declaration of the non-human host species (population size not used by
+    # OpenMalaria)
+    for (h in nhh) out = c(out, list(nonHumanHosts = list(name = h, number = "1")))
+    out
+}
+
+#' @rdname get_OM_xml
+#' @param x Object of class \code{om_xml}.
+#' @param ... Not used.
+#' @export
+print.om_xml = function(x, ...) {
+    where = c(
+        entomology = "inside <entomology>, replacing its <vector> element",
+        define     = paste("inside <interventions><human>, with the other",
+                           "<component> elements"),
+        deploy     = paste("inside <interventions><human>, after all <component>",
+                           "elements (deploys the components above together)"),
+        hsk        = "inside <interventions><vectorPop>")
+    for (s in names(where)) if (!is.null(x[[s]]))
+        cat("<!-- ", s, ": paste ", where[[s]], " -->\n", x[[s]], "\n\n", sep = "")
+    invisible(x)
+}
+
+
+# Internal: list in the XML structure of openMalariaUtilities -> XML lines,
+# with the conventions of its writer: a named single value is an attribute
+# (NA: omitted), an unnamed single value is the element's text, a named list is
+# a child element (repeated names: repeated elements).
+om_list_to_xml = function(tag, x, indent = 0L) {
+    pad = strrep("  ", indent)
+    nm  = names(x)
+    if (is.null(nm)) nm = rep("", length(x))
+    is_child = vapply(x, is.list, logical(1))
+    attrs = ""
+    text  = NULL
+    for (i in which(!is_child)) {
+        v = x[[i]]
+        if (is.null(v) || length(v) != 1L)
+            stop("XML element <", tag, ">: '", nm[i], "' must be a single value")
+        if (is.na(v)) next
+        v = om_xml_escape(as.character(v))
+        if (nm[i] == "") text = v
+        else attrs = paste0(attrs, " ", nm[i], "=\"", v, "\"")
+    }
+    if (any(is_child & nm == ""))
+        stop("XML element <", tag, ">: unnamed child element")
+    children = unlist(lapply(which(is_child), function(i)
+        om_list_to_xml(nm[i], x[[i]], indent + 1L)), use.names = FALSE)
+    open = paste0(pad, "<", tag, attrs)
+    if (!length(children) && is.null(text)) return(paste0(open, "/>"))
+    if (!length(children)) return(paste0(open, ">", text, "</", tag, ">"))
+    c(paste0(open, ">"), children, paste0(pad, "</", tag, ">"))
+}
+
+om_xml_escape = function(x) {
+    x = gsub("&", "&amp;", x, fixed = TRUE)
+    x = gsub("<", "&lt;", x, fixed = TRUE)
+    x = gsub(">", "&gt;", x, fixed = TRUE)
+    gsub("\"", "&quot;", x, fixed = TRUE)
 }

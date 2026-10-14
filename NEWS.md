@@ -15,6 +15,8 @@ rewritten and are **not backward compatible**.
   that can exceed one; optional batch `NA` values still mean inactive.
 * `def_host_params()` orders custom host tables as human then animal, so
   reversing input rows no longer changes host parameters or model results.
+  The `species_name` column of custom host tables is optional (host
+  parameters are species-independent).
 * Incubation-survival sums now include the term at index zero when it is
   their only term. This corrects custom parameterisations with longer
   resting durations or shorter incubation periods; bundled parameterisations
@@ -84,6 +86,14 @@ rewritten and are **not backward compatible**.
   coverage scenario.
 * `get_OM_ento_snippet()` also returns `muvA` (in `shares`) and the model of
   each mosquito population (`model_params`).
+* New `get_OM_xml()`: the entomology and vector control as XML text,
+  without openMalariaUtilities, to paste into an existing scenario: one
+  snippet for the entomology (`<vector>`, same structure as
+  `defineEntomology()` but with the animal host parameters of `hosts_p`), and
+  per intervention one for the components (define), one for the deployment
+  (deploy) and, for dummy-host interventions, one for the host-seeking killing
+  steps. It shares the list builders of `define_OM_vector_control()` /
+  `deploy_OM_vector_control()`, so both routes write the same XML.
 * New `add_OM_GVI()`: writes these interventions into an openMalariaUtilities
   `baseList`, as a single component when the three decays are identical and
   one component per effect otherwise (openMalariaUtilities in Suggests).
@@ -137,6 +147,19 @@ rewritten and are **not backward compatible**.
   `coverage_vec` does not start with 0 (previously relative to its first
   element). `calculate_impact()`, `run_interventions()` and
   `calculate_combined_impact()` share one vectorised engine.
+* `calculate_impact()` is `run_interventions()` applied to the parameters
+  stored in each intervention (`$param_set`, added by `build_intervention()`)
+  and returns the same `data.table` (one row per intervention and coverage,
+  with `intervention`, `name`, the parameters, `coverage`, `exposure`,
+  `avg_vc`, `avg_impact`) instead of the nested list of AnophelesModel. The
+  model parameters all come from `model_p`. Interventions are combined with
+  `c()`; objects not made by `build_intervention()` are rejected.
+* `keep_time = TRUE` in `calculate_impact()` and `run_interventions()` also
+  returns the vectorial capacity and impact on each day, for all parameter
+  sets.
+* `plot_impact()` replaces `plot_impact_species()` and `plot_impact_var()`: it
+  plots the output of both functions, with the median and 95% interval when
+  there are uncertainty draws. ggpubr and Hmisc are no longer suggested.
 * `calculate_combined_impact()` evaluates both interventions over the shorter
   duration (one point per day) and reports the assigned coverages via
   `message()`.

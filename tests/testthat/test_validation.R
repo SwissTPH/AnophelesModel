@@ -54,7 +54,7 @@ test_that("host-seeking killing is a finite non-negative rate, not a probability
     interv = validation_build(c(Deterrency = 0.4, PostPrandial = 0.2,
                                 HostSeekingKilling = 2))
     expect_equal(validation_run(ps)$avg_impact,
-        calculate_impact(interv, c(0, 1), validation_model)$interventions_vec[[1]]$effects$avg_impact)
+        calculate_impact(interv, c(0, 1), validation_model)$avg_impact)
     # NA is the documented inactive marker in batch tables, including a
     # logical all-NA column. It must not disable the standard model's killing.
     ps = validation_ps
@@ -141,6 +141,6 @@ test_that("duration is finite, positive and scalar with consistent subday handli
                                duration_years = 0.1 / 365)
     expect_equal(interv[[1]]$duration, 1)
     expect_equal(validation_run(duration_years = 0.1 / 365)$avg_impact,
-        calculate_impact(interv, c(0, 1), validation_model)$interventions_vec[[1]]$effects$avg_impact)
+        calculate_impact(interv, c(0, 1), validation_model)$avg_impact)
     expect_error(validation_run(exposure_sets = numeric(0)), "exposure")
 })

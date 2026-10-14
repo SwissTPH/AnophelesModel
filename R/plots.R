@@ -1,79 +1,69 @@
-#########plot_impact_species#########
-#' @title produce various impact figures per species
+#########plot_impact#########
+#' @title Plot the reduction in vectorial capacity against coverage
 #'
-#' @description \code{plot_impact_species}
-#' @param impacts_obj impact object returned by \code{calculate_impact()}.
-#' @param plot_type string specifying the plot type. Currently \code{"VC_red"}
-#' is supported (reduction in vectorial capacity).
+#' @description Plots the average reduction in vectorial capacity
+#' (\code{avg_impact}) against coverage, one line per intervention, from the
+#' output of \code{\link{calculate_impact}} or \code{\link{run_interventions}}.
+#' With uncertainty draws (a \code{draw} column), the line is the median over
+#' the draws and the band their 95\% interval.
 #'
-#' @return plot object
+#' @param impacts Output of \code{calculate_impact()} or
+#'   \code{run_interventions()} (the table, or the list returned with
+#'   \code{keep_time = TRUE}). Lines are labelled by the \code{name} column
+#'   (give each intervention a distinct name); without it, by the
+#'   \code{intervention} column.
+#' @param title Optional plot title, e.g. the mosquito species.
+#'
+#' @return A ggplot object.
 #'
 #' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
 #' @author Olivier Briët, \email{olivier.briet@swisstph.ch}
 #' @author Nakul Chitnis, \email{nakul.chitnis@swisstph.ch}
 #' @author Tom Smith, \email{thomas.smith@swisstph.ch}
 #'
-#' @references TO DO
-#'
 #' @import ggplot2
+#'
+#' @examples
+#' model_p = build_model_obj(def_vector_params(), def_host_params())
+#' itn = build_intervention(
+#'     efficacy = c(Deterrency = 0.5, PrePrandial = 0.4, PostPrandial = 0.3),
+#'     halflife_attrition = 2 * 365, shape_attrition = 2,
+#'     duration_years = 1, model_p = model_p, name = "ITN")
+#' plot_impact(calculate_impact(itn, seq(0, 1, by = 0.2), model_p))
 #'
 #' @export
 #'
-plot_impact_species = function(impacts_obj, plot_type) {
-    # Plot reduction in vectorial capacity for all interventions and behaviors
-    if (plot_type == "VC_red") {
-        to_plot_df = NULL
-        for(interv_imp in impacts_obj$interventions_vec) {
-            intervention_name = interv_imp$description
-            intervention_coverage = interv_imp$coverages
-            intervention_impact = round(interv_imp$effects$avg_impact,
-                                        digits = 3)
-            plot_tab = cbind.data.frame(intervention_name,
-                                        intervention_coverage,
-                                        intervention_impact)
-            to_plot_df = rbind.data.frame(to_plot_df, plot_tab)
-        }
-        p = plot_VC_red(to_plot_df, impacts_obj$vec_p$species_name)
+plot_impact = function(impacts, title = NULL) {
+    if (is.list(impacts) && !is.data.frame(impacts) && !is.null(impacts$impact))
+        impacts = impacts$impact
+    if (!is.data.frame(impacts) ||
+        !all(c("coverage", "avg_impact") %in% names(impacts)))
+        stop("impacts must be the output of calculate_impact() or run_interventions()")
+    label = if (!is.null(impacts$name)) impacts$name
+            else if (!is.null(impacts$intervention)) impacts$intervention
+            else stop("impacts needs a name (or intervention) column to label the lines")
+
+    df = data.frame(name = as.character(label), coverage = impacts$coverage,
+                    impact = 100 * impacts$avg_impact, stringsAsFactors = FALSE)
+    draws = !is.null(impacts$draw)
+    if (draws) {
+        # Quantiles over the draws, all computed from the per-draw values
+        q = function(p) stats::aggregate(impact ~ name + coverage, all_draws,
+                                         stats::quantile, probs = p)
+        all_draws = df
+        df    = q(0.5)
+        df$lo = q(0.025)$impact
+        df$hi = q(0.975)$impact
     }
-    return(p)
-}
+    df = df[order(df$name, df$coverage), ]
 
-
-#########plot_impact_var#########
-#' @title produce various impact figures per species
-#'
-#' @description \code{plot_impact_var}
-#' @param species_name name of the mosquito species
-#' @param plot_df plot data frame
-#'
-#' @return plot object
-#'
-#' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
-#'
-#' @import ggplot2
-#'
-#' @export
-#'
-plot_impact_var = function(species_name, plot_df) {
-    intervention_colors = intervention_colors_fill =
-        c("#3182bd", "#31a354", "#de2d26", "#c51b8a",
-          "#74c476", "#bdbdbd", "#d7b5d8")
-    plot_df$intervention_impact = plot_df$intervention_impact*100
-    p = ggplot(plot_df, aes(x=intervention_coverage, y=intervention_impact,
-                            group = factor(intervention_name),
-                            col = factor(intervention_name),
-                            fill = factor(intervention_name))) +
-        theme_light() + theme_linedraw() + theme_bw(base_size=9) +
-        ylim(c(0, 100)) + theme(legend.position = "bottom") +
-        stat_summary(fun.data = mean_sdl, fun.args = list(mult = 2),
-                     geom = "ribbon", alpha = 0.5, colour = NA) +
-        stat_summary(fun = mean, geom = "line", linewidth = 0.5) +
-        scale_color_manual(values = intervention_colors) +
-        scale_fill_manual(values = intervention_colors) +
-        guides(col="none") +
-        guides(fill = guide_legend(nrow = 3, byrow = TRUE)) +
-        labs(title = paste(species_name),
-             x="Coverage", y="Mean reduction in\nvectorial capacity",
-             fill="")
-    return(p)
+    p = ggplot(df, aes(x = .data$coverage, y = .data$impact,
+                       colour = .data$name, group = .data$name)) +
+        theme_bw(base_size = 9) + theme(legend.position = "bottom") +
+        labs(title = title, x = "Coverage",
+             y = "Mean reduction in\nvectorial capacity (%)", colour = "", fill = "")
+    if (draws)
+        p = p + geom_ribbon(aes(ymin = .data$lo, ymax = .data$hi, fill = .data$name),
+                            alpha = 0.3, colour = NA)
+    p + geom_line(linewidth = 1)
 }

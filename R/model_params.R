@@ -149,7 +149,8 @@ def_vector_params = function(mosquito_species = "Anopheles gambiae ss/coluzzii",
 #' \itemize{
 #' \item \code{species_name}: name of the mosquito species
 #' \item \code{host}: vector of hosts (should be \code{c("human", "animal")})
-#' \item \code{PBi}: probability that a mosquito bites host i
+#' \item \code{PBi}: probability that a mosquito that has encountered host i
+#' bites it (and survives to do so); mosquitoes failing a stage die
 #' \item \code{PCi}: probability that a mosquito finds a resting place after
 #' biting a host of type i
 #' \item \code{PDi}: probability that a mosquito survives the resting phase
@@ -191,12 +192,11 @@ def_host_params = function(host_table = NULL, verbose = TRUE) {
         checkmate::assertSubset(colnames(host_table), colnames(host_ent_param),
                                 empty.ok = FALSE, fmatch = FALSE)
         # and numeric, positive entries less than 1 except for the name of
-        # the species and the type of host
-        checkmate::assertDataFrame(subset(host_table,
-                                          select = -c(species_name, host)),
+        # the species (optional) and the type of host
+        num_cols = setdiff(colnames(host_table), c("species_name", "host"))
+        checkmate::assertDataFrame(host_table[num_cols],
                                    types = "numeric", add = assertCol)
-        checkmate::assertNumeric(unlist(subset(host_table, select =
-                                                   -c(species_name, host))),
+        checkmate::assertNumeric(unlist(host_table[num_cols]),
                                  lower = 0, upper = 1,
                                  add = assertCol)
         # with values provided for both human and animal hosts

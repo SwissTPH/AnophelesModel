@@ -24,12 +24,9 @@
 #' @name AnophelesModel2-package
 "_PACKAGE"
 
-# Suppress R CMD check NOTEs for:
-# - lazy-loaded package datasets referenced by name in code
-# - ggplot2 aes() column names that are not in the calling scope
+# Suppress R CMD check NOTEs for lazy-loaded package datasets referenced by
+# name in code (ggplot2 columns are referenced with .data$)
 utils::globalVariables(c(
     "vec_ent_param", "host_ent_param", "activity_patterns",
-    "ITN_parameterisations_Champagne2025",
-    "species_name", "host",
-    "intervention_coverage", "intervention_impact", "intervention_name"
+    "ITN_parameterisations_Champagne2025"
 ))

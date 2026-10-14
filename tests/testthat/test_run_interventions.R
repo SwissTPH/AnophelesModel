@@ -368,8 +368,7 @@ test_that("eval_entomological_model reparameterisation is numerically identical"
     # Cross-check: the reference loop and calculate_impact give the same avg_vc
     impact = reference_calculate_impact(
         interv_list, coverage_vec, model_p)
-    expect_equal(calculate_impact(interv_list, coverage_vec, model_p)$
-                     interventions_vec[[1]]$effects$avg_vc,
+    expect_equal(calculate_impact(interv_list, coverage_vec, model_p)$avg_vc,
                  impact$interventions_vec[[1]]$effects$avg_vc, tolerance = 1e-12)
     avg_vc_loop = impact$interventions_vec[[1]]$effects$avg_vc
 

@@ -21,7 +21,8 @@ list object with the following vector attributes:
 \itemize{
 \item \code{species_name}: name of the mosquito species
 \item \code{host}: vector of hosts (should be \code{c("human", "animal")})
-\item \code{PBi}: probability that a mosquito bites host i
+\item \code{PBi}: probability that a mosquito that has encountered host i
+bites it (and survives to do so); mosquitoes failing a stage die
 \item \code{PCi}: probability that a mosquito finds a resting place after
 biting a host of type i
 \item \code{PDi}: probability that a mosquito survives the resting phase

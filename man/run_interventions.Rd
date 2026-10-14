@@ -14,14 +14,14 @@ run_interventions(
   coverage_sets = NULL,
   duration_years = 3,
   insecticide_decay = TRUE,
-  exposure = 1
+  exposure = 1,
+  keep_time = FALSE
 )
 }
 \arguments{
 \item{param_sets}{Data frame where each row defines one parameter set.
 Required columns:
 \itemize{
-  \item \code{name}: label for the parameter set
   \item \code{deterrency}: initial deterrency efficacy in \code{[0,1]}
   \item \code{preprandial}: initial pre-prandial killing efficacy in
     \code{[0,1]} (set to \code{0} for the dummy-host model)
@@ -37,6 +37,8 @@ Required columns:
 }
 Optional columns:
 \itemize{
+  \item \code{name}: label of the parameter set (used by
+    \code{plot_impact()}); any other column is also carried to the output.
   \item \code{host_seeking_killing}: activates the dummy-host (4-host)
     model; absolute availability of the dummy host (see
     \code{HostSeekingKilling} in \code{build_intervention()}). Non-missing
@@ -92,6 +94,9 @@ the intervention protects, in \code{[0, 1]} (default 1). The intervention
 acts on an effective coverage \code{coverage * exposure}. Typically
 \code{calculate_exposure(...)$Exposure_Indoor_whileinbed} for ITNs or
 \code{$Exposure_Indoor_total} for IRS.}
+
+\item{keep_time}{Logical (default \code{FALSE}): also return the
+vectorial capacity and impact on each day (memory-heavy for large sweeps).}
 }
 \value{
 A \code{data.table} with one row per
@@ -100,6 +105,12 @@ are included; when \code{vec_param_sets} is supplied the draw-specific vector
 parameter columns are appended. Output columns \code{coverage} (deployment
 coverage), \code{exposure}, \code{avg_vc}, \code{avg_impact}, and (when any
 uncertainty source is supplied) \code{draw} follow.
+
+With \code{keep_time = TRUE}, a list with this table as \code{impact} and a
+long \code{data.table} \code{time} with columns \code{param_set} (row of
+\code{param_sets}), \code{name} (if \code{param_sets} has one),
+\code{coverage}, \code{day} (0 = deployment), \code{vc}, \code{impact} and,
+with uncertainty draws, \code{draw}.
 }
 \description{
 Fully vectorised runner: evaluates the entomological model for

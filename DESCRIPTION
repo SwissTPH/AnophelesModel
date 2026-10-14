@@ -30,9 +30,8 @@ Suggests:
     knitr,
     rmarkdown,
     testthat,
-    ggpubr,
-    Hmisc,
-    openMalariaUtilities
+    openMalariaUtilities,
+    xml2
 Remotes:
     SwissTPH/r-openMalariaUtilities
 VignetteBuilder: knitr

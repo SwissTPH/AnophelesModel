@@ -365,3 +365,147 @@ test_that("standard model: pre-prandial component and no host-seeking killing", 
     expect_equal(dep$timed$cumulativeCoverage$component, "ITN-eligible")
     expect_length(by_name(dep$timed, "deploy"), 2)
 })
+
+# ---------------------------------------------------------------------------
+# 5. XML text snippets (no openMalariaUtilities needed)
+# ---------------------------------------------------------------------------
+to_xml = AnophelesModel2:::om_list_to_xml
+
+test_that("the serializer follows the openMalariaUtilities conventions", {
+    x = list(id = "a&b", n = 1, skip = NA, child = list(v = "1"), child = list(v = "2"))
+    expect_equal(to_xml("el", x),
+                 c('<el id="a&amp;b" n="1">', '  <child v="1"/>', '  <child v="2"/>', "</el>"))
+    expect_equal(to_xml("el", list("text")), "<el>text</el>")
+    expect_equal(to_xml("el", list(q = 'say "<hi>"')), '<el q="say &quot;&lt;hi&gt;&quot;"/>')
+    expect_error(to_xml("el", list(a = NULL)), "single value")
+    expect_error(to_xml("el", list(a = c("1", "2"))), "single value")
+    expect_error(to_xml("el", list(list(a = "1"))), "unnamed child")
+})
+
+test_that("standard intervention: define and deploy snippets, no host-seeking killing", {
+    itn = bi(halflife_attrition = 730, shape_attrition = 2, name = "ITN",
+             insecticide_decay = FALSE)
+    xml = get_OM_xml(om, itn, sched_num, end_date)
+    expect_s3_class(xml, "om_xml")
+    expect_match(xml$entomology, "^<vector>")
+    expect_null(get_OM_xml(om, itn, sched_num, end_date, entomology = FALSE)$entomology)
+    expect_null(xml$hsk)
+    # One merged component (identical decays), deployed once per campaign
+    expect_equal(lengths(regmatches(xml$define, gregexpr("<component ", xml$define))), 1)
+    expect_match(xml$define, '<component id="ITN" name="ITN">', fixed = TRUE)
+    expect_match(xml$define, '<decay L="2" function="weibull" k="2"/>', fixed = TRUE)
+    expect_match(xml$deploy, '<deployment name="ITN">', fixed = TRUE)
+    expect_match(xml$deploy, '<component id="ITN"/>', fixed = TRUE)
+    expect_match(xml$deploy, '<deploy coverage="0.8" time="2021-01-01"/>', fixed = TRUE)
+    expect_match(xml$deploy, '<deploy coverage="0.5" time="2022-01-01"/>', fixed = TRUE)
+    expect_output(print(xml), "after all <component>")
+
+    sub = get_OM_xml(om, itn, sched_num, end_date, subpop = "eligible", minAge = 5)
+    expect_match(sub$deploy, '<restrictToSubPop id="ITN-eligible"/>', fixed = TRUE)
+    expect_match(sub$deploy, 'minAge="5"', fixed = TRUE)
+})
+
+test_that("dummy-host intervention: no pre-prandial killing, host-seeking killing snippet", {
+    xml = suppressMessages(get_OM_xml(om, dh_net(name = "IG2"), sched_ph, end_date))
+    expect_match(xml$define, '<preprandialKillingEffect value="0"/>', fixed = TRUE)
+    expect_match(xml$hsk, '<intervention name="IG2_hsk_2">', fixed = TRUE)
+    expect_match(xml$hsk, 'initial="@IG2_hsk_1_pop1@"', fixed = TRUE)
+    expect_match(xml$hsk, '<deploy time="2022-01-01"/>', fixed = TRUE)
+    expect_match(xml$deploy, 'coverage="@cov2021@"', fixed = TRUE)
+    expect_error(suppressMessages(get_OM_xml(om, dh_net(), sched_ph, end_date,
+                                             subpop = "x")), "not supported")
+    expect_message(get_OM_xml(om, dh_net(), sched_num, end_date), "exact vs steps")
+})
+
+test_that("template snippets carry every placeholder of om_vector_control_values()", {
+    nets = list(A = dh_net(0.6), B = dh_net(1.2))
+    # Entomology placeholders (EIR, seasonality) are not intervention values
+    xml = suppressMessages(get_OM_xml(om, nets, sched_ph, end_date, name = "ITN",
+                                      entomology = FALSE))
+    text = paste(unlist(xml), collapse = "\n")
+    ph = unique(gsub("@", "", regmatches(text, gregexpr("@[^@]+@", text))[[1]]))
+    v = suppressMessages(om_vector_control_values(nets, om, sched_ph, end_date,
+        coverages = data.frame(cov2021 = 0.8, cov2022 = 0.5), name = "ITN"))
+    expect_setequal(ph, names(v)[-1])
+})
+
+test_that("entomology snippet: one <anopheles> per population, then the animal hosts", {
+    xml = get_OM_xml(om)
+    expect_null(xml$define)
+    e = xml$entomology
+    expect_equal(lengths(regmatches(e, gregexpr("<anopheles ", e))), nrow(om$shares))
+    for (m in om$shares$mosquito)
+        expect_match(e, paste0('<anopheles mosquito="', m, '" propInfected="0.078" ',
+                               'propInfectious="0.021">'), fixed = TRUE)
+    expect_match(e, 'annualEIR="@EIR_[A-Za-z0-9_]+@" input="EIR"')
+    expect_match(e, '<monthlyValues smoothing="fourier">', fixed = TRUE)
+    expect_match(e, "<value>@m12@</value>", fixed = TRUE)
+    expect_match(e, '<mosq minInfectedThreshold="0.001">', fixed = TRUE)
+    expect_match(e, '<availability distr="const"/>', fixed = TRUE)
+    hbi = om$mosquitoParameters[[3]]$mosqHumanBloodIndex$mean      # outdoor HBI
+    expect_match(e, paste0('<mosqHumanBloodIndex value="', hbi, '"/>'), fixed = TRUE)
+    # Animal host parameters of hosts_p, declared once at the end
+    pb = om$mosquitoParameters[[1]]$nonHumanHosts$mosqProbBiting$value
+    expect_match(e, paste0('<mosqProbBiting value="', pb, '"/>'), fixed = TRUE)
+    expect_match(e, '<nonHumanHosts name="unprotectedAnimals" number="1"/>\n</vector>$')
+
+    daily = om
+    daily$seasonalityParameters[[1]]$seasonality = rep(1, 365)
+    expect_match(get_OM_xml(daily)$entomology, "<dailyValues", fixed = TRUE)
+    daily$seasonalityParameters[[1]]$seasonality = 1:5
+    expect_error(get_OM_xml(daily), "12 \\(monthly\\) or 365")
+    expect_error(get_OM_xml(om, entomology = FALSE), "Nothing to write")
+    expect_error(get_OM_xml(om, bi(halflife_attrition = 730, shape_attrition = 2)),
+                 "schedule and end_date")
+})
+
+test_that("snippets are well-formed XML", {
+    skip_if_not_installed("xml2")
+    xml = suppressMessages(get_OM_xml(om, dh_net(name = "IG2"), sched_num, end_date))
+    expect_no_error(xml2::read_xml(xml$entomology))
+    expect_no_error(xml2::read_xml(paste0("<human>", xml$define, xml$deploy, "</human>")))
+    expect_no_error(xml2::read_xml(paste0("<vectorPop>", xml$hsk, "</vectorPop>")))
+})
+
+test_that("entomology snippet matches openMalariaUtilities::defineEntomology()", {
+    skip_if_not_installed("openMalariaUtilities")
+    # Numeric seasonality: defineEntomology() rejects monthly placeholders
+    # with R >= 4.3 (an openMalariaUtilities issue)
+    om_num_seas = om
+    om_num_seas$seasonalityParameters = lapply(om$seasonalityParameters, function(s) {
+        s$seasonality = rep(1, 12); s })
+    b = openMalariaUtilities::defineEntomology(
+        om_base(), om_num_seas$seasonalityParameters, om_num_seas$mosquitoParameters)
+    omu = b$entomology$vector
+    ours = AnophelesModel2:::om_vector_list(om_num_seas)
+    expect_equal(names(ours), names(omu))
+    # Identical except the animal host parameters, fixed in defineEntomology()
+    no_nhh = function(a) a[names(a) != "nonHumanHosts"]
+    for (i in which(names(omu) == "anopheles"))
+        expect_equal(to_xml("anopheles", no_nhh(ours[[i]])),
+                     to_xml("anopheles", no_nhh(omu[[i]])), info = i)
+    expect_equal(to_xml("nonHumanHosts", ours[[length(ours)]]),
+                 to_xml("nonHumanHosts", omu[[length(omu)]]))
+})
+
+test_that("text snippets match what define / deploy write into a baseList", {
+    skip_if_not_installed("openMalariaUtilities")
+    for (net in list(dh_net(name = "IG2"),
+                     bi(halflife_attrition = 730, shape_attrition = 2, name = "ITN",
+                        halflife_insecticide = c(Deterrency = 4)))) {
+        nm  = net[[1]]$description
+        xml = suppressMessages(get_OM_xml(om, net, sched_num, end_date))
+        b = suppressMessages(define_OM_vector_control(om_base(), net, om, sched_num, end_date))
+        b = suppressMessages(deploy_OM_vector_control(b, nm, sched_num))
+        human = b$interventions$human
+        expect_equal(xml$define, paste(unlist(lapply(by_name(human, "component"),
+                                                     function(x) to_xml("component", x))),
+                                       collapse = "\n"), info = nm)
+        expect_equal(xml$deploy, paste(to_xml("deployment", by_name(human, "deployment")[[1]]),
+                                       collapse = "\n"), info = nm)
+        steps = by_name(b$interventions$vectorPop, "intervention")
+        if (length(steps))
+            expect_equal(xml$hsk, paste(unlist(lapply(steps, function(x) to_xml("intervention", x))),
+                                        collapse = "\n"))
+    }
+})

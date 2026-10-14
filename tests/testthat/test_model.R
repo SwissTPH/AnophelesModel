@@ -81,8 +81,7 @@ test_that("Albimanus: calculate_impact produces valid outputs for custom species
     expect_equal(eff0$PCi  [1, 1] / eff0$PCi  [1, 2], 1 - 0.34, tolerance = 1e-10)
 
     coverages = c(seq(0, 0.9, by = 0.1), 0.95, 0.98, 0.99)
-    impacts   = calculate_impact(interv, coverages, model_obj)
-    eff       = impacts$interventions_vec[[1]]$effects
+    eff       = calculate_impact(interv, coverages, model_obj)
 
     # avg_impact in [0, 1]
     expect_true(all(eff$avg_impact >= -1e-10))

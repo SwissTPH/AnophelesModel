@@ -123,6 +123,11 @@ test_that("test: check loading custom host entomological parameter values", {
     c_sol = as.list(custom_params)
 
     expect_equal(c_sol, my_host_obj)
+
+    # species_name is optional (host parameters are species-independent)
+    no_species = custom_params[names(custom_params) != "species_name"]
+    expect_equal(def_host_params(host_table = no_species, verbose = FALSE),
+                 as.list(no_species))
 })
 
 test_that("custom host row order does not change parameters or model results", {

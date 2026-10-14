@@ -14,8 +14,8 @@
 # coverage_vec — coverages to evaluate. Coverage 0 is the VC baseline for
 #        the impact; it is added internally when absent and then dropped
 #        from the output.
-# keep_time — also return the per-timepoint vc / impact for the first
-#        parameter set as [npoints x n_cov] matrices.
+# keep_time — also return the per-timepoint vc / impact of all parameter
+#        sets as [np x n_cov x npoints] arrays.
 #
 # Unit host populations (1 human, 1 animal): avg_impact is scale-invariant
 # and Nv0 cancels, so Nv0 = 1 and N_total = 2.
@@ -42,8 +42,8 @@ simulate_vc = function(eff, base, vec_p, host_p, coverage_vec,
     vc_sum     = matrix(0, np, n_cov)
     impact_sum = matrix(0, np, n_cov)
     if (keep_time) {
-        vc_t     = matrix(NA_real_, npoints, length(keep_cols))
-        impact_t = matrix(NA_real_, npoints, length(keep_cols))
+        vc_t     = array(NA_real_, c(np, length(keep_cols), npoints))
+        impact_t = array(NA_real_, c(np, length(keep_cols), npoints))
     }
 
     # Protected-human values at the current timepoint t, one per output row
@@ -96,8 +96,8 @@ simulate_vc = function(eff, base, vec_p, host_p, coverage_vec,
         vc_sum     = vc_sum     + vc_mat
         impact_sum = impact_sum + impact_mat
         if (keep_time) {
-            vc_t[t, ]     = vc_mat[1L, keep_cols]
-            impact_t[t, ] = impact_mat[1L, keep_cols]
+            vc_t[, , t]     = vc_mat[, keep_cols]
+            impact_t[, , t] = impact_mat[, keep_cols]
         }
     }
 
@@ -141,11 +141,20 @@ host_base = function(host_p) {
 #' @title Calculate vectorial capacity reduction for a list of interventions
 #'
 #' @description For each intervention object in \code{interventions_vec},
-#' evaluates the entomological model at every interpolation point and returns
-#' average vectorial capacity and impact across the deployment period.
+#' evaluates the entomological model on every day of the intervention and
+#' returns the average vectorial capacity and impact (reduction in
+#' vectorial capacity) at each coverage. This is
+#' \code{\link{run_interventions}} applied to the parameters stored in each
+#' intervention (\code{$param_set}), so both functions give the same results
+#' and the same output format.
 #'
-#' @param interventions_vec List of intervention objects created with
-#' \code{build_intervention()}.
+#' The model parameters are those of \code{model_p} (the \code{model_p} used
+#' to build the interventions does not matter).
+#'
+#' @param interventions_vec Intervention objects created with
+#' \code{build_intervention()}, combined with \code{c()} (e.g.
+#' \code{c(itn1, itn2)}); a single \code{build_intervention()} output works
+#' as is.
 #' @param coverage_vec Numeric vector of deployment coverages (values in
 #' \code{[0, 1]}). The impact is always computed relative to coverage 0 (no
 #' intervention), which is evaluated internally when not supplied.
@@ -156,20 +165,17 @@ host_base = function(host_p) {
 #' \code{calculate_exposure(...)$Exposure_Indoor_whileinbed} for ITNs or
 #' \code{$Exposure_Indoor_total} for IRS. Reported coverages remain the
 #' deployment coverages.
-#' @return List with:
-#' \itemize{
-#'   \item \code{vec_p}: vector parameters from \code{model_p}
-#'   \item \code{host_p}: host parameters from \code{model_p}
-#'   \item \code{interventions_vec}: input list augmented with, per intervention:
-#'   \itemize{
-#'     \item \code{effects$vc}: vectorial capacity matrix
-#'       (time points rows x \code{length(coverage_vec)} cols)
-#'     \item \code{effects$impact}: VC reduction matrix (same dimensions)
-#'     \item \code{effects$avg_vc}: column means of \code{vc}
-#'     \item \code{effects$avg_impact}: column means of \code{impact}
-#'     \item \code{coverages}: the supplied \code{coverage_vec}
-#'   }
-#' }
+#' @param keep_time Logical (default \code{FALSE}): also return the
+#' vectorial capacity and impact on each day.
+#'
+#' @return A \code{data.table} with one row per intervention and coverage:
+#' \code{intervention} (position in \code{interventions_vec}), \code{name},
+#' the intervention parameters (as in \code{run_interventions()}),
+#' \code{coverage}, \code{exposure}, \code{avg_vc} and \code{avg_impact}.
+#' With \code{keep_time = TRUE}, a list with this table as \code{impact} and a
+#' long table \code{time} with \code{intervention}, \code{name},
+#' \code{coverage}, \code{day} (0 = deployment), \code{vc} and \code{impact}.
+#' Plot it with \code{\link{plot_impact}}.
 #'
 #' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
 #' @author Olivier Briet
@@ -179,52 +185,52 @@ host_base = function(host_p) {
 #' @export
 #'
 calculate_impact = function(interventions_vec, coverage_vec, model_p,
-                            exposure = 1) {
+                            exposure = 1, keep_time = FALSE) {
     check_coverage(coverage_vec)
     check_exposure(exposure, scalar = TRUE)
+    if (!is.list(interventions_vec) || length(interventions_vec) == 0L)
+        stop("interventions_vec must be a non-empty list of interventions ",
+             "from build_intervention()")
+    impact = vector("list", length(interventions_vec))
+    time   = vector("list", length(interventions_vec))
+
     for (i in seq_along(interventions_vec)) {
-        e    = interventions_vec[[i]]$effects
-        rows = seq_len(interventions_vec[[i]]$duration)
-
-        # Unprotected humans and animals (columns 2-3) must be time-constant
-        for (nm in c("alphai", "PBi", "PCi", "PDi", "PEi")) {
-            m = e[[nm]][rows, 2:3, drop = FALSE]
-            if (any(apply(m, 2, function(x) diff(range(x))) > 1e-12))
-                stop("calculate_impact: ", nm, " of unprotected humans / ",
-                     "animals (columns 2-3) must be constant over time")
-        }
-
-        n_host = ncol(e$alphai)
-        row1   = function(nm, k = 1L) matrix(e[[nm]][rows, k], nrow = 1L)
-        eff = list(alphai_1  = row1("alphai"),
-                   PBi_1     = row1("PBi"), PCi_1 = row1("PCi"),
-                   PDi_1     = row1("PDi"), PEi_1 = row1("PEi"),
-                   alphai_4  = if (n_host == 4L) row1("alphai", 4L) else NULL,
-                   surv_mat  = matrix(e$survival[rows], nrow = 1L),
-                   use_dummy = n_host == 4L)
-        base = list(alpha = e$alphai[1, 2:3],
-                    PBi   = e$PBi[1, 2:3], PCi = e$PCi[1, 2:3],
-                    PDi   = e$PDi[1, 2:3], PEi = e$PEi[1, 2:3],
-                    Kvi   = e$Kvi[1:3])
-
-        # One parameter set per intervention: report the intervention instead
-        sim = tryCatch(
-            simulate_vc(eff, base, model_p$vec_params, model_p$host_params,
-                        coverage_vec * exposure, keep_time = TRUE),
+        iv = interventions_vec[[i]]
+        if (!is.list(iv) || is.null(iv$param_set))
+            stop("calculate_impact, intervention ", i, ": not an intervention ",
+                 "from build_intervention() (combine interventions with c(), ",
+                 "not list())")
+        # One run_interventions() call per intervention (durations and model
+        # structures can differ); its model message is redundant here, and
+        # errors name the intervention instead of the parameter set
+        res = tryCatch(
+            suppressMessages(run_interventions(
+                iv$param_set, model_p, coverage_vec,
+                duration_years    = iv$duration / 365,
+                insecticide_decay = !isFALSE(iv$settings$insecticide_decay),
+                exposure          = exposure, keep_time = keep_time)),
             error = function(err) stop(
                 "calculate_impact, intervention ", i, ": ",
-                sub(" for parameter set\\(s\\) 1", "", conditionMessage(err)),
+                sub(" for parameter set\\(s\\) 1", "",
+                    sub("^run_interventions: ", "", conditionMessage(err))),
                 call. = FALSE))
-
-        interventions_vec[[i]]$coverages          = coverage_vec
-        interventions_vec[[i]]$effects$vc         = sim$vc_t
-        interventions_vec[[i]]$effects$impact     = sim$impact_t
-        interventions_vec[[i]]$effects$avg_vc     = as.vector(sim$avg_vc)
-        interventions_vec[[i]]$effects$avg_impact = as.vector(sim$avg_impact)
+        add_index = function(dt) {
+            data.table::set(dt, j = "intervention", value = i)
+            data.table::setcolorder(dt, c("intervention", setdiff(names(dt), "intervention")))
+            dt
+        }
+        if (keep_time) {
+            impact[[i]] = add_index(res$impact)
+            data.table::set(res$time, j = "param_set", value = NULL)   # always 1
+            time[[i]]   = add_index(res$time)
+        } else {
+            impact[[i]] = add_index(res)
+        }
     }
 
-    return(list(vec_p = model_p$vec_params, host_p = model_p$host_params,
-                interventions_vec = interventions_vec))
+    impact = data.table::rbindlist(impact, fill = TRUE)
+    if (!keep_time) return(impact)
+    list(impact = impact, time = data.table::rbindlist(time, fill = TRUE))
 }
 
 

@@ -24,11 +24,15 @@ finite, non-missing values, using any subset of the following
 efficacy parameters:
 \itemize{
   \item \code{"Deterrency"} in \code{[0,1]} — reduces host availability
-    (\code{alphai}) for protected humans.
-  \item \code{"PrePrandial"} in \code{[0,1]} — reduces biting probability
-    (\code{PBi}) for protected humans. Standard model only.
-  \item \code{"PostPrandial"} in \code{[0,1]} — reduces post-feeding
-    survival (\code{PCi}) for protected humans.
+    (\code{alphai}) for protected humans; deterred mosquitoes keep
+    searching.
+  \item \code{"PrePrandial"} in \code{[0,1]} — pre-prandial killing:
+    reduces the probability that a mosquito that has found a protected
+    human bites and survives (\code{PBi}); mosquitoes failing this stage
+    die. Standard model only.
+  \item \code{"PostPrandial"} in \code{[0,1]} — post-prandial killing:
+    reduces the probability of surviving after feeding on a protected
+    human to find a resting place (\code{PCi}).
   \item \code{"HostSeekingKilling"} \eqn{\geq 0} — killing during
     host-seeking via a dummy-host mechanism. Dummy-host model only. An
     \strong{absolute} rate, not a probability: it is used directly as the
@@ -54,10 +58,10 @@ validated benchmark either).}
 half-life for Weibull / exponential / Hill, the time to zero for linear /
 step / smooth-compact (see \code{decay_function()}).}
 
-\item{shape_attrition}{Attrition decay shape exponent (for Weibull / Hill /
-smooth-compact; set to \code{NULL} otherwise).}
+\item{shape_attrition}{Shape parameter \code{kappa} of the attrition decay
+function (for Weibull / Hill / smooth-compact; set to \code{NULL} otherwise).}
 
-\item{decay_attrition}{Attrition decay shape string: \code{"weibull"},
+\item{decay_attrition}{Attrition decay function: \code{"weibull"},
 \code{"exponential"}, \code{"hill"}, \code{"linear"}, \code{"step"},
 \code{"smooth-compact"} or \code{"none"} (see \code{decay_function()}).
 Default \code{"weibull"}.}
@@ -115,7 +119,10 @@ intervention duration (as used for OpenMalaria GVI parameterisations).
 The model itself always uses the exact (unfitted) decay.
 The element \code{settings} keeps the inputs (efficacy, mode, attrition and
 per-component decays, \code{insecticide_decay}), used by
-\code{get_OM_GVI_snippet()}.
+\code{get_OM_GVI_snippet()}. The element \code{param_set} is the same
+intervention as a one-row \code{param_sets} table of
+\code{run_interventions()}, which \code{calculate_impact()} evaluates.
+Several interventions are combined with \code{c()}.
 }
 \description{
 Constructs an intervention effects object from user-supplied

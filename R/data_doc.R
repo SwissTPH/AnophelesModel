@@ -120,7 +120,8 @@
 #' \item \code{probability:} probabilities that a mosquito completes the next
 #' stage of the oviposition cycle in one night, conditional on having reached
 #' that stage. Can only be one of the following:
-#' PBi(probability that a mosquito bites host of type i), PCi(probability that a
+#' PBi(probability that a mosquito that has encountered a host of type i bites
+#' it), PCi(probability that a
 #' mosquito finds a resting place after biting a host of type i), PDi
 #' (probability that a mosquito survives the resting phase after
 #' biting a host of type i), PEi(probability that a mosquito lays eggs and

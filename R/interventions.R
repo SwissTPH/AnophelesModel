@@ -284,11 +284,15 @@ apply_eff_matrices = function(mm, host_p) {
 #' efficacy parameters:
 #' \itemize{
 #'   \item \code{"Deterrency"} in \code{[0,1]} — reduces host availability
-#'     (\code{alphai}) for protected humans.
-#'   \item \code{"PrePrandial"} in \code{[0,1]} — reduces biting probability
-#'     (\code{PBi}) for protected humans. Standard model only.
-#'   \item \code{"PostPrandial"} in \code{[0,1]} — reduces post-feeding
-#'     survival (\code{PCi}) for protected humans.
+#'     (\code{alphai}) for protected humans; deterred mosquitoes keep
+#'     searching.
+#'   \item \code{"PrePrandial"} in \code{[0,1]} — pre-prandial killing:
+#'     reduces the probability that a mosquito that has found a protected
+#'     human bites and survives (\code{PBi}); mosquitoes failing this stage
+#'     die. Standard model only.
+#'   \item \code{"PostPrandial"} in \code{[0,1]} — post-prandial killing:
+#'     reduces the probability of surviving after feeding on a protected
+#'     human to find a resting place (\code{PCi}).
 #'   \item \code{"HostSeekingKilling"} \eqn{\geq 0} — killing during
 #'     host-seeking via a dummy-host mechanism. Dummy-host model only. An
 #'     \strong{absolute} rate, not a probability: it is used directly as the
@@ -312,9 +316,9 @@ apply_eff_matrices = function(mm, host_p) {
 #' @param halflife_attrition Attrition decay parameter \code{L} (days): the
 #' half-life for Weibull / exponential / Hill, the time to zero for linear /
 #' step / smooth-compact (see \code{decay_function()}).
-#' @param shape_attrition Attrition decay shape exponent (for Weibull / Hill /
-#' smooth-compact; set to \code{NULL} otherwise).
-#' @param decay_attrition Attrition decay shape string: \code{"weibull"},
+#' @param shape_attrition Shape parameter \code{kappa} of the attrition decay
+#' function (for Weibull / Hill / smooth-compact; set to \code{NULL} otherwise).
+#' @param decay_attrition Attrition decay function: \code{"weibull"},
 #' \code{"exponential"}, \code{"hill"}, \code{"linear"}, \code{"step"},
 #' \code{"smooth-compact"} or \code{"none"} (see \code{decay_function()}).
 #' Default \code{"weibull"}.
@@ -364,7 +368,10 @@ apply_eff_matrices = function(mm, host_p) {
 #' The model itself always uses the exact (unfitted) decay.
 #' The element \code{settings} keeps the inputs (efficacy, mode, attrition and
 #' per-component decays, \code{insecticide_decay}), used by
-#' \code{get_OM_GVI_snippet()}.
+#' \code{get_OM_GVI_snippet()}. The element \code{param_set} is the same
+#' intervention as a one-row \code{param_sets} table of
+#' \code{run_interventions()}, which \code{calculate_impact()} evaluates.
+#' Several interventions are combined with \code{c()}.
 #'
 #' @importFrom stats optim
 #' @keywords internal
@@ -470,8 +477,11 @@ build_intervention = function(efficacy,
     if (use_dummy_host)
         interv$alphai[, 4] = eff$alphai_4[1L, ]
 
-    interv_list[[1]]$effects  = interv
-    interv_list[[1]]$duration = npoints
+    interv_list[[1]]$effects   = interv
+    interv_list[[1]]$duration  = npoints
+    # The parameter row these effects were computed from, in the param_sets
+    # format: calculate_impact() evaluates it with run_interventions()
+    interv_list[[1]]$param_set = ps
 
     # Single Weibull per component approximating attrition x insecticide decay
     if (insecticide_decay) {
@@ -536,7 +546,6 @@ build_intervention = function(efficacy,
 #' @param param_sets Data frame where each row defines one parameter set.
 #' Required columns:
 #' \itemize{
-#'   \item \code{name}: label for the parameter set
 #'   \item \code{deterrency}: initial deterrency efficacy in \code{[0,1]}
 #'   \item \code{preprandial}: initial pre-prandial killing efficacy in
 #'     \code{[0,1]} (set to \code{0} for the dummy-host model)
@@ -552,6 +561,8 @@ build_intervention = function(efficacy,
 #' }
 #' Optional columns:
 #' \itemize{
+#'   \item \code{name}: label of the parameter set (used by
+#'     \code{plot_impact()}); any other column is also carried to the output.
 #'   \item \code{host_seeking_killing}: activates the dummy-host (4-host)
 #'     model; absolute availability of the dummy host (see
 #'     \code{HostSeekingKilling} in \code{build_intervention()}). Non-missing
@@ -598,6 +609,8 @@ build_intervention = function(efficacy,
 #' acts on an effective coverage \code{coverage * exposure}. Typically
 #' \code{calculate_exposure(...)$Exposure_Indoor_whileinbed} for ITNs or
 #' \code{$Exposure_Indoor_total} for IRS.
+#' @param keep_time Logical (default \code{FALSE}): also return the
+#' vectorial capacity and impact on each day (memory-heavy for large sweeps).
 #'
 #' @return A \code{data.table} with one row per
 #' \code{(parameter set × coverage [× draw])}. All columns of \code{param_sets}
@@ -605,6 +618,12 @@ build_intervention = function(efficacy,
 #' parameter columns are appended. Output columns \code{coverage} (deployment
 #' coverage), \code{exposure}, \code{avg_vc}, \code{avg_impact}, and (when any
 #' uncertainty source is supplied) \code{draw} follow.
+#'
+#' With \code{keep_time = TRUE}, a list with this table as \code{impact} and a
+#' long \code{data.table} \code{time} with columns \code{param_set} (row of
+#' \code{param_sets}), \code{name} (if \code{param_sets} has one),
+#' \code{coverage}, \code{day} (0 = deployment), \code{vc}, \code{impact} and,
+#' with uncertainty draws, \code{draw}.
 #'
 #' @export
 run_interventions = function(param_sets, model_p, coverage_vec,
@@ -614,8 +633,11 @@ run_interventions = function(param_sets, model_p, coverage_vec,
                              coverage_sets     = NULL,
                              duration_years = 3,
                              insecticide_decay = TRUE,
-                             exposure = 1) {
+                             exposure = 1,
+                             keep_time = FALSE) {
     npoints = intervention_npoints(duration_years)
+    if (!is.logical(keep_time) || length(keep_time) != 1L || is.na(keep_time))
+        stop("keep_time must be TRUE or FALSE")
     if (is.null(coverage_sets)) {
         check_coverage(coverage_vec)
     } else {
@@ -702,6 +724,7 @@ run_interventions = function(param_sets, model_p, coverage_vec,
     }
 
     results_list = vector("list", n_draw)
+    time_list    = vector("list", n_draw)
 
     for (d in seq_len(n_draw)) {
         ps_d      = if (!is.null(interv_param_sets)) interv_param_sets[[d]] else param_sets
@@ -721,7 +744,7 @@ run_interventions = function(param_sets, model_p, coverage_vec,
         # Errors name the rows of param_sets (simulate_vc) and the draw
         sim = tryCatch(
             simulate_vc(apply_eff_matrices(mm, host_p), host_base(host_p),
-                        vec_p, host_p, cov_d * exp_d),
+                        vec_p, host_p, cov_d * exp_d, keep_time = keep_time),
             error = function(err) stop(
                 "run_interventions", if (!is.null(draw_ids)) paste0(", draw ", d), ": ",
                 conditionMessage(err), call. = FALSE))
@@ -745,7 +768,23 @@ run_interventions = function(param_sets, model_p, coverage_vec,
         ps_expanded$avg_impact = as.vector(t(avg_impact))
         if (!is.null(draw_ids)) ps_expanded$draw = draw_ids[d]
         results_list[[d]] = data.table::as.data.table(ps_expanded)
+
+        if (keep_time) {
+            # sim$vc_t / impact_t: [param set, coverage, day] -> day fastest
+            idx = expand.grid(day = seq_len(npoints), cov = seq_len(n_cov_out),
+                              param_set = seq_len(n_param_d))
+            tt = data.table::data.table(param_set = idx$param_set)
+            if (!is.null(ps_d$name)) tt$name = ps_d$name[idx$param_set]
+            tt$coverage = cov_out[idx$cov]
+            tt$day      = idx$day - 1L
+            tt$vc       = as.vector(aperm(sim$vc_t,     c(3, 2, 1)))
+            tt$impact   = as.vector(aperm(sim$impact_t, c(3, 2, 1)))
+            if (!is.null(draw_ids)) tt$draw = draw_ids[d]
+            time_list[[d]] = tt
+        }
     }
 
-    data.table::rbindlist(results_list)
+    impact = data.table::rbindlist(results_list)
+    if (!keep_time) return(impact)
+    list(impact = impact, time = data.table::rbindlist(time_list))
 }

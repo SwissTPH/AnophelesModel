@@ -4,11 +4,19 @@
 \alias{calculate_impact}
 \title{Calculate vectorial capacity reduction for a list of interventions}
 \usage{
-calculate_impact(interventions_vec, coverage_vec, model_p, exposure = 1)
+calculate_impact(
+  interventions_vec,
+  coverage_vec,
+  model_p,
+  exposure = 1,
+  keep_time = FALSE
+)
 }
 \arguments{
-\item{interventions_vec}{List of intervention objects created with
-\code{build_intervention()}.}
+\item{interventions_vec}{Intervention objects created with
+\code{build_intervention()}, combined with \code{c()} (e.g.
+\code{c(itn1, itn2)}); a single \code{build_intervention()} output works
+as is.}
 
 \item{coverage_vec}{Numeric vector of deployment coverages (values in
 \code{[0, 1]}). The impact is always computed relative to coverage 0 (no
@@ -22,27 +30,31 @@ acts on an effective coverage \code{coverage_vec * exposure}. Typically
 \code{calculate_exposure(...)$Exposure_Indoor_whileinbed} for ITNs or
 \code{$Exposure_Indoor_total} for IRS. Reported coverages remain the
 deployment coverages.}
+
+\item{keep_time}{Logical (default \code{FALSE}): also return the
+vectorial capacity and impact on each day.}
 }
 \value{
-List with:
-\itemize{
-  \item \code{vec_p}: vector parameters from \code{model_p}
-  \item \code{host_p}: host parameters from \code{model_p}
-  \item \code{interventions_vec}: input list augmented with, per intervention:
-  \itemize{
-    \item \code{effects$vc}: vectorial capacity matrix
-      (time points rows x \code{length(coverage_vec)} cols)
-    \item \code{effects$impact}: VC reduction matrix (same dimensions)
-    \item \code{effects$avg_vc}: column means of \code{vc}
-    \item \code{effects$avg_impact}: column means of \code{impact}
-    \item \code{coverages}: the supplied \code{coverage_vec}
-  }
-}
+A \code{data.table} with one row per intervention and coverage:
+\code{intervention} (position in \code{interventions_vec}), \code{name},
+the intervention parameters (as in \code{run_interventions()}),
+\code{coverage}, \code{exposure}, \code{avg_vc} and \code{avg_impact}.
+With \code{keep_time = TRUE}, a list with this table as \code{impact} and a
+long table \code{time} with \code{intervention}, \code{name},
+\code{coverage}, \code{day} (0 = deployment), \code{vc} and \code{impact}.
+Plot it with \code{\link{plot_impact}}.
 }
 \description{
 For each intervention object in \code{interventions_vec},
-evaluates the entomological model at every interpolation point and returns
-average vectorial capacity and impact across the deployment period.
+evaluates the entomological model on every day of the intervention and
+returns the average vectorial capacity and impact (reduction in
+vectorial capacity) at each coverage. This is
+\code{\link{run_interventions}} applied to the parameters stored in each
+intervention (\code{$param_set}), so both functions give the same results
+and the same output format.
+
+The model parameters are those of \code{model_p} (the \code{model_p} used
+to build the interventions does not matter).
 }
 \author{
 Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
