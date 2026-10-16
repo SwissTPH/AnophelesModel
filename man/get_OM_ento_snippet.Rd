@@ -12,7 +12,8 @@ get_OM_ento_snippet(
   hosts_p = def_host_params(),
   propInfected = 0.078,
   propInfectious = 0.021,
-  bionomics_table = NULL
+  bionomics_table = NULL,
+  species_shares = NULL
 )
 }
 \arguments{
@@ -38,6 +39,18 @@ infectious mosquitoes, written to \code{seasonalityParameters}.}
 
 \item{bionomics_table}{Optional bionomics table used instead of
 \code{vec_ent_param} (see \code{\link{read_bionomics_table}}).}
+
+\item{species_shares}{Optional named vector: share of each taxon in the
+EIR, one per taxon (names as in \code{taxa}, canonical names or
+synonyms), summing to 1; see \code{\link{eir_shares}} to compute it from
+relative abundances and sporozoite rates. The \code{annualEIR} of each
+population is then its relative contribution (species share \eqn{\times}
+share within the species, summing to 1 over all populations), and the
+total EIR is set with the \code{scaledAnnualEIR} attribute of
+\code{<entomology>} (e.g.
+\code{defineEntomology(..., scaledAnnualEIR = "@EIR@")}). Without it
+(default), \code{annualEIR} is a placeholder per population, filled with
+\code{\link{om_ento_values}} (for any species composition).}
 }
 \value{
 List with
@@ -46,13 +59,16 @@ List with
     population) for \code{defineEntomology(mosquitoParameters = )};
   \item \code{seasonalityParameters}: named list skeleton for
     \code{defineEntomology(seasonalityParameters = )}, with placeholders
-    \code{"@EIR_<name>@"} for \code{annualEIR} and \code{"@m1@"},
+    \code{"@EIR_<name>@"} for \code{annualEIR} (or its relative
+    contribution, with \code{species_shares}) and \code{"@m1@"},
     ..., \code{"@m12@"} for the seasonality, to be replaced (with R >= 4.3,
     \code{defineEntomology()} currently rejects monthly placeholders;
     replace them with numeric values, or a fixed openMalariaUtilities);
   \item \code{shares}: data frame with \code{mosquito}, \code{taxon},
     \code{type} (\code{indoor1}, \code{indoor2}, \code{outdoor} or
-    \code{all}), \code{share} within the taxon, and the logical columns
+    \code{all}), \code{share} within the taxon (with
+    \code{species_shares}, also \code{species_share} and the overall
+    \code{eir_share}), and the logical columns
     \code{in_bed} and \code{indoor_resting} (exposure to interventions
     acting in bed, e.g. ITNs, or on indoor resting mosquitoes, e.g. IRS),
     and \code{muvA}, the host-seeking death rate without interventions

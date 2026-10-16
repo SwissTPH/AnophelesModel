@@ -63,6 +63,17 @@ om_decay_name = function(decay) {
 #'   infectious mosquitoes, written to \code{seasonalityParameters}.
 #' @param bionomics_table Optional bionomics table used instead of
 #'   \code{vec_ent_param} (see \code{\link{read_bionomics_table}}).
+#' @param species_shares Optional named vector: share of each taxon in the
+#'   EIR, one per taxon (names as in \code{taxa}, canonical names or
+#'   synonyms), summing to 1; see \code{\link{eir_shares}} to compute it from
+#'   relative abundances and sporozoite rates. The \code{annualEIR} of each
+#'   population is then its relative contribution (species share \eqn{\times}
+#'   share within the species, summing to 1 over all populations), and the
+#'   total EIR is set with the \code{scaledAnnualEIR} attribute of
+#'   \code{<entomology>} (e.g.
+#'   \code{defineEntomology(..., scaledAnnualEIR = "@EIR@")}). Without it
+#'   (default), \code{annualEIR} is a placeholder per population, filled with
+#'   \code{\link{om_ento_values}} (for any species composition).
 #'
 #' @return List with
 #' \itemize{
@@ -70,13 +81,16 @@ om_decay_name = function(decay) {
 #'     population) for \code{defineEntomology(mosquitoParameters = )};
 #'   \item \code{seasonalityParameters}: named list skeleton for
 #'     \code{defineEntomology(seasonalityParameters = )}, with placeholders
-#'     \code{"@EIR_<name>@"} for \code{annualEIR} and \code{"@m1@"},
+#'     \code{"@EIR_<name>@"} for \code{annualEIR} (or its relative
+#'     contribution, with \code{species_shares}) and \code{"@m1@"},
 #'     ..., \code{"@m12@"} for the seasonality, to be replaced (with R >= 4.3,
 #'     \code{defineEntomology()} currently rejects monthly placeholders;
 #'     replace them with numeric values, or a fixed openMalariaUtilities);
 #'   \item \code{shares}: data frame with \code{mosquito}, \code{taxon},
 #'     \code{type} (\code{indoor1}, \code{indoor2}, \code{outdoor} or
-#'     \code{all}), \code{share} within the taxon, and the logical columns
+#'     \code{all}), \code{share} within the taxon (with
+#'     \code{species_shares}, also \code{species_share} and the overall
+#'     \code{eir_share}), and the logical columns
 #'     \code{in_bed} and \code{indoor_resting} (exposure to interventions
 #'     acting in bed, e.g. ITNs, or on indoor resting mosquitoes, e.g. IRS),
 #'     and \code{muvA}, the host-seeking death rate without interventions
@@ -104,7 +118,7 @@ om_decay_name = function(decay) {
 get_OM_ento_snippet = function(taxa, level = "species", activity = NULL,
                                hbi = "weighted", hosts_p = def_host_params(),
                                propInfected = 0.078, propInfectious = 0.021,
-                               bionomics_table = NULL) {
+                               bionomics_table = NULL, species_shares = NULL) {
     hbi   = match.arg(hbi, c("weighted", "indoor", "outdoor"))
     level = rep_len(level, length(taxa))
     split = !is.null(activity)
@@ -167,8 +181,22 @@ get_OM_ento_snippet = function(taxa, level = "species", activity = NULL,
     rownames(shares) = NULL
     if (anyDuplicated(shares$mosquito)) stop("Duplicated taxa in 'taxa'")
 
-    seasonalityParameters = lapply(shares$mosquito, function(m) list(
-        annualEIR      = paste0("@EIR_", gsub("[^A-Za-z0-9]+", "_", m), "@"),
+    # annualEIR: relative contribution of each population (species share x
+    # share within the species) with species_shares, the total EIR being set
+    # with scaledAnnualEIR; otherwise one placeholder per population
+    if (!is.null(species_shares)) {
+        sp = om_species_shares(species_shares, unique(shares$taxon), taxa)
+        shares$species_share = unname(sp[shares$taxon])
+        shares$eir_share     = shares$species_share * shares$share
+        eir = om_num(shares$eir_share)
+        message("get_OM_ento_snippet: annualEIR = relative contribution of each ",
+                "population; set the total EIR with scaledAnnualEIR (e.g. ",
+                "defineEntomology(..., scaledAnnualEIR = \"@EIR@\")).")
+    } else {
+        eir = paste0("@", om_eir_placeholder(shares$mosquito), "@")
+    }
+    seasonalityParameters = lapply(seq_along(shares$mosquito), function(j) list(
+        annualEIR      = eir[j],
         seasonality    = paste0("@m", 1:12, "@"),
         propInfected   = propInfected,
         propInfectious = propInfectious))
@@ -178,6 +206,141 @@ get_OM_ento_snippet = function(taxa, level = "species", activity = NULL,
          seasonalityParameters = seasonalityParameters,
          shares                = shares,
          model_params          = model_params)
+}
+
+
+# Internal: name (without @) of the annualEIR placeholder of a population
+om_eir_placeholder = function(mosquito) paste0("EIR_", gsub("[^A-Za-z0-9]+", "_", mosquito))
+
+# Internal: validated species shares of the EIR, named by canonical taxon
+# (in the order of `canonical`). Names may be canonical, as given in `given`
+# (the taxa argument) or an alias; one share per taxon, summing to 1.
+om_species_shares = function(x, canonical, given = NULL, label = "species_shares") {
+    if (!is.numeric(x) || is.null(names(x)) || any(!is.finite(x)) || any(x < 0))
+        stop(label, " must be a named vector of non-negative shares, one per taxon")
+    key = vapply(names(x), function(nm) {
+        if (nm %in% canonical) return(nm)
+        if (!is.null(given) && nm %in% given) return(canonical[match(nm, given)])
+        a = .TAXON_ALIASES$canonical[.TAXON_ALIASES$alias == nm]
+        if (length(a) && a[1] %in% canonical) return(a[1])
+        stop(label, ": '", nm, "' is not one of the taxa (",
+             paste(canonical, collapse = ", "), ")")
+    }, character(1))
+    if (anyDuplicated(key)) stop(label, ": several shares for the same taxon")
+    missing = setdiff(canonical, key)
+    if (length(missing)) stop(label, ": no share for ", paste(missing, collapse = ", "))
+    if (abs(sum(x) - 1) > 1e-8)
+        stop(label, " must sum to 1 (sum: ", signif(sum(x), 6), ")")
+    stats::setNames(unname(x), key)[canonical]
+}
+
+
+#########eir_shares####
+#' @title Share of each mosquito species in the EIR
+#'
+#' @description Share of each species in the entomological inoculation rate
+#' (EIR), from the relative abundance of the species (e.g. proportions in
+#' collections) and their sporozoite rates: \code{abundance *
+#' sporozoite_rate}, normalised to sum to 1. The result can be passed to
+#' \code{get_OM_ento_snippet(species_shares = )} or
+#' \code{\link{om_ento_values}}.
+#'
+#' @param abundance Named vector of relative abundances, summing to 1.
+#' @param sporozoite_rate Named vector of sporozoite rates, with the same
+#'   names (in any order). There is no default: sporozoite rates are
+#'   setting-specific (e.g. Kweyamba et al. 2025 for south-eastern Tanzania).
+#'
+#' @return Named vector of EIR shares (names and order of \code{abundance}).
+#'
+#' @examples
+#' eir_shares(c("Anopheles funestus" = 0.95, "Anopheles gambiae ss/coluzzii" = 0.05),
+#'            c("Anopheles funestus" = 0.235, "Anopheles gambiae ss/coluzzii" = 0.114))
+#'
+#' @export
+#'
+eir_shares = function(abundance, sporozoite_rate) {
+    for (arg in list(list(abundance, "abundance"), list(sporozoite_rate, "sporozoite_rate")))
+        if (!is.numeric(arg[[1]]) || is.null(names(arg[[1]])) || anyDuplicated(names(arg[[1]])) ||
+            any(!is.finite(arg[[1]])) || any(arg[[1]] < 0))
+            stop(arg[[2]], " must be a named vector of non-negative numbers with unique names")
+    if (!setequal(names(abundance), names(sporozoite_rate)))
+        stop("abundance and sporozoite_rate must have the same names")
+    if (abs(sum(abundance) - 1) > 1e-8)
+        stop("abundance must sum to 1 (sum: ", signif(sum(abundance), 6), ")")
+    if (any(sporozoite_rate > 1)) stop("sporozoite_rate must be proportions in [0, 1]")
+    contribution = abundance * sporozoite_rate[names(abundance)]
+    if (sum(contribution) == 0) stop("No species contributes to the EIR")
+    contribution / sum(contribution)
+}
+
+
+#########om_ento_values####
+#' @title Values of the annualEIR placeholders of an OpenMalaria entomology
+#'
+#' @description Fills the \code{annualEIR} placeholders of
+#' \code{\link{get_OM_ento_snippet}} (one per mosquito population, when
+#' \code{species_shares} was not given there) from a total EIR and the share
+#' of each species: EIR of a population = \code{EIR} \eqn{\times} species
+#' share \eqn{\times} share within the species (\code{om_ento$shares$share}).
+#' One row per combination of total EIR and species composition, to merge
+#' into an OpenMalaria scenario table.
+#'
+#' @param om_ento Output of \code{get_OM_ento_snippet()} without
+#'   \code{species_shares}.
+#' @param EIR Numeric vector of total annual EIRs.
+#' @param species_shares Species composition(s): a named vector (one
+#'   composition) or a data frame / matrix with one row per composition and
+#'   one column per taxon (canonical names or synonyms). Each composition must
+#'   sum to 1 (see \code{\link{eir_shares}}). Row names, if any, are kept in a
+#'   \code{composition} column.
+#'
+#' @return Data frame with \code{EIR}, \code{composition} (with row names),
+#' the species shares (one column per taxon) and one column per placeholder,
+#' named without the \code{@} (\code{EIR_<population>}).
+#'
+#' @examples
+#' om = get_OM_ento_snippet(c("Anopheles funestus", "Anopheles gambiae ss/coluzzii"),
+#'                          activity = def_activity_patterns())
+#' om_ento_values(om, EIR = c(10, 50),
+#'     species_shares = rbind(
+#'         funestus_dominant = c("Anopheles funestus" = 0.9,
+#'                               "Anopheles gambiae ss/coluzzii" = 0.1),
+#'         equal             = c("Anopheles funestus" = 0.5,
+#'                               "Anopheles gambiae ss/coluzzii" = 0.5)))
+#'
+#' @export
+#'
+om_ento_values = function(om_ento, EIR, species_shares) {
+    sh = om_ento$shares
+    if (!is.null(sh$eir_share))
+        stop("om_ento was built with species_shares: its annualEIR are relative ",
+             "contributions, not placeholders (set the total with scaledAnnualEIR)")
+    if (!is.numeric(EIR) || length(EIR) == 0L || any(!is.finite(EIR)) || any(EIR <= 0))
+        stop("EIR must be positive numbers")
+    taxa = unique(sh$taxon)
+    mixes = if (is.null(dim(species_shares))) {
+        if (is.null(names(species_shares)))
+            stop("species_shares must be named by taxon")
+        as.data.frame(as.list(species_shares), check.names = FALSE)
+    } else as.data.frame(species_shares, check.names = FALSE)
+    if (nrow(mixes) == 0L) stop("species_shares has no composition")
+    comp = lapply(seq_len(nrow(mixes)), function(i) om_species_shares(
+        unlist(mixes[i, , drop = FALSE]), taxa,
+        label = paste0("species_shares (composition ", i, ")")))
+    # Composition labels: row names of a matrix, or non-automatic row names of
+    # a data frame
+    labels = rownames(mixes)
+    has_labels = if (is.data.frame(species_shares)) .row_names_info(species_shares) > 0
+                 else !is.null(dim(species_shares)) && !is.null(rownames(species_shares))
+
+    grid = expand.grid(eir = seq_along(EIR), mix = seq_along(comp))
+    out = data.frame(EIR = EIR[grid$eir])
+    if (has_labels) out$composition = labels[grid$mix]
+    for (tx in taxa) out[[tx]] = vapply(comp, `[[`, numeric(1), tx)[grid$mix]
+    for (j in seq_len(nrow(sh)))
+        out[[om_eir_placeholder(sh$mosquito[j])]] =
+            out$EIR * out[[sh$taxon[j]]] * sh$share[j]
+    out
 }
 
 
@@ -1140,9 +1303,11 @@ get_OM_xml = function(om_ento, interv = NULL, schedule = NULL, end_date = NULL,
     out = list(entomology = if (isTRUE(entomology))
                                 to_text("vector", list(om_vector_list(om_ento))),
                define = NULL, deploy = NULL, hsk = NULL)
+    # annualEIR are relative contributions: the total goes to scaledAnnualEIR
+    relative_eir = isTRUE(entomology) && !is.null(om_ento$shares$eir_share)
     if (is.null(interv)) {
         if (!isTRUE(entomology)) stop("Nothing to write: give interv or entomology = TRUE")
-        return(structure(out, class = "om_xml"))
+        return(structure(out, class = "om_xml", relative_eir = relative_eir))
     }
     if (is.null(schedule) || is.null(end_date))
         stop("schedule and end_date are needed with interv")
@@ -1155,7 +1320,7 @@ get_OM_xml = function(om_ento, interv = NULL, schedule = NULL, end_date = NULL,
         b$name, ids, b$sch, subpop, cumulative, minAge, maxAge)))
     if (length(b$steps)) out$hsk = to_text("intervention", b$steps)
     om_vc_messages(b, "get_OM_xml")
-    structure(out, class = "om_xml")
+    structure(out, class = "om_xml", relative_eir = relative_eir)
 }
 
 
@@ -1228,6 +1393,10 @@ print.om_xml = function(x, ...) {
         deploy     = paste("inside <interventions><human>, after all <component>",
                            "elements (deploys the components above together)"),
         hsk        = "inside <interventions><vectorPop>")
+    if (isTRUE(attr(x, "relative_eir")))
+        where[["entomology"]] = paste0(where[["entomology"]], "; annualEIR are ",
+            "relative contributions: set the total EIR with <entomology ... ",
+            "scaledAnnualEIR=\"@EIR@\">")
     for (s in names(where)) if (!is.null(x[[s]]))
         cat("<!-- ", s, ": paste ", where[[s]], " -->\n", x[[s]], "\n\n", sep = "")
     invisible(x)

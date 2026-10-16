@@ -610,33 +610,74 @@ GitHub:
 remotes::install_github("SwissTPH/r-openMalariaUtilities")
 ```
 
-**Entomology.** `get_OM_ento_snippet()` returns the mosquito parameters for
-`defineEntomology()`. With activity patterns, each species is split into
-populations by human exposure: `_indoor1` (exposed in bed and resting
-indoors), `_indoor2` (only one of the two) and `_outdoor`; indoor populations
-use the indoor HBI, the outdoor population the outdoor HBI. `shares` gives the
-share of each population within its species, to set its `annualEIR`
-(placeholders in `seasonalityParameters`), which populations are reached by
-ITNs (`in_bed`) and IRS (`indoor_resting`), and the host-seeking death rate
-`muvA` used to export host-seeking killing:
+### Entomology
+
+`get_OM_ento_snippet()` returns the mosquito parameters of each species, for
+`defineEntomology()`.
+
+**Mosquito populations.** With activity patterns, each species is split into
+three populations by human exposure: `_indoor1` (exposed in bed and resting
+indoors), `_indoor2` (only one of the two) and `_outdoor`. They share all
+parameters except the human blood index (indoor HBI for the indoor
+populations, outdoor HBI for the outdoor one), and interventions reach them
+differently: ITNs act on the populations exposed in bed, IRS on those resting
+indoors.
+
+**Contribution of each species to the EIR.** OpenMalaria needs the EIR of
+each population. The share of a species in the EIR is its relative abundance
+weighted by its sporozoite rate, computed by `eir_shares()` (both are
+setting-specific; the values below are illustrative). Passed as
+`species_shares`, it gives each population's `annualEIR` as its relative
+contribution: share of its species × share within the species, summing to 1
+over all populations.
 ```{r}
-om_ento = get_OM_ento_snippet(c("Anopheles gambiae ss/coluzzii", "Anopheles funestus"),
-                              activity = activity_gambiae)
+spz = c("Anopheles gambiae ss/coluzzii" = 0.114, "Anopheles funestus" = 0.235)
+mix = eir_shares(c("Anopheles gambiae ss/coluzzii" = 0.7, "Anopheles funestus" = 0.3), spz)
+mix
+
+om_ento = get_OM_ento_snippet(names(mix), activity = activity_gambiae,
+                              species_shares = mix)
 om_ento$shares
 str(om_ento$mosquitoParameters[[1]][c("mosqRestDuration", "mosqSeekingDuration",
                                       "mosqHumanBloodIndex")])
 ```
+`shares` gives, per population, its share within the species (`share`), the
+share of its species (`species_share`), its share of the EIR (`eir_share`),
+whether ITNs (`in_bed`) or IRS (`indoor_resting`) reach it, and the
+host-seeking death rate `muvA` (used to export host-seeking killing).
 
+**Writing the entomology.** OpenMalaria rescales the relative contributions
+to the total EIR given in the `scaledAnnualEIR` attribute of `<entomology>`,
+here a placeholder. The monthly seasonality gives the shape of the EIR over
+the year (OpenMalaria rescales it to the annual EIR). With R >= 4.3,
+`defineEntomology()` currently rejects the monthly placeholders `"@m1@"`,
+..., `"@m12@"` of `seasonalityParameters` (an openMalariaUtilities issue), so
+pass numeric values:
 ```{r, eval=FALSE}
-# baseList: an openMalariaUtilities scenario; baseList$interventions$human must exist
+# baseList: an openMalariaUtilities scenario
+seas = lapply(om_ento$seasonalityParameters, function(s) {
+    s$seasonality = c(2, 3, 5, 8, 6, 3, 1, 1, 1, 1, 1, 2)   # illustrative profile
+    s })
 baseList = openMalariaUtilities::defineEntomology(
-    baseList, om_ento$seasonalityParameters, om_ento$mosquitoParameters)
+    baseList, seas, om_ento$mosquitoParameters, scaledAnnualEIR = "@EIR@")
 ```
-With R >= 4.3, `defineEntomology()` currently rejects the monthly seasonality
-placeholders `"@m1@"`, ..., `"@m12@"` (an openMalariaUtilities issue): replace
-them with numeric values.
+To keep the seasonality as placeholders, use the text export instead
+(`get_OM_xml(om_ento)`, see the end of this section), which writes the same
+entomology without `defineEntomology()`.
 
-**Vector control.** `define_OM_vector_control()` writes the definition of an
+**Several species compositions.** To loop scenarios over species mixes,
+leave out `species_shares`: each population then has its own `annualEIR`
+placeholder (`@EIR_<population>@`), and `om_ento_values()` gives their values
+for each total EIR and composition (each composition must sum to 1):
+```{r}
+om_ento_ph = get_OM_ento_snippet(names(mix), activity = activity_gambiae)
+om_ento_values(om_ento_ph, EIR = c(10, 50),
+               species_shares = rbind(mix = mix, equal = c(0.5, 0.5)))
+```
+
+### Vector control
+
+`define_OM_vector_control()` writes the definition of an
 ITN or IRS intervention, for both model structures, and
 `deploy_OM_vector_control()` its deployment, with the same `name` and a
 `schedule` of campaigns (dates and coverages, numbers or placeholders such as
@@ -712,12 +753,16 @@ om_gvi = get_OM_GVI_snippet(my_interv, om_ento, intervention_type = "ITN")
 om_gvi[[1]]$deterrency$decay   # L in years
 ```
 
-**Without openMalariaUtilities.** `get_OM_xml()` writes the same entomology
-and interventions as XML text, to paste into an existing scenario:
+### Without openMalariaUtilities (XML text)
+
+`get_OM_xml()` writes the same entomology and interventions as XML text, to
+paste into an existing scenario:
 
 - `entomology`: the `<vector>` element (one `<anopheles>` per mosquito
-  population, with the `annualEIR` and seasonality placeholders), inside
-  `<entomology>`;
+  population, with its `annualEIR` and the seasonality placeholders
+  `"@m1@"`, ..., `"@m12@"`), inside `<entomology>`. With `species_shares`,
+  add `scaledAnnualEIR="@EIR@"` (or a number) to `<entomology>`: the
+  `annualEIR` are relative contributions;
 - `define` (the components) and `deploy` (the deployment): inside
   `<interventions><human>`, the components before all deployments;
 - `hsk`, for dummy-host interventions: the host-seeking killing steps, inside

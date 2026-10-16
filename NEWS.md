@@ -86,6 +86,13 @@ rewritten and are **not backward compatible**.
   coverage scenario.
 * `get_OM_ento_snippet()` also returns `muvA` (in `shares`) and the model of
   each mosquito population (`model_params`).
+* Relative contribution of the species to the EIR: `eir_shares()` computes
+  species shares from relative abundances and sporozoite rates;
+  `get_OM_ento_snippet(species_shares = )` writes each population's
+  `annualEIR` as its relative contribution (the total set with
+  `scaledAnnualEIR`), and `om_ento_values()` fills the per-population
+  `annualEIR` placeholders for several total EIRs and species compositions.
+  Shares that do not sum to 1, or do not match the taxa, are errors.
 * New `get_OM_xml()`: the entomology and vector control as XML text,
   without openMalariaUtilities, to paste into an existing scenario: one
   snippet for the entomology (`<vector>`, same structure as

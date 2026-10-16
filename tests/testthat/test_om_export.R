@@ -75,6 +75,58 @@ test_that("activity splits each taxon into indoor1 / indoor2 / outdoor", {
     expect_length(om$seasonalityParameters[[1]]$seasonality, 12)
 })
 
+test_that("species shares give relative annualEIR contributions", {
+    taxa = c("Anopheles funestus", gss)
+    sp = c("Anopheles funestus" = 0.9, "Anopheles gambiae" = 0.1)   # a synonym works
+    om2 = suppressMessages(get_OM_ento_snippet(taxa, activity = activity, species_shares = sp))
+    sh = om2$shares
+    expect_equal(sh$species_share, rep(c(0.9, 0.1), each = 3))
+    expect_equal(sh$eir_share, sh$species_share * sh$share)
+    expect_equal(sum(sh$eir_share), 1)
+    eir = sapply(om2$seasonalityParameters, `[[`, "annualEIR")
+    expect_equal(unname(as.numeric(eir)), sh$eir_share, tolerance = 1e-5)
+    expect_message(get_OM_ento_snippet(taxa, species_shares = sp), "scaledAnnualEIR")
+    expect_output(print(get_OM_xml(om2)), "scaledAnnualEIR")
+
+    bad = function(x) suppressMessages(get_OM_ento_snippet(taxa, species_shares = x))
+    expect_error(bad(c("Anopheles funestus" = 0.9, "Anopheles gambiae ss/coluzzii" = 0.2)),
+                 "sum to 1")
+    expect_error(bad(c("Anopheles funestus" = 1)), "no share")
+    expect_error(bad(c("Anopheles funestus" = 0.5, "Anopheles arabiensis" = 0.5)),
+                 "not one of the taxa")
+    expect_error(bad(c(0.5, 0.5)), "named")
+})
+
+test_that("eir_shares weights abundance by sporozoite rate", {
+    s = eir_shares(c(a = 0.95, b = 0.05, c = 0), c(b = 0.114, a = 0.235, c = 0.049))
+    expect_equal(s, c(a = 0.95 * 0.235, b = 0.05 * 0.114, c = 0) /
+                     (0.95 * 0.235 + 0.05 * 0.114))
+    expect_error(eir_shares(c(a = 0.9, b = 0.05), c(a = 0.1, b = 0.1)), "sum to 1")
+    expect_error(eir_shares(c(a = 1), c(b = 0.1)), "same names")
+    expect_error(eir_shares(c(a = 1), c(a = 0)), "No species")
+    expect_error(eir_shares(c(a = 1), c(a = 2)), "proportions")
+})
+
+test_that("om_ento_values fills the per-population annualEIR placeholders", {
+    taxa = c("Anopheles funestus", gss)
+    om2 = get_OM_ento_snippet(taxa, activity = activity)
+    mixes = rbind(fun = c("Anopheles funestus" = 0.9, "Anopheles gambiae ss/coluzzii" = 0.1),
+                  eq  = c("Anopheles funestus" = 0.5, "Anopheles gambiae ss/coluzzii" = 0.5))
+    v = om_ento_values(om2, EIR = c(10, 50), species_shares = mixes)
+    expect_equal(v$EIR, c(10, 50, 10, 50))
+    expect_equal(v$composition, c("fun", "fun", "eq", "eq"))
+    ph = gsub("@", "", sapply(om2$seasonalityParameters, `[[`, "annualEIR"))
+    expect_true(all(ph %in% names(v)))
+    expect_equal(unname(rowSums(v[ph])), v$EIR)          # populations add up to the total
+    j = which(om2$shares$taxon == "Anopheles funestus")[1]
+    expect_equal(v[[ph[j]]][2], 50 * 0.9 * om2$shares$share[j])
+    expect_equal(nrow(om_ento_values(om2, 20, mixes[1, ])), 1)       # a single composition
+    expect_error(om_ento_values(om2, 10, mixes * 2), "composition 1.*sum to 1")
+    expect_error(om_ento_values(om2, -1, mixes), "EIR")
+    om3 = suppressMessages(get_OM_ento_snippet(taxa, species_shares = mixes[1, ]))
+    expect_error(om_ento_values(om3, 10, mixes), "scaledAnnualEIR")
+})
+
 test_that("several taxa can be exported together", {
     om = get_OM_ento_snippet(c(gss, "Anopheles funestus"), activity = activity)
     expect_length(om$mosquitoParameters, 6)

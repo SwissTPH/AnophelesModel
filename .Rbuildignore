@@ -9,3 +9,5 @@
 ^CLAUDE\.md$
 ^\.RData$
 ^.*\.Rapp\.history$
+^vignettes/[^/]*\.htm$
+^vignettes/[^/]*_files$
