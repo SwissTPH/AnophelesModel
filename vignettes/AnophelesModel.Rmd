@@ -623,13 +623,23 @@ populations, outdoor HBI for the outdoor one), and interventions reach them
 differently: ITNs act on the populations exposed in bed, IRS on those resting
 indoors.
 
-**Contribution of each species to the EIR.** OpenMalaria needs the EIR of
-each population. The share of a species in the EIR is its relative abundance
-weighted by its sporozoite rate, computed by `eir_shares()` (both are
-setting-specific; the values below are illustrative). Passed as
-`species_shares`, it gives each population's `annualEIR` as its relative
-contribution: share of its species × share within the species, summing to 1
-over all populations.
+**Contribution of each population to the EIR.** The `annualEIR` of each
+population is its relative contribution to the EIR: the share of its species
+× its share within the species, summing to 1 over all populations.
+OpenMalaria rescales them to the total EIR, given separately in the
+`scaledAnnualEIR` attribute of `<entomology>` (a number or a placeholder such
+as `"@EIR@"`). The share of a species is its relative abundance weighted by
+its sporozoite rate, computed by `eir_shares()` (both are setting-specific;
+the values below are illustrative). The contributions are either:
+
+- **fixed:** pass the species shares as `species_shares`, and the
+  contributions are written as numbers;
+- **placeholders:** leave out `species_shares`; each population then has a
+  placeholder `@contrib_<population>@`, and `om_ento_values()` gives their
+  values for one or several species compositions (one row each), e.g. to
+  loop scenarios over species mixes.
+
+Fixed contributions:
 ```{r}
 spz = c("Anopheles gambiae ss/coluzzii" = 0.114, "Anopheles funestus" = 0.235)
 mix = eir_shares(c("Anopheles gambiae ss/coluzzii" = 0.7, "Anopheles funestus" = 0.3), spz)
@@ -646,10 +656,17 @@ share of its species (`species_share`), its share of the EIR (`eir_share`),
 whether ITNs (`in_bed`) or IRS (`indoor_resting`) reach it, and the
 host-seeking death rate `muvA` (used to export host-seeking killing).
 
-**Writing the entomology.** OpenMalaria rescales the relative contributions
-to the total EIR given in the `scaledAnnualEIR` attribute of `<entomology>`,
-here a placeholder. The monthly seasonality gives the shape of the EIR over
-the year (OpenMalaria rescales it to the annual EIR). With R >= 4.3,
+Placeholder contributions, and their values for two compositions (the
+columns `contrib_<population>` fill the placeholders of the same name):
+```{r}
+om_ento_ph = get_OM_ento_snippet(names(mix), activity = activity_gambiae)
+om_ento_ph$seasonalityParameters[[1]]$annualEIR
+om_ento_values(om_ento_ph, rbind(mix = mix, equal = c(0.5, 0.5)))
+```
+
+**Writing the entomology.** The total EIR goes into `scaledAnnualEIR`, here a
+placeholder. The monthly seasonality gives the shape of the EIR over the year
+(OpenMalaria rescales it to the annual EIR). With R >= 4.3,
 `defineEntomology()` currently rejects the monthly placeholders `"@m1@"`,
 ..., `"@m12@"` of `seasonalityParameters` (an openMalariaUtilities issue), so
 pass numeric values:
@@ -665,29 +682,17 @@ To keep the seasonality as placeholders, use the text export instead
 (`get_OM_xml(om_ento)`, see the end of this section), which writes the same
 entomology without `defineEntomology()`.
 
-**Several species compositions.** To loop scenarios over species mixes,
-leave out `species_shares`: each population then has its own `annualEIR`
-placeholder (`@EIR_<population>@`), and `om_ento_values()` gives their values
-for each total EIR and composition (each composition must sum to 1):
-```{r}
-om_ento_ph = get_OM_ento_snippet(names(mix), activity = activity_gambiae)
-om_ento_values(om_ento_ph, EIR = c(10, 50),
-               species_shares = rbind(mix = mix, equal = c(0.5, 0.5)))
-```
-
 ### Vector control
 
-`define_OM_vector_control()` writes the definition of an
-ITN or IRS intervention, for both model structures, and
-`deploy_OM_vector_control()` its deployment, with the same `name` and a
-`schedule` of campaigns (dates and coverages, numbers or placeholders such as
-`"@cov2021@"`):
+`define_OM_vector_control()` writes the definition of an ITN or IRS
+intervention, for both model structures, and `deploy_OM_vector_control()` its
+deployment, with the same `name` and a `schedule` of campaigns (dates and
+coverages, numbers or placeholders such as `"@cov2021@"`):
 ```{r, eval=FALSE}
+baseList = define_OM_vector_control(baseList, my_interv, om_ento,
+                                    intervention_type = "ITN", name = "ITN")
 schedule = data.frame(date     = c("2021-01-01", "2024-01-01"),
                       coverage = c(0.8, 0.6))
-baseList = define_OM_vector_control(baseList, my_interv, om_ento, schedule,
-                                    end_date = "2027-01-01",
-                                    intervention_type = "ITN", name = "ITN")
 baseList = deploy_OM_vector_control(baseList, "ITN", schedule)
 ```
 
@@ -705,12 +710,18 @@ baseList = deploy_OM_vector_control(baseList, "ITN", schedule)
 host-seeking killing, which the GVI cannot represent, becomes an increase of
 the host-seeking death rate (OpenMalaria's `seekingDeathRateIncrease`, exactly
 equivalent to the dummy host). Its value depends on the nets of all campaigns
-still in use, so it is written as one step per campaign, lasting until the
-next campaign or `end_date`; the define message compares the vectorial
-capacity reduction of the steps with that of the exact curve. Consequences:
-the interventions must last (`duration_years`) from the first campaign to
-`end_date`; the deployment must use the schedule of the definition (checked);
-and it cannot be restricted to a sub-population, by age, or be cumulative.
+still in use, so it is written by `deploy_OM_vector_control()`, as one step
+per campaign lasting until the next campaign or `end_date`; the deploy
+message compares the vectorial capacity reduction of the steps with that of
+the exact curve. Consequences:
+
+- deploy a dummy-host intervention **once**, with the whole schedule and an
+  `end_date` (`deploy_OM_vector_control(baseList, "ITN", schedule, end_date =
+  "2030-01-01")`);
+- the interventions must last (`duration_years`) from the first campaign to
+  `end_date`;
+- the deployment cannot be restricted to a sub-population, by age, or be
+  cumulative.
 
 **Templates.** With a named list of interventions (same model structure), all
 values are placeholders (efficacies, Weibull decays, host-seeking killing
@@ -729,9 +740,8 @@ nets = list(IG2 = make_net(ig2_p),
 
 schedule = data.frame(date     = c("2021-01-01", "2024-01-01", "2027-01-01"),
                       coverage = c("@cov2021@", "@cov2024@", "@cov2027@"))
-baseList = define_OM_vector_control(baseList, nets, om_ento, schedule,
-                                    end_date = "2030-01-01", name = "ITN")
-baseList = deploy_OM_vector_control(baseList, "ITN", schedule)
+baseList = define_OM_vector_control(baseList, nets, om_ento, name = "ITN")
+baseList = deploy_OM_vector_control(baseList, "ITN", schedule, end_date = "2030-01-01")
 
 # One row per net and coverage scenario, to merge into the scenario table
 values = om_vector_control_values(nets, om_ento, schedule, end_date = "2030-01-01",
@@ -759,10 +769,9 @@ om_gvi[[1]]$deterrency$decay   # L in years
 paste into an existing scenario:
 
 - `entomology`: the `<vector>` element (one `<anopheles>` per mosquito
-  population, with its `annualEIR` and the seasonality placeholders
-  `"@m1@"`, ..., `"@m12@"`), inside `<entomology>`. With `species_shares`,
-  add `scaledAnnualEIR="@EIR@"` (or a number) to `<entomology>`: the
-  `annualEIR` are relative contributions;
+  population, with its contribution as `annualEIR` and the seasonality
+  placeholders `"@m1@"`, ..., `"@m12@"`), inside `<entomology>`, to which
+  you add the total EIR as `scaledAnnualEIR="@EIR@"` (or a number);
 - `define` (the components) and `deploy` (the deployment): inside
   `<interventions><human>`, the components before all deployments;
 - `hsk`, for dummy-host interventions: the host-seeking killing steps, inside

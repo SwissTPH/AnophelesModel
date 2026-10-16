@@ -75,24 +75,28 @@ rewritten and are **not backward compatible**.
   whole ITN / IRS intervention into an openMalariaUtilities `baseList`, with
   one `<deployment>` holding all its components (same people) and one deploy
   per campaign of a `schedule` (dates, numeric or placeholder coverages).
-  Host-seeking killing of dummy-host nets is exported as OpenMalaria's
-  `seekingDeathRateIncrease` (exact equivalent of the dummy host, `d / muvA`),
-  written as one step per campaign (step mean over the campaign interval,
-  including nets of earlier campaigns); the message compares the vectorial
-  capacity reduction of the steps with the exact curve. A named list of
+  The define writes the components, the deploy the deployment (the schedule
+  is given only there). Host-seeking killing of dummy-host nets is exported
+  as OpenMalaria's `seekingDeathRateIncrease` (exact equivalent of the dummy
+  host, `d / muvA`), written by the deploy as one step per campaign (step
+  mean over the campaign interval, including nets of earlier campaigns; one
+  deploy with the whole schedule and an `end_date`); the message compares the
+  vectorial capacity reduction of the steps with the exact curve. A named list of
   interventions gives a template whose values are all placeholders (Weibull
   decays), e.g. to loop scenarios over net types; new
   `om_vector_control_values()` computes the placeholder values per net and
   coverage scenario.
 * `get_OM_ento_snippet()` also returns `muvA` (in `shares`) and the model of
   each mosquito population (`model_params`).
-* Relative contribution of the species to the EIR: `eir_shares()` computes
-  species shares from relative abundances and sporozoite rates;
-  `get_OM_ento_snippet(species_shares = )` writes each population's
-  `annualEIR` as its relative contribution (the total set with
-  `scaledAnnualEIR`), and `om_ento_values()` fills the per-population
-  `annualEIR` placeholders for several total EIRs and species compositions.
-  Shares that do not sum to 1, or do not match the taxa, are errors.
+* Relative contribution of the species to the EIR: each population's
+  `annualEIR` is its relative contribution (species share × share within
+  the species), the total EIR being set with `scaledAnnualEIR` on
+  `<entomology>`. `eir_shares()` computes species shares from relative
+  abundances and sporozoite rates; `get_OM_ento_snippet(species_shares = )`
+  writes the contributions as numbers, and without it as placeholders
+  `@contrib_<population>@`, filled by `om_ento_values()` for one or several
+  species compositions. Shares that do not sum to 1, or do not match the
+  taxa, are errors.
 * New `get_OM_xml()`: the entomology and vector control as XML text,
   without openMalariaUtilities, to paste into an existing scenario: one
   snippet for the entomology (`<vector>`, same structure as

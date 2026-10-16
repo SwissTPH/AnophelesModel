@@ -66,14 +66,17 @@ om_decay_name = function(decay) {
 #' @param species_shares Optional named vector: share of each taxon in the
 #'   EIR, one per taxon (names as in \code{taxa}, canonical names or
 #'   synonyms), summing to 1; see \code{\link{eir_shares}} to compute it from
-#'   relative abundances and sporozoite rates. The \code{annualEIR} of each
-#'   population is then its relative contribution (species share \eqn{\times}
-#'   share within the species, summing to 1 over all populations), and the
-#'   total EIR is set with the \code{scaledAnnualEIR} attribute of
-#'   \code{<entomology>} (e.g.
-#'   \code{defineEntomology(..., scaledAnnualEIR = "@EIR@")}). Without it
-#'   (default), \code{annualEIR} is a placeholder per population, filled with
-#'   \code{\link{om_ento_values}} (for any species composition).
+#'   relative abundances and sporozoite rates.
+#'
+#'   The \code{annualEIR} of each population is its relative contribution to
+#'   the EIR: share of its species \eqn{\times} share within the species,
+#'   summing to 1 over all populations. With \code{species_shares}, these are
+#'   numbers; without (default), placeholders
+#'   \code{"@contrib_<population>@"}, whose values for any species
+#'   composition are given by \code{\link{om_ento_values}}. In both cases,
+#'   the total EIR is set with the \code{scaledAnnualEIR} attribute of
+#'   \code{<entomology>} (a number or a placeholder, e.g.
+#'   \code{defineEntomology(..., scaledAnnualEIR = "@EIR@")}).
 #'
 #' @return List with
 #' \itemize{
@@ -81,8 +84,8 @@ om_decay_name = function(decay) {
 #'     population) for \code{defineEntomology(mosquitoParameters = )};
 #'   \item \code{seasonalityParameters}: named list skeleton for
 #'     \code{defineEntomology(seasonalityParameters = )}, with placeholders
-#'     \code{"@EIR_<name>@"} for \code{annualEIR} (or its relative
-#'     contribution, with \code{species_shares}) and \code{"@m1@"},
+#'     \code{"@contrib_<population>@"} for \code{annualEIR} (numbers with
+#'     \code{species_shares}) and \code{"@m1@"},
 #'     ..., \code{"@m12@"} for the seasonality, to be replaced (with R >= 4.3,
 #'     \code{defineEntomology()} currently rejects monthly placeholders;
 #'     replace them with numeric values, or a fixed openMalariaUtilities);
@@ -181,20 +184,24 @@ get_OM_ento_snippet = function(taxa, level = "species", activity = NULL,
     rownames(shares) = NULL
     if (anyDuplicated(shares$mosquito)) stop("Duplicated taxa in 'taxa'")
 
-    # annualEIR: relative contribution of each population (species share x
-    # share within the species) with species_shares, the total EIR being set
-    # with scaledAnnualEIR; otherwise one placeholder per population
+    # annualEIR = relative contribution of each population to the EIR
+    # (species share x share within the species): numbers with
+    # species_shares, otherwise one placeholder per population. The total EIR
+    # is always set with scaledAnnualEIR.
     if (!is.null(species_shares)) {
         sp = om_species_shares(species_shares, unique(shares$taxon), taxa)
         shares$species_share = unname(sp[shares$taxon])
         shares$eir_share     = shares$species_share * shares$share
         eir = om_num(shares$eir_share)
-        message("get_OM_ento_snippet: annualEIR = relative contribution of each ",
-                "population; set the total EIR with scaledAnnualEIR (e.g. ",
-                "defineEntomology(..., scaledAnnualEIR = \"@EIR@\")).")
+        what = "the relative contribution of each population"
     } else {
-        eir = paste0("@", om_eir_placeholder(shares$mosquito), "@")
+        eir = paste0("@", om_contrib_placeholder(shares$mosquito), "@")
+        what = paste("a placeholder @contrib_<population>@ for the relative",
+                     "contribution of each population (values: om_ento_values())")
     }
+    message("get_OM_ento_snippet: annualEIR = ", what, "; set the total EIR ",
+            "with scaledAnnualEIR (e.g. defineEntomology(..., scaledAnnualEIR = ",
+            "\"@EIR@\")).")
     seasonalityParameters = lapply(seq_along(shares$mosquito), function(j) list(
         annualEIR      = eir[j],
         seasonality    = paste0("@m", 1:12, "@"),
@@ -209,8 +216,10 @@ get_OM_ento_snippet = function(taxa, level = "species", activity = NULL,
 }
 
 
-# Internal: name (without @) of the annualEIR placeholder of a population
-om_eir_placeholder = function(mosquito) paste0("EIR_", gsub("[^A-Za-z0-9]+", "_", mosquito))
+# Internal: name (without @) of the annualEIR placeholder of a population (its
+# relative contribution to the EIR)
+om_contrib_placeholder = function(mosquito)
+    paste0("contrib_", gsub("[^A-Za-z0-9]+", "_", mosquito))
 
 # Internal: validated species shares of the EIR, named by canonical taxon
 # (in the order of `canonical`). Names may be canonical, as given in `given`
@@ -275,48 +284,46 @@ eir_shares = function(abundance, sporozoite_rate) {
 
 
 #########om_ento_values####
-#' @title Values of the annualEIR placeholders of an OpenMalaria entomology
+#' @title Values of the species contribution placeholders of an OpenMalaria
+#'   entomology
 #'
-#' @description Fills the \code{annualEIR} placeholders of
-#' \code{\link{get_OM_ento_snippet}} (one per mosquito population, when
-#' \code{species_shares} was not given there) from a total EIR and the share
-#' of each species: EIR of a population = \code{EIR} \eqn{\times} species
-#' share \eqn{\times} share within the species (\code{om_ento$shares$share}).
-#' One row per combination of total EIR and species composition, to merge
-#' into an OpenMalaria scenario table.
+#' @description Fills the \code{annualEIR} placeholders
+#' \code{@contrib_<population>@} of \code{\link{get_OM_ento_snippet}} (used
+#' when \code{species_shares} is not given there): the relative contribution of
+#' each mosquito population to the EIR, i.e. the share of its species
+#' \eqn{\times} its share within the species (\code{om_ento$shares$share}),
+#' summing to 1 over all populations. One row per species composition, to
+#' merge into an OpenMalaria scenario table; the total EIR is set separately,
+#' with the \code{scaledAnnualEIR} attribute of \code{<entomology>}.
 #'
 #' @param om_ento Output of \code{get_OM_ento_snippet()} without
 #'   \code{species_shares}.
-#' @param EIR Numeric vector of total annual EIRs.
 #' @param species_shares Species composition(s): a named vector (one
 #'   composition) or a data frame / matrix with one row per composition and
 #'   one column per taxon (canonical names or synonyms). Each composition must
 #'   sum to 1 (see \code{\link{eir_shares}}). Row names, if any, are kept in a
 #'   \code{composition} column.
 #'
-#' @return Data frame with \code{EIR}, \code{composition} (with row names),
-#' the species shares (one column per taxon) and one column per placeholder,
-#' named without the \code{@} (\code{EIR_<population>}).
+#' @return Data frame with \code{composition} (with row names), the species
+#' shares (one column per taxon) and one column per placeholder, named without
+#' the \code{@} (\code{contrib_<population>}).
 #'
 #' @examples
 #' om = get_OM_ento_snippet(c("Anopheles funestus", "Anopheles gambiae ss/coluzzii"),
 #'                          activity = def_activity_patterns())
-#' om_ento_values(om, EIR = c(10, 50),
-#'     species_shares = rbind(
-#'         funestus_dominant = c("Anopheles funestus" = 0.9,
-#'                               "Anopheles gambiae ss/coluzzii" = 0.1),
-#'         equal             = c("Anopheles funestus" = 0.5,
-#'                               "Anopheles gambiae ss/coluzzii" = 0.5)))
+#' om_ento_values(om, rbind(
+#'     funestus_dominant = c("Anopheles funestus" = 0.9,
+#'                           "Anopheles gambiae ss/coluzzii" = 0.1),
+#'     equal             = c("Anopheles funestus" = 0.5,
+#'                           "Anopheles gambiae ss/coluzzii" = 0.5)))
 #'
 #' @export
 #'
-om_ento_values = function(om_ento, EIR, species_shares) {
+om_ento_values = function(om_ento, species_shares) {
     sh = om_ento$shares
     if (!is.null(sh$eir_share))
-        stop("om_ento was built with species_shares: its annualEIR are relative ",
-             "contributions, not placeholders (set the total with scaledAnnualEIR)")
-    if (!is.numeric(EIR) || length(EIR) == 0L || any(!is.finite(EIR)) || any(EIR <= 0))
-        stop("EIR must be positive numbers")
+        stop("om_ento was built with species_shares: its contributions are ",
+             "numbers, not placeholders")
     taxa = unique(sh$taxon)
     mixes = if (is.null(dim(species_shares))) {
         if (is.null(names(species_shares)))
@@ -333,13 +340,12 @@ om_ento_values = function(om_ento, EIR, species_shares) {
     has_labels = if (is.data.frame(species_shares)) .row_names_info(species_shares) > 0
                  else !is.null(dim(species_shares)) && !is.null(rownames(species_shares))
 
-    grid = expand.grid(eir = seq_along(EIR), mix = seq_along(comp))
-    out = data.frame(EIR = EIR[grid$eir])
-    if (has_labels) out$composition = labels[grid$mix]
-    for (tx in taxa) out[[tx]] = vapply(comp, `[[`, numeric(1), tx)[grid$mix]
+    out = data.frame(row.names = seq_along(comp))
+    if (has_labels) out$composition = labels
+    for (tx in taxa) out[[tx]] = vapply(comp, `[[`, numeric(1), tx)
     for (j in seq_len(nrow(sh)))
-        out[[om_eir_placeholder(sh$mosquito[j])]] =
-            out$EIR * out[[sh$taxon[j]]] * sh$share[j]
+        out[[om_contrib_placeholder(sh$mosquito[j])]] = out[[sh$taxon[j]]] * sh$share[j]
+    rownames(out) = NULL
     out
 }
 
@@ -808,11 +814,16 @@ om_muvA = function(om_ento, active) {
 #'
 #' @description Writes the definition of a vector control intervention (ITN or
 #' IRS) into an openMalariaUtilities \code{baseList} (OpenMalaria schema 44),
-#' for both model structures: the generic vector intervention (GVI) of
-#' \code{\link{add_OM_GVI}} (deterrency, pre-prandial killing in the standard
-#' model, post-prandial killing) and, for dummy-host interventions, the
-#' host-seeking killing. Deploy it with \code{\link{deploy_OM_vector_control}}
-#' and the same \code{name} and \code{schedule}.
+#' for both model structures: the components of the generic vector
+#' intervention (GVI) of \code{\link{add_OM_GVI}} (deterrency, pre-prandial
+#' killing in the standard model, post-prandial killing). Deploy it with
+#' \code{\link{deploy_OM_vector_control}} and the same \code{name}.
+#'
+#' For dummy-host interventions, the host-seeking killing depends on the
+#' campaigns (dates and coverages), so it is written by
+#' \code{deploy_OM_vector_control()}; \code{define_OM_vector_control()} keeps
+#' what it needs in \code{baseList$anophelesmodel2} (not written to the XML)
+#' and says so in a message.
 #'
 #' \strong{Host-seeking killing.} OpenMalaria's GVI has no host-seeking
 #' killing. In this package it is a dummy host whose availability \eqn{d(t)},
@@ -829,13 +840,16 @@ om_muvA = function(om_ento, active) {
 #' \strong{steps}: one vector population intervention
 #' \code{<name>_hsk_<k>} per campaign, deployed at its date with a
 #' \code{step} decay lasting until the next campaign (or \code{end_date}), of
-#' value the average of \eqn{d(t) / muvA} over that period. The message gives
-#' the average vectorial capacity reduction from host-seeking killing alone
-#' with the exact curve and with the steps (at the numeric coverages, or 0.8
-#' for placeholders). Host-seeking killing acts on the same populations as the
-#' GVI (in bed for ITNs).
+#' value the average of \eqn{d(t) / muvA} over that period. The message of
+#' \code{deploy_OM_vector_control()} gives the average vectorial capacity
+#' reduction from host-seeking killing alone with the exact curve and with the
+#' steps (at the numeric coverages, or 0.8 for placeholders). Host-seeking
+#' killing acts on the same populations as the GVI (in bed for ITNs). The
+#' interventions must last (\code{duration_years}) from the first campaign to
+#' \code{end_date}.
 #'
-#' \strong{Placeholders.} Coverages in \code{schedule} can be placeholders
+#' \strong{Placeholders.} Coverages in the schedule of
+#' \code{deploy_OM_vector_control()} can be placeholders
 #' (\code{"@cov2021@"}); the step values then depend on them and are written
 #' as placeholders \code{"@<name>_hsk_<k>_pop<j>@"} (campaign \eqn{k},
 #' mosquito population \eqn{j}: row of \code{om_ento$shares}, printed by the
@@ -856,13 +870,6 @@ om_muvA = function(om_ento, active) {
 #' @param interv Intervention object from \code{\link{build_intervention}}, or
 #'   a named list of them (template).
 #' @param om_ento Output of \code{\link{get_OM_ento_snippet}}.
-#' @param schedule Data frame with one row per campaign: \code{date}
-#'   (\code{"YYYY-MM-DD"}, increasing) and \code{coverage} (numbers in [0, 1]
-#'   or placeholders such as \code{"@cov2021@"}).
-#' @param end_date End of the simulated period (\code{"YYYY-MM-DD"}), the end of
-#'   the last host-seeking killing step. The duration of the interventions
-#'   (\code{duration_years}) must cover the period from the first campaign to
-#'   \code{end_date}.
 #' @param intervention_type \code{"ITN"} (acts in bed) or \code{"IRS"} (acts on
 #'   indoor resting mosquitoes).
 #' @param name Name of the intervention, used for component ids and
@@ -889,9 +896,9 @@ om_muvA = function(om_ento, active) {
 #'                                activity = def_activity_patterns())
 #' schedule = data.frame(date = c("2021-01-01", "2024-01-01", "2027-01-01"),
 #'                       coverage = c("@cov2021@", "@cov2024@", "@cov2027@"))
-#' baseList = define_OM_vector_control(baseList, nets, om_ento, schedule,
-#'                                     end_date = "2030-01-01", name = "ITN")
-#' baseList = deploy_OM_vector_control(baseList, "ITN", schedule)
+#' baseList = define_OM_vector_control(baseList, nets, om_ento, name = "ITN")
+#' baseList = deploy_OM_vector_control(baseList, "ITN", schedule,
+#'                                     end_date = "2030-01-01")
 #' values = om_vector_control_values(nets, om_ento, schedule, "2030-01-01",
 #'     coverages = expand.grid(cov2021 = c(0.5, 0.8), cov2024 = 0.6,
 #'                             cov2027 = 0.6), name = "ITN")
@@ -899,43 +906,44 @@ om_muvA = function(om_ento, active) {
 #'
 #' @export
 #'
-define_OM_vector_control = function(baseList, interv, om_ento, schedule, end_date,
+define_OM_vector_control = function(baseList, interv, om_ento,
                                     intervention_type = c("ITN", "IRS"),
                                     name = NULL) {
     intervention_type = match.arg(intervention_type)
-    b = om_vc_build(interv, om_ento, schedule, end_date, intervention_type, name)
+    b = om_vc_components(interv, om_ento, intervention_type, name)
+    ids = vapply(b$components, `[[`, character(1), "id")
+    human = baseList$interventions$human
+    if (any(ids %in% vapply(human[names(human) == "component"],
+                            function(cm) as.character(cm$id), character(1))))
+        stop("baseList already has components of '", b$name, "'")
 
-    if (length(b$steps)) {
-        vp = baseList$interventions$vectorPop
-        existing = vapply(vp[names(vp) == "intervention"],
-                          function(v) as.character(v$name), character(1))
-        if (any(vapply(b$steps, `[[`, character(1), "name") %in% existing))
-            stop("baseList already has host-seeking killing steps named ",
-                 b$name, "_hsk_*")
-    }
     baseList = om_add_components(baseList, b$components)
-    if (length(b$steps))
-        baseList$interventions$vectorPop = c(baseList$interventions$vectorPop, b$steps)
-    om_vc_messages(b, "define_OM_vector_control")
+    # Dummy host: what the host-seeking killing steps need, for
+    # deploy_OM_vector_control(), which writes the steps. Kept in a top-level
+    # entry of baseList that openMalariaUtilities does not write to the XML
+    # (its writer only writes the scenario sections it knows).
+    if (!is.null(b$hsk)) {
+        baseList$anophelesmodel2$hsk[[b$name]] = b$hsk
+        message("define_OM_vector_control: the host-seeking killing of '", b$name,
+                "' will be added by deploy_OM_vector_control(), which needs the ",
+                "whole campaign schedule and end_date.")
+    }
     baseList
 }
 
 
-# Internal: everything define_OM_vector_control() writes, as lists in the XML
-# structure of openMalariaUtilities (no baseList, no openMalariaUtilities
-# needed): <component> lists, host-seeking killing steps (vectorPop
-# <intervention> lists, dummy host only) and what the messages report.
-# Shared by define_OM_vector_control() and get_OM_xml().
-om_vc_build = function(interv, om_ento, schedule, end_date, intervention_type,
-                       name) {
+# Internal: the <component> lists of an intervention (XML structure of
+# openMalariaUtilities, no baseList needed) and, for dummy-host
+# interventions, what the host-seeking killing steps need (hsk, for
+# om_hsk_steps()). Shared by define_OM_vector_control() and get_OM_xml().
+om_vc_components = function(interv, om_ento, intervention_type, name) {
     x    = om_nets(interv)
-    sch  = om_schedule(schedule, end_date)
     name = om_name(x, name, intervention_type)
     pn   = om_ph_name(name)
     mode = x$nets[[1]]$settings$mode
     mosq   = om_ento$shares$mosquito
     active = om_active(om_ento, intervention_type)
-    out = list(name = name, sch = sch, mode = mode, steps = list())
+    out = list(name = name, mode = mode)
 
     # GVI: values, or placeholders for a list of interventions
     if (x$template) {
@@ -959,45 +967,56 @@ om_vc_build = function(interv, om_ento, schedule, end_date, intervention_type,
     }
     if (mode != "dummy_host") return(out)
 
-    # Host-seeking killing: one seekingDeathRateIncrease step per campaign
-    muvA = om_muvA(om_ento, active)
-    facs = lapply(x$nets, om_hsk_factors, sch = sch)
-    numeric_values = !x$template && !any(sch$placeholder)
+    # Host-seeking killing: computed from the schedule by om_hsk_steps()
+    p1 = which(active)[1]
+    out$hsk = list(
+        name = name, pn = pn, nets = x$nets, template = x$template,
+        labels = if (x$template) paste0(names(interv), ": ") else "",
+        mosq = mosq, active = active, muvA = om_muvA(om_ento, active),
+        check_model = if (!is.na(p1)) om_ento$model_params[[mosq[p1]]])
+    out
+}
+
+# Internal: host-seeking killing of a dummy-host intervention (hsk from
+# om_vc_components()) for a schedule: one seekingDeathRateIncrease step per
+# campaign (vectorPop <intervention> lists, with their deployment dates), and
+# what the messages report. Shared by deploy_OM_vector_control() and
+# get_OM_xml().
+om_hsk_steps = function(hsk, sch) {
+    mosq = hsk$mosq; active = hsk$active
+    facs = lapply(hsk$nets, om_hsk_factors, sch = sch)
+    numeric_values = !hsk$template && !any(sch$placeholder)
     if (numeric_values) d_step = as.vector(facs[[1]]$B %*% sch$num)
-    K = length(sch$dates)
-    for (k in seq_len(K)) {
+    out = list(name = hsk$name, steps = list())
+    for (k in seq_along(sch$dates)) {
         anoph = lapply(seq_along(mosq), function(j) list(
             mosquito = mosq[j],
             seekingDeathRateIncrease = list(
                 initial = if (!active[j]) "0"
-                          else if (numeric_values) om_num(d_step[k] / muvA[j])
-                          else paste0("@", pn, "_hsk_", k, "_pop", j, "@"),
+                          else if (numeric_values) om_num(d_step[k] / hsk$muvA[j])
+                          else paste0("@", hsk$pn, "_hsk_", k, "_pop", j, "@"),
                 decay = list("function" = "step", L = om_num(facs[[1]]$L_years[k])))))
         names(anoph) = rep("anopheles", length(anoph))
-        step = list(name = paste0(name, "_hsk_", k), description = anoph,
-                    timed = list(deploy = list(time = format(sch$dates[k]))))
-        # Schedule the values were computed for, checked by
-        # deploy_OM_vector_control() (an R attribute, not written to the XML)
-        attr(step, "om_schedule") = list(dates = sch$dates, coverage = sch$coverage)
-        out$steps = c(out$steps, list(intervention = step))
+        out$steps = c(out$steps, list(intervention = list(
+            name = paste0(hsk$name, "_hsk_", k), description = anoph,
+            timed = list(deploy = list(time = format(sch$dates[k]))))))
     }
 
     # Approximation check: VC reduction from host-seeking killing alone
-    if (any(active)) {
-        p1  = which(active)[1]
+    if (!is.null(hsk$check_model)) {
         cov = ifelse(sch$placeholder, 0.8, sch$num)
-        mp  = om_ento$model_params[[mosq[p1]]]
         out$check = list(
-            mosquito = mosq[p1], coverage = cov,
-            impact   = vapply(facs, om_hsk_check, numeric(2), cov = cov, model_p = mp),
-            labels   = if (x$template) paste0(names(interv), ": ") else "")
+            mosquito = mosq[which(active)[1]], coverage = cov,
+            impact   = vapply(facs, om_hsk_check, numeric(2), cov = cov,
+                              model_p = hsk$check_model),
+            labels   = hsk$labels)
     }
     if (!numeric_values)
         out$placeholders = paste0("pop", which(active), " = ", mosq[active])
     out
 }
 
-# Internal: messages of define_OM_vector_control() / get_OM_xml() about the
+# Internal: messages of deploy_OM_vector_control() / get_OM_xml() about the
 # host-seeking killing steps
 om_vc_messages = function(b, caller) {
     if (!length(b$steps)) return(invisible())
@@ -1026,19 +1045,29 @@ om_vc_messages = function(b, caller) {
 #' \code{\link{define_OM_vector_control}}: \strong{one} OpenMalaria
 #' \code{<deployment>} containing all its GVI components (one per effect, or
 #' one merged component), so that all effects reach the same people, with one
-#' \code{<deploy>} per campaign of \code{schedule}. The host-seeking killing
-#' steps of dummy-host interventions are deployed by
-#' \code{define_OM_vector_control()} (their values depend on the dates and
-#' coverages); this function checks that \code{schedule} has the same dates
-#' and coverages, and rejects \code{subpop}, \code{cumulative}, \code{minAge}
-#' and \code{maxAge} for them (not accounted for in the steps).
+#' \code{<deploy>} per campaign of \code{schedule}.
+#'
+#' For dummy-host interventions, it also writes the host-seeking killing:
+#' one \code{seekingDeathRateIncrease} step per campaign, whose values depend
+#' on the dates and coverages of all campaigns (nets of earlier campaigns
+#' still in use are included; see \code{\link{define_OM_vector_control}}).
+#' Such an intervention must therefore be deployed \strong{once}, with the
+#' whole schedule, and \code{end_date} is required; \code{subpop},
+#' \code{cumulative}, \code{minAge} and \code{maxAge} are rejected (not
+#' accounted for in the steps). The message compares the vectorial capacity
+#' reduction of the steps with that of the exact curve.
 #'
 #' @param baseList openMalariaUtilities \code{baseList}, after
 #'   \code{define_OM_vector_control()}.
 #' @param name Name of the intervention given to (or printed by)
 #'   \code{define_OM_vector_control()}.
-#' @param schedule Data frame with \code{date} and \code{coverage}, as in
-#'   \code{define_OM_vector_control()}.
+#' @param schedule Data frame with one row per campaign: \code{date}
+#'   (\code{"YYYY-MM-DD"}, increasing) and \code{coverage} (numbers in [0, 1]
+#'   or placeholders such as \code{"@cov2021@"}).
+#' @param end_date End of the simulated period (\code{"YYYY-MM-DD"}), the end of
+#'   the last host-seeking killing step; required for dummy-host
+#'   interventions, whose duration (\code{duration_years}) must cover the
+#'   period from the first campaign to \code{end_date}.
 #' @param subpop Optional sub-population id suffix: the deployment is
 #'   restricted to the sub-population \code{"<name>-<subpop>"}
 #'   (\code{restrictToSubPop}). This and the next arguments: standard model
@@ -1055,12 +1084,11 @@ om_vc_messages = function(b, caller) {
 #'
 #' @export
 #'
-deploy_OM_vector_control = function(baseList, name, schedule, subpop = NULL,
-                                    cumulative = FALSE, minAge = NULL,
-                                    maxAge = NULL) {
+deploy_OM_vector_control = function(baseList, name, schedule, end_date = NULL,
+                                    subpop = NULL, cumulative = FALSE,
+                                    minAge = NULL, maxAge = NULL) {
     if (!is.character(name) || length(name) != 1L || is.na(name))
         stop("name must be a single string")
-    sch = om_schedule(schedule)
 
     human = baseList$interventions$human
     ids = vapply(human[names(human) == "component"],
@@ -1070,33 +1098,34 @@ deploy_OM_vector_control = function(baseList, name, schedule, subpop = NULL,
         stop("No component '", name, "' or '", name, "-<effect>' in baseList: ",
              "call define_OM_vector_control() first")
 
-    # Host-seeking killing steps (dummy host): their values were computed by
-    # define_OM_vector_control() for its schedule and the whole population, so
-    # the deployment must have the same dates and coverages, unrestricted
-    vp = baseList$interventions$vectorPop
-    vp = vp[names(vp) == "intervention"]
-    step_names = vapply(vp, function(v) as.character(v$name), character(1))
-    prefix = paste0(name, "_hsk_")
-    is_step = startsWith(step_names, prefix) &
-        grepl("^[0-9]+$", substring(step_names, nchar(prefix) + 1L))
-    if (any(is_step)) {
+    # Dummy host: the host-seeking killing steps are computed here, from the
+    # information kept by define_OM_vector_control() and the whole schedule
+    hsk = baseList$anophelesmodel2$hsk[[name]]
+    if (!is.null(hsk)) {
         om_check_hsk_deploy(subpop, cumulative, minAge, maxAge)
-        defined = attr(vp[is_step][[1]], "om_schedule")
-        if (is.null(defined))
-            stop("Cannot check the schedule of the host-seeking killing steps ",
-                 name, "_hsk_*: call define_OM_vector_control() again")
-        if (length(defined$dates) != length(sch$dates) ||
-            any(defined$dates != sch$dates) || any(defined$coverage != sch$coverage))
-            stop("schedule differs from the one of define_OM_vector_control(), ",
-                 "used for the host-seeking killing (dates ",
-                 paste(format(defined$dates), collapse = ", "), "; coverages ",
-                 paste(defined$coverage, collapse = ", "), ")")
+        if (is.null(end_date))
+            stop("end_date is needed to deploy the dummy-host intervention '", name,
+                 "': it ends the last host-seeking killing step")
+        sch = om_schedule(schedule, end_date)
+        vp = baseList$interventions$vectorPop
+        existing = vapply(vp[names(vp) == "intervention"],
+                          function(v) as.character(v$name), character(1))
+        if (any(startsWith(existing, paste0(name, "_hsk_"))))
+            stop("'", name, "' is already deployed: deploy a dummy-host ",
+                 "intervention once, with the whole campaign schedule (its ",
+                 "host-seeking killing includes the nets of earlier campaigns)")
+        h = om_hsk_steps(hsk, sch)
+    } else {
+        sch = om_schedule(schedule, end_date)
     }
 
     baseList$interventions$human = c(human, list(deployment = om_deployment(
         name, ids, sch, subpop, cumulative, minAge, maxAge)))
+    if (!is.null(hsk))
+        baseList$interventions$vectorPop = c(baseList$interventions$vectorPop, h$steps)
     message("deploy_OM_vector_control: deployment '", name, "' with components ",
             paste(ids, collapse = ", "), " at ", paste(format(sch$dates), collapse = ", "))
+    if (!is.null(hsk)) om_vc_messages(h, "deploy_OM_vector_control")
     baseList
 }
 
@@ -1141,6 +1170,7 @@ om_deployment = function(name, ids, sch, subpop = NULL, cumulative = FALSE,
 #' table: one row per intervention (for a named list) and coverage scenario.
 #'
 #' @inheritParams define_OM_vector_control
+#' @inheritParams deploy_OM_vector_control
 #' @param coverages Data frame with one column per coverage placeholder of
 #'   \code{schedule}, named without the \code{@} (e.g. \code{cov2021}), and one
 #'   row per coverage scenario. Not needed when all coverages are numeric.
@@ -1235,9 +1265,11 @@ om_vector_control_values = function(interv, om_ento, schedule, end_date,
 #'     \code{<entomology>} (replacing its \code{<vector>}). Same structure as
 #'     \code{openMalariaUtilities::defineEntomology()}, but with the animal
 #'     host parameters of \code{om_ento} (\code{defineEntomology()} writes
-#'     fixed values); the \code{annualEIR} and seasonality placeholders of
-#'     \code{om_ento$seasonalityParameters} are kept (replace them there, or
-#'     in the text, with 12 monthly or 365 daily values);
+#'     fixed values); the placeholders of \code{om_ento$seasonalityParameters}
+#'     are kept (contributions \code{"@contrib_<population>@"} and monthly
+#'     \code{"@m1@"}, ..., \code{"@m12@"}). The \code{annualEIR} values are
+#'     relative contributions: add \code{scaledAnnualEIR} (the total EIR) to
+#'     \code{<entomology>};
 #'   \item \code{define}: the \code{<component>} elements of the intervention,
 #'     to paste inside \code{<interventions><human>};
 #'   \item \code{deploy}: its \code{<deployment>} (all components, so that all
@@ -1262,8 +1294,9 @@ om_vector_control_values = function(interv, om_ento, schedule, end_date,
 #'   a named list of them (template, see
 #'   \code{\link{define_OM_vector_control}}). \code{NULL} (default): entomology
 #'   only.
-#' @param schedule,end_date As in \code{\link{define_OM_vector_control}};
-#'   needed with \code{interv}.
+#' @param schedule,end_date As in \code{\link{deploy_OM_vector_control}}:
+#'   \code{schedule} is needed with \code{interv}, \code{end_date} for
+#'   dummy-host interventions.
 #' @param entomology Logical (default \code{TRUE}): include the entomology
 #'   snippet.
 #'
@@ -1304,22 +1337,30 @@ get_OM_xml = function(om_ento, interv = NULL, schedule = NULL, end_date = NULL,
                                 to_text("vector", list(om_vector_list(om_ento))),
                define = NULL, deploy = NULL, hsk = NULL)
     # annualEIR are relative contributions: the total goes to scaledAnnualEIR
-    relative_eir = isTRUE(entomology) && !is.null(om_ento$shares$eir_share)
+    relative_eir = isTRUE(entomology)
     if (is.null(interv)) {
         if (!isTRUE(entomology)) stop("Nothing to write: give interv or entomology = TRUE")
         return(structure(out, class = "om_xml", relative_eir = relative_eir))
     }
-    if (is.null(schedule) || is.null(end_date))
-        stop("schedule and end_date are needed with interv")
+    if (is.null(schedule)) stop("schedule is needed with interv")
 
-    b = om_vc_build(interv, om_ento, schedule, end_date, intervention_type, name)
-    if (length(b$steps)) om_check_hsk_deploy(subpop, cumulative, minAge, maxAge)
+    b = om_vc_components(interv, om_ento, intervention_type, name)
+    if (!is.null(b$hsk)) {
+        om_check_hsk_deploy(subpop, cumulative, minAge, maxAge)
+        if (is.null(end_date))
+            stop("end_date is needed for dummy-host interventions: it ends the ",
+                 "last host-seeking killing step")
+    }
+    sch = om_schedule(schedule, end_date)
     ids = vapply(b$components, `[[`, character(1), "id")
     out$define = to_text("component", b$components)
     out$deploy = to_text("deployment", list(om_deployment(
-        b$name, ids, b$sch, subpop, cumulative, minAge, maxAge)))
-    if (length(b$steps)) out$hsk = to_text("intervention", b$steps)
-    om_vc_messages(b, "get_OM_xml")
+        b$name, ids, sch, subpop, cumulative, minAge, maxAge)))
+    if (!is.null(b$hsk)) {
+        h = om_hsk_steps(b$hsk, sch)
+        out$hsk = to_text("intervention", h$steps)
+        om_vc_messages(h, "get_OM_xml")
+    }
     structure(out, class = "om_xml", relative_eir = relative_eir)
 }
 

@@ -2,15 +2,14 @@
 % Please edit documentation in R/xml_export.R
 \name{om_ento_values}
 \alias{om_ento_values}
-\title{Values of the annualEIR placeholders of an OpenMalaria entomology}
+\title{Values of the species contribution placeholders of an OpenMalaria
+  entomology}
 \usage{
-om_ento_values(om_ento, EIR, species_shares)
+om_ento_values(om_ento, species_shares)
 }
 \arguments{
 \item{om_ento}{Output of \code{get_OM_ento_snippet()} without
 \code{species_shares}.}
-
-\item{EIR}{Numeric vector of total annual EIRs.}
 
 \item{species_shares}{Species composition(s): a named vector (one
 composition) or a data frame / matrix with one row per composition and
@@ -19,27 +18,27 @@ sum to 1 (see \code{\link{eir_shares}}). Row names, if any, are kept in a
 \code{composition} column.}
 }
 \value{
-Data frame with \code{EIR}, \code{composition} (with row names),
-the species shares (one column per taxon) and one column per placeholder,
-named without the \code{@} (\code{EIR_<population>}).
+Data frame with \code{composition} (with row names), the species
+shares (one column per taxon) and one column per placeholder, named without
+the \code{@} (\code{contrib_<population>}).
 }
 \description{
-Fills the \code{annualEIR} placeholders of
-\code{\link{get_OM_ento_snippet}} (one per mosquito population, when
-\code{species_shares} was not given there) from a total EIR and the share
-of each species: EIR of a population = \code{EIR} \eqn{\times} species
-share \eqn{\times} share within the species (\code{om_ento$shares$share}).
-One row per combination of total EIR and species composition, to merge
-into an OpenMalaria scenario table.
+Fills the \code{annualEIR} placeholders
+\code{@contrib_<population>@} of \code{\link{get_OM_ento_snippet}} (used
+when \code{species_shares} is not given there): the relative contribution of
+each mosquito population to the EIR, i.e. the share of its species
+\eqn{\times} its share within the species (\code{om_ento$shares$share}),
+summing to 1 over all populations. One row per species composition, to
+merge into an OpenMalaria scenario table; the total EIR is set separately,
+with the \code{scaledAnnualEIR} attribute of \code{<entomology>}.
 }
 \examples{
 om = get_OM_ento_snippet(c("Anopheles funestus", "Anopheles gambiae ss/coluzzii"),
                          activity = def_activity_patterns())
-om_ento_values(om, EIR = c(10, 50),
-    species_shares = rbind(
-        funestus_dominant = c("Anopheles funestus" = 0.9,
-                              "Anopheles gambiae ss/coluzzii" = 0.1),
-        equal             = c("Anopheles funestus" = 0.5,
-                              "Anopheles gambiae ss/coluzzii" = 0.5)))
+om_ento_values(om, rbind(
+    funestus_dominant = c("Anopheles funestus" = 0.9,
+                          "Anopheles gambiae ss/coluzzii" = 0.1),
+    equal             = c("Anopheles funestus" = 0.5,
+                          "Anopheles gambiae ss/coluzzii" = 0.5)))
 
 }

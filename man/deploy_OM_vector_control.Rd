@@ -8,6 +8,7 @@ deploy_OM_vector_control(
   baseList,
   name,
   schedule,
+  end_date = NULL,
   subpop = NULL,
   cumulative = FALSE,
   minAge = NULL,
@@ -21,8 +22,14 @@ deploy_OM_vector_control(
 \item{name}{Name of the intervention given to (or printed by)
 \code{define_OM_vector_control()}.}
 
-\item{schedule}{Data frame with \code{date} and \code{coverage}, as in
-\code{define_OM_vector_control()}.}
+\item{schedule}{Data frame with one row per campaign: \code{date}
+(\code{"YYYY-MM-DD"}, increasing) and \code{coverage} (numbers in [0, 1]
+or placeholders such as \code{"@cov2021@"}).}
+
+\item{end_date}{End of the simulated period (\code{"YYYY-MM-DD"}), the end of
+the last host-seeking killing step; required for dummy-host
+interventions, whose duration (\code{duration_years}) must cover the
+period from the first campaign to \code{end_date}.}
 
 \item{subpop}{Optional sub-population id suffix: the deployment is
 restricted to the sub-population \code{"<name>-<subpop>"}
@@ -44,12 +51,17 @@ Writes the deployment of an intervention defined with
 \code{\link{define_OM_vector_control}}: \strong{one} OpenMalaria
 \code{<deployment>} containing all its GVI components (one per effect, or
 one merged component), so that all effects reach the same people, with one
-\code{<deploy>} per campaign of \code{schedule}. The host-seeking killing
-steps of dummy-host interventions are deployed by
-\code{define_OM_vector_control()} (their values depend on the dates and
-coverages); this function checks that \code{schedule} has the same dates
-and coverages, and rejects \code{subpop}, \code{cumulative}, \code{minAge}
-and \code{maxAge} for them (not accounted for in the steps).
+\code{<deploy>} per campaign of \code{schedule}.
+
+For dummy-host interventions, it also writes the host-seeking killing:
+one \code{seekingDeathRateIncrease} step per campaign, whose values depend
+on the dates and coverages of all campaigns (nets of earlier campaigns
+still in use are included; see \code{\link{define_OM_vector_control}}).
+Such an intervention must therefore be deployed \strong{once}, with the
+whole schedule, and \code{end_date} is required; \code{subpop},
+\code{cumulative}, \code{minAge} and \code{maxAge} are rejected (not
+accounted for in the steps). The message compares the vectorial capacity
+reduction of the steps with that of the exact curve.
 }
 \seealso{
 \code{\link{define_OM_vector_control}}

@@ -8,8 +8,6 @@ define_OM_vector_control(
   baseList,
   interv,
   om_ento,
-  schedule,
-  end_date,
   intervention_type = c("ITN", "IRS"),
   name = NULL
 )
@@ -22,15 +20,6 @@ define_OM_vector_control(
 a named list of them (template).}
 
 \item{om_ento}{Output of \code{\link{get_OM_ento_snippet}}.}
-
-\item{schedule}{Data frame with one row per campaign: \code{date}
-(\code{"YYYY-MM-DD"}, increasing) and \code{coverage} (numbers in [0, 1]
-or placeholders such as \code{"@cov2021@"}).}
-
-\item{end_date}{End of the simulated period (\code{"YYYY-MM-DD"}), the end of
-the last host-seeking killing step. The duration of the interventions
-(\code{duration_years}) must cover the period from the first campaign to
-\code{end_date}.}
 
 \item{intervention_type}{\code{"ITN"} (acts in bed) or \code{"IRS"} (acts on
 indoor resting mosquitoes).}
@@ -45,11 +34,16 @@ The updated \code{baseList}.
 \description{
 Writes the definition of a vector control intervention (ITN or
 IRS) into an openMalariaUtilities \code{baseList} (OpenMalaria schema 44),
-for both model structures: the generic vector intervention (GVI) of
-\code{\link{add_OM_GVI}} (deterrency, pre-prandial killing in the standard
-model, post-prandial killing) and, for dummy-host interventions, the
-host-seeking killing. Deploy it with \code{\link{deploy_OM_vector_control}}
-and the same \code{name} and \code{schedule}.
+for both model structures: the components of the generic vector
+intervention (GVI) of \code{\link{add_OM_GVI}} (deterrency, pre-prandial
+killing in the standard model, post-prandial killing). Deploy it with
+\code{\link{deploy_OM_vector_control}} and the same \code{name}.
+
+For dummy-host interventions, the host-seeking killing depends on the
+campaigns (dates and coverages), so it is written by
+\code{deploy_OM_vector_control()}; \code{define_OM_vector_control()} keeps
+what it needs in \code{baseList$anophelesmodel2} (not written to the XML)
+and says so in a message.
 
 \strong{Host-seeking killing.} OpenMalaria's GVI has no host-seeking
 killing. In this package it is a dummy host whose availability \eqn{d(t)},
@@ -66,13 +60,16 @@ and a redeployment of an instance replaces it, \eqn{d(t)} is written as
 \strong{steps}: one vector population intervention
 \code{<name>_hsk_<k>} per campaign, deployed at its date with a
 \code{step} decay lasting until the next campaign (or \code{end_date}), of
-value the average of \eqn{d(t) / muvA} over that period. The message gives
-the average vectorial capacity reduction from host-seeking killing alone
-with the exact curve and with the steps (at the numeric coverages, or 0.8
-for placeholders). Host-seeking killing acts on the same populations as the
-GVI (in bed for ITNs).
+value the average of \eqn{d(t) / muvA} over that period. The message of
+\code{deploy_OM_vector_control()} gives the average vectorial capacity
+reduction from host-seeking killing alone with the exact curve and with the
+steps (at the numeric coverages, or 0.8 for placeholders). Host-seeking
+killing acts on the same populations as the GVI (in bed for ITNs). The
+interventions must last (\code{duration_years}) from the first campaign to
+\code{end_date}.
 
-\strong{Placeholders.} Coverages in \code{schedule} can be placeholders
+\strong{Placeholders.} Coverages in the schedule of
+\code{deploy_OM_vector_control()} can be placeholders
 (\code{"@cov2021@"}); the step values then depend on them and are written
 as placeholders \code{"@<name>_hsk_<k>_pop<j>@"} (campaign \eqn{k},
 mosquito population \eqn{j}: row of \code{om_ento$shares}, printed by the
@@ -103,9 +100,9 @@ om_ento  = get_OM_ento_snippet("Anopheles gambiae ss/coluzzii",
                                activity = def_activity_patterns())
 schedule = data.frame(date = c("2021-01-01", "2024-01-01", "2027-01-01"),
                       coverage = c("@cov2021@", "@cov2024@", "@cov2027@"))
-baseList = define_OM_vector_control(baseList, nets, om_ento, schedule,
-                                    end_date = "2030-01-01", name = "ITN")
-baseList = deploy_OM_vector_control(baseList, "ITN", schedule)
+baseList = define_OM_vector_control(baseList, nets, om_ento, name = "ITN")
+baseList = deploy_OM_vector_control(baseList, "ITN", schedule,
+                                    end_date = "2030-01-01")
 values = om_vector_control_values(nets, om_ento, schedule, "2030-01-01",
     coverages = expand.grid(cov2021 = c(0.5, 0.8), cov2024 = 0.6,
                             cov2027 = 0.6), name = "ITN")

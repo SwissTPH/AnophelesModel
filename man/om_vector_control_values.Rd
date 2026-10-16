@@ -25,9 +25,9 @@ a named list of them (template).}
 or placeholders such as \code{"@cov2021@"}).}
 
 \item{end_date}{End of the simulated period (\code{"YYYY-MM-DD"}), the end of
-the last host-seeking killing step. The duration of the interventions
-(\code{duration_years}) must cover the period from the first campaign to
-\code{end_date}.}
+the last host-seeking killing step; required for dummy-host
+interventions, whose duration (\code{duration_years}) must cover the
+period from the first campaign to \code{end_date}.}
 
 \item{coverages}{Data frame with one column per coverage placeholder of
 \code{schedule}, named without the \code{@} (e.g. \code{cov2021}), and one

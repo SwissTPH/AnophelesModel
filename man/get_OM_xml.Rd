@@ -29,8 +29,9 @@ a named list of them (template, see
 \code{\link{define_OM_vector_control}}). \code{NULL} (default): entomology
 only.}
 
-\item{schedule, end_date}{As in \code{\link{define_OM_vector_control}};
-needed with \code{interv}.}
+\item{schedule, end_date}{As in \code{\link{deploy_OM_vector_control}}:
+\code{schedule} is needed with \code{interv}, \code{end_date} for
+dummy-host interventions.}
 
 \item{intervention_type}{\code{"ITN"} (acts in bed) or \code{"IRS"} (acts on
 indoor resting mosquitoes).}
@@ -77,9 +78,11 @@ those that \code{\link{define_OM_vector_control}} and
     \code{<entomology>} (replacing its \code{<vector>}). Same structure as
     \code{openMalariaUtilities::defineEntomology()}, but with the animal
     host parameters of \code{om_ento} (\code{defineEntomology()} writes
-    fixed values); the \code{annualEIR} and seasonality placeholders of
-    \code{om_ento$seasonalityParameters} are kept (replace them there, or
-    in the text, with 12 monthly or 365 daily values);
+    fixed values); the placeholders of \code{om_ento$seasonalityParameters}
+    are kept (contributions \code{"@contrib_<population>@"} and monthly
+    \code{"@m1@"}, ..., \code{"@m12@"}). The \code{annualEIR} values are
+    relative contributions: add \code{scaledAnnualEIR} (the total EIR) to
+    \code{<entomology>};
   \item \code{define}: the \code{<component>} elements of the intervention,
     to paste inside \code{<interventions><human>};
   \item \code{deploy}: its \code{<deployment>} (all components, so that all
