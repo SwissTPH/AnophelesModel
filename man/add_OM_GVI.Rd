@@ -7,8 +7,8 @@
 add_OM_GVI(baseList, gvi, merge = TRUE, append = TRUE)
 }
 \arguments{
-\item{baseList}{openMalariaUtilities \code{baseList}; with
-\code{append = TRUE}, \code{baseList$interventions$human} must exist.}
+\item{baseList}{openMalariaUtilities \code{baseList} (the human
+interventions section is created if needed).}
 
 \item{gvi}{Output of \code{\link{get_OM_GVI_snippet}} (several can be
 combined with \code{c()}).}

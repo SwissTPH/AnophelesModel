@@ -7,12 +7,17 @@
 list_ITN_params()
 }
 \value{
-Data frame with columns \code{net_type}, \code{EHT}, and
-\code{reference} (also printed to console).
+Data frame with columns \code{netType}, \code{EHT} and
+\code{reference} (also printed to console); \code{netType} and \code{EHT}
+are the \code{net_type} and \code{EHT} arguments of
+\code{\link{get_ITN_params}}.
 }
 \description{
 Prints all net type / EHT combinations available in the
 built-in \code{ITN_parameterisations_Champagne2025} dataset.
+
+Every pair has both parameterisations (standard and dummy-host model),
+chosen with \code{mode} in \code{\link{get_ITN_params}}.
 }
 \examples{
 list_ITN_params()

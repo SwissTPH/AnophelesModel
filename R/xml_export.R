@@ -589,8 +589,8 @@ om_gvi_list = function(interv, om_ento, intervention_type, name) {
 #' Requires the openMalariaUtilities package (uses its internal functions
 #' \code{.defineInterventionsHeader()} and \code{.xmlAddList()}).
 #'
-#' @param baseList openMalariaUtilities \code{baseList}; with
-#'   \code{append = TRUE}, \code{baseList$interventions$human} must exist.
+#' @param baseList openMalariaUtilities \code{baseList} (the human
+#'   interventions section is created if needed).
 #' @param gvi Output of \code{\link{get_OM_GVI_snippet}} (several can be
 #'   combined with \code{c()}).
 #' @param merge Logical (default \code{TRUE}): write one component when the
@@ -625,11 +625,9 @@ om_add_components = function(baseList, components, append = TRUE) {
     xml_add = utils::getFromNamespace(".xmlAddList", "openMalariaUtilities")
     header  = utils::getFromNamespace(".defineInterventionsHeader",
                                       "openMalariaUtilities")
-    if (append && is.null(baseList$interventions$human))
-        stop("To append, baseList$interventions$human must exist ",
-             "(or use append = FALSE).")
-
     baseList = header(baseList = baseList)
+    # A new baseList has no human interventions yet: start the section
+    if (is.null(baseList$interventions$human)) baseList$interventions$human = list()
     for (cm in components) {
         baseList = xml_add(data = baseList, sublist = c("interventions", "human"),
                            append = append, entry = "component", input = cm)
@@ -720,7 +718,7 @@ om_gvi_decay = function(interv, comp) {
     if (attrition[["function"]] == "constant") return(ins)
 
     fd = interv$fitted_decay[interv$fitted_decay$component == comp, ]
-    message("get_OM_GVI_snippet: ", comp, " decay = Weibull fitted to attrition x ",
+    message("OpenMalaria export: ", comp, " decay = Weibull fitted to attrition x ",
             "insecticide decay (rmse ", signif(fd$rmse, 3), ")")
     list(L = om_num(fd$L / 365), "function" = "weibull", k = om_num(fd$kappa))
 }
@@ -1066,10 +1064,9 @@ om_baselist_ento = function(baseList) {
 #'
 #' Requires the openMalariaUtilities package (see \code{\link{add_OM_GVI}}).
 #'
-#' @param baseList openMalariaUtilities \code{baseList}, with
-#'   \code{baseList$interventions$human} and the entomology written by
-#'   \code{\link{define_OM_entomology}} (whose mosquito populations and
-#'   parameters are used).
+#' @param baseList openMalariaUtilities \code{baseList}, with the entomology
+#'   written by \code{\link{define_OM_entomology}} (whose mosquito populations
+#'   and parameters are used).
 #' @param interv Intervention from \code{\link{om_vector_control}} (or an
 #'   object from \code{\link{build_intervention}}), or a named list of them
 #'   (template).

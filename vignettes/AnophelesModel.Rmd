@@ -679,7 +679,7 @@ and parameters. The seasonality must currently be numeric (with R >= 4.3,
 openMalariaUtilities rejects the monthly placeholders); `get_OM_xml()` keeps
 them as placeholders.
 ```{r, eval=FALSE}
-# baseList: an openMalariaUtilities scenario, with baseList$interventions$human
+# baseList: an openMalariaUtilities scenario
 baseList = define_OM_entomology(baseList, om_ento,
                                 seasonality = c(2, 3, 5, 8, 6, 3, 1, 1, 1, 1, 1, 2),
                                 scaledAnnualEIR = "@EIR@")

@@ -323,11 +323,14 @@ test_that("add_OM_GVI writes one component when the decays are identical", {
     expect_equal(n_components(merged), 1 + 3)        # same decays -> 1, different -> 3
     unmerged = suppressMessages(add_OM_GVI(base, gvi, merge = FALSE))
     expect_equal(n_components(unmerged), 3 + 3)
-    expect_error(add_OM_GVI(list(interventions = list()), gvi), "must exist")
+    # A new baseList, without human interventions yet
+    fresh = suppressMessages(add_OM_GVI(list(interventions = list()), gvi))
+    expect_equal(n_components(fresh), 1 + 3)
 })
 
+# Like a new openMalariaUtilities baseList: no human interventions yet
 om_base = function() list(expName = "test", OMVersion = 44L, demography = list(),
-                          monitoring = list(), interventions = list(human = list()),
+                          monitoring = list(), interventions = list(),
                           healthSystem = list(), entomology = list(), model = list())
 by_name = function(l, nm) l[names(l) == nm]
 # baseList with the entomology of `om` (define_OM_vector_control() uses it)

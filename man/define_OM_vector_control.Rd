@@ -12,10 +12,9 @@ define_OM_vector_control(
 )
 }
 \arguments{
-\item{baseList}{openMalariaUtilities \code{baseList}, with
-\code{baseList$interventions$human} and the entomology written by
-\code{\link{define_OM_entomology}} (whose mosquito populations and
-parameters are used).}
+\item{baseList}{openMalariaUtilities \code{baseList}, with the entomology
+written by \code{\link{define_OM_entomology}} (whose mosquito populations
+and parameters are used).}
 
 \item{interv}{Intervention from \code{\link{om_vector_control}} (or an
 object from \code{\link{build_intervention}}), or a named list of them
