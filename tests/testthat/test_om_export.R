@@ -196,7 +196,7 @@ test_that("dummy-host GVI has no pre-prandial killing", {
         efficacy = c(Deterrency = 0.3, HostSeekingKilling = 0.6, PostPrandial = 0.4),
         halflife_attrition = 365, shape_attrition = 2, duration_years = 1,
         model_p = model_p))
-    expect_message(gvi <- get_OM_GVI_snippet(dh, om, "ITN"), "define_OM_vector_control")
+    expect_message(gvi <- get_OM_GVI_snippet(dh, om, "ITN"), "deploy_OM_vector_control")
     expect_named(gvi[[1]], c("deterrency", "postprandialKillingEffect"))
     expect_equal(gvi[[1]]$postprandialKillingEffect$anophelesParams[[1]]$value, "0.4")
 })
@@ -330,18 +330,21 @@ om_base = function() list(expName = "test", OMVersion = 44L, demography = list()
                           monitoring = list(), interventions = list(human = list()),
                           healthSystem = list(), entomology = list(), model = list())
 by_name = function(l, nm) l[names(l) == nm]
+# baseList with the entomology of `om` (define_OM_vector_control() uses it)
+om_base_ento = function() suppressMessages(define_OM_entomology(om_base(), om, rep(1, 12)))
 
 test_that("define / deploy a dummy-host net with numeric coverages", {
     skip_if_not_installed("openMalariaUtilities")
     net = dh_net(name = "IG2")
-    expect_message(b <- define_OM_vector_control(om_base(), net, om),
+    expect_message(b <- define_OM_vector_control(om_base_ento(), net),
                    "added by deploy_OM_vector_control")
     # GVI without pre-prandial killing, merged (identical decays); no steps yet
     ids = sapply(by_name(b$interventions$human, "component"), `[[`, "id")
     expect_equal(unname(ids), "IG2")
     expect_null(b$interventions$vectorPop)
     expect_false(is.null(b$anophelesmodel2$hsk$IG2))
-    expect_error(suppressMessages(define_OM_vector_control(b, net, om)), "already")
+    expect_error(suppressMessages(define_OM_vector_control(b, net)), "already")
+    expect_error(define_OM_vector_control(om_base(), net), "define_OM_entomology")
 
     # Deploy: restrictions and end_date are checked, then the steps are written
     for (args in list(list(subpop = "x"), list(cumulative = TRUE), list(minAge = 5),
@@ -374,7 +377,7 @@ test_that("define / deploy a dummy-host net with numeric coverages", {
     expect_error(deploy_OM_vector_control(b, "IG2", sched_num, end_date), "already deployed")
     expect_error(deploy_OM_vector_control(b, "other", sched_num), "define_OM_vector_control")
     # Duration too short for the schedule: checked at deploy
-    b2 = suppressMessages(define_OM_vector_control(om_base(), dh_net(name = "S"), om))
+    b2 = suppressMessages(define_OM_vector_control(om_base_ento(), dh_net(name = "S")))
     expect_error(suppressMessages(deploy_OM_vector_control(b2, "S", sched_num, "2026-01-01")),
                  "duration_years")
 })
@@ -382,7 +385,7 @@ test_that("define / deploy a dummy-host net with numeric coverages", {
 test_that("define / deploy a template of nets: one deployment with all components", {
     skip_if_not_installed("openMalariaUtilities")
     nets = list(A = dh_net(0.6, halflife_insecticide = c(Deterrency = 3)), B = dh_net(1.2))
-    b = suppressMessages(define_OM_vector_control(om_base(), nets, om, name = "ITN"))
+    b = suppressMessages(define_OM_vector_control(om_base_ento(), nets, name = "ITN"))
     comps = by_name(b$interventions$human, "component")
     expect_equal(unname(sapply(comps, `[[`, "id")),
                  c("ITN-deterrency", "ITN-postprandialKillingEffect"))
@@ -398,10 +401,11 @@ test_that("define / deploy a template of nets: one deployment with all component
                  c("ITN-deterrency", "ITN-postprandialKillingEffect"))
     expect_equal(unname(sapply(by_name(dep$timed, "deploy"), `[[`, "coverage")),
                  c("@cov2021@", "@cov2022@"))
-    # Every placeholder of the XML has a value
+    # Every placeholder of the interventions has a value (the entomology has
+    # its own: EIR, contributions, seasonality)
     v = suppressMessages(om_vector_control_values(nets, om, sched_ph, end_date,
         coverages = data.frame(cov2021 = 0.8, cov2022 = 0.5), name = "ITN"))
-    strings = unlist(b)
+    strings = unlist(b$interventions)
     all_ph = unique(gsub("@", "", unlist(regmatches(strings, gregexpr("@[^@]+@", strings)))))
     expect_setequal(all_ph, names(v)[-1])
 })
@@ -409,9 +413,9 @@ test_that("define / deploy a template of nets: one deployment with all component
 test_that("standard model: pre-prandial component and no host-seeking killing", {
     skip_if_not_installed("openMalariaUtilities")
     b = suppressMessages(define_OM_vector_control(
-        om_base(), list(A = bi(halflife_attrition = 730, shape_attrition = 2),
-                        B = bi(halflife_attrition = 365, shape_attrition = 1.5)),
-        om, name = "ITN"))
+        om_base_ento(), list(A = bi(halflife_attrition = 730, shape_attrition = 2),
+                             B = bi(halflife_attrition = 365, shape_attrition = 1.5)),
+        name = "ITN"))
     expect_true("ITN-preprandialKillingEffect" %in%
                 sapply(by_name(b$interventions$human, "component"), `[[`, "id"))
     expect_null(b$interventions$vectorPop)
@@ -559,7 +563,7 @@ test_that("text snippets match what define / deploy write into a baseList", {
                         halflife_insecticide = c(Deterrency = 4)))) {
         nm  = net[[1]]$description
         xml = suppressMessages(get_OM_xml(om, net, sched_num, end_date))
-        b = suppressMessages(define_OM_vector_control(om_base(), net, om))
+        b = suppressMessages(define_OM_vector_control(om_base_ento(), net))
         b = suppressMessages(deploy_OM_vector_control(b, nm, sched_num, end_date))
         human = b$interventions$human
         expect_equal(xml$define, paste(unlist(lapply(by_name(human, "component"),
@@ -572,4 +576,77 @@ test_that("text snippets match what define / deploy write into a baseList", {
             expect_equal(xml$hsk, paste(unlist(lapply(steps, function(x) to_xml("intervention", x))),
                                         collapse = "\n"))
     }
+})
+
+# ---------------------------------------------------------------------------
+# 6. Interventions without a model (om_vector_control), entomology in baseList
+# ---------------------------------------------------------------------------
+test_that("om_vector_control takes built-in parameterisations and validates early", {
+    p = get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host", verbose = FALSE)
+    ig2 = om_vector_control(p, halflife_attrition = 730, shape_attrition = 2)
+    expect_s3_class(ig2, "om_vector_control")
+    expect_equal(ig2$mode, "dummy_host")
+    expect_equal(ig2$efficacy, p$efficacy)
+    expect_equal(ig2$halflife_insecticide, p$halflife_insecticide)
+    expect_equal(ig2$name, p$name)
+    std = om_vector_control(eff, halflife_attrition = 730, shape_attrition = 2)
+    expect_equal(std$mode, "standard")
+    expect_error(om_vector_control(eff), "L")                      # Weibull without half-life
+    expect_error(om_vector_control(eff, 730, 2, fit_years = -1), "duration_years")
+})
+
+test_that("GVI decays are fitted over 3 years for ITNs and 1 year for IRS", {
+    hl = c(Deterrency = 4, PrePrandial = 6)
+    spec = om_vector_control(eff, halflife_attrition = 730, shape_attrition = 2,
+                             halflife_insecticide = hl)
+    obj = function(years) suppressMessages(build_intervention(
+        efficacy = eff, halflife_attrition = 730, shape_attrition = 2,
+        halflife_insecticide = hl, duration_years = years, model_p = model_p))
+    g = function(x, type) suppressWarnings(suppressMessages(get_OM_GVI_snippet(x, om, type)))
+    expect_equal(g(spec, "ITN")[[1]]$deterrency$decay, g(obj(3), "ITN")[[1]]$deterrency$decay)
+    expect_equal(g(spec, "IRS")[[1]]$deterrency$decay, g(obj(1), "IRS")[[1]]$deterrency$decay)
+    spec5 = om_vector_control(eff, halflife_attrition = 730, shape_attrition = 2,
+                              halflife_insecticide = hl, fit_years = 5)
+    expect_equal(g(spec5, "ITN")[[1]]$deterrency$decay, g(obj(5), "ITN")[[1]]$deterrency$decay)
+})
+
+test_that("host-seeking killing of a specification covers any schedule", {
+    spec = om_vector_control(c(Deterrency = 0.3, HostSeekingKilling = 0.6, PostPrandial = 0.4),
+                             halflife_attrition = 365, shape_attrition = 2)
+    long = data.frame(date = c("2021-01-01", "2025-01-01"), coverage = c("@c1@", "@c2@"))
+    cov  = data.frame(c1 = c(0.8, 0.5), c2 = 0.6)
+    v = suppressMessages(om_vector_control_values(spec, om, long, "2030-01-01", cov, name = "N"))
+    # Same as an intervention object built over exactly the period
+    n_days = as.numeric(as.Date("2030-01-01") - as.Date("2021-01-01"))
+    legacy = suppressMessages(build_intervention(spec$efficacy, halflife_attrition = 365,
+        shape_attrition = 2, duration_years = n_days / 365, model_p = model_p))
+    v_legacy = suppressMessages(om_vector_control_values(legacy, om, long, "2030-01-01",
+                                                         cov, name = "N"))
+    expect_equal(v, v_legacy)
+    expect_no_error(suppressMessages(get_OM_xml(om, spec, long, "2030-01-01")))
+})
+
+test_that("define_OM_entomology keeps the entomology used by the interventions", {
+    skip_if_not_installed("openMalariaUtilities")
+    b = om_base_ento()
+    expect_identical(b$anophelesmodel2$ento, om)
+    an = by_name(b$entomology$vector, "anopheles")
+    expect_equal(unname(sapply(an, `[[`, "mosquito")), om$shares$mosquito)
+    expect_equal(b$entomology$scaledAnnualEIR, "@EIR@")
+    # One seasonality per population
+    seas = setNames(lapply(seq_along(om$shares$mosquito), function(j) rep(j, 12)),
+                    om$shares$mosquito)
+    b2 = suppressMessages(define_OM_entomology(om_base(), om, seas, scaledAnnualEIR = 20))
+    an2 = by_name(b2$entomology$vector, "anopheles")
+    expect_equal(an2[[2]]$seasonality$monthlyValues[[2]][[1]], 2)
+    expect_error(define_OM_entomology(om_base(), om, paste0("@m", 1:12, "@")), "placeholders")
+    expect_error(define_OM_entomology(om_base(), om, seas[1]), "one element per population")
+
+    # The whole route: entomology, then interventions without a model
+    ig2 = om_vector_control(get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host",
+                                           verbose = FALSE),
+                            halflife_attrition = 730, shape_attrition = 2)
+    b = suppressMessages(define_OM_vector_control(b, ig2, name = "IG2"))
+    b = suppressMessages(deploy_OM_vector_control(b, "IG2", sched_num, "2027-01-01"))
+    expect_length(by_name(b$interventions$vectorPop, "intervention"), 2)
 })

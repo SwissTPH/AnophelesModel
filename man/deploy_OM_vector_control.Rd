@@ -28,8 +28,9 @@ or placeholders such as \code{"@cov2021@"}).}
 
 \item{end_date}{End of the simulated period (\code{"YYYY-MM-DD"}), the end of
 the last host-seeking killing step; required for dummy-host
-interventions, whose duration (\code{duration_years}) must cover the
-period from the first campaign to \code{end_date}.}
+interventions (objects from \code{build_intervention()} must last
+from the first campaign to \code{end_date}; interventions from
+\code{om_vector_control()} are built over that period).}
 
 \item{subpop}{Optional sub-population id suffix: the deployment is
 restricted to the sub-population \code{"<name>-<subpop>"}

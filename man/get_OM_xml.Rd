@@ -22,12 +22,14 @@ get_OM_xml(
 \method{print}{om_xml}(x, ...)
 }
 \arguments{
-\item{om_ento}{Output of \code{\link{get_OM_ento_snippet}}.}
+\item{om_ento}{Output of \code{\link{get_OM_ento_snippet}}: written as the
+entomology snippet, and used for the mosquito populations of the
+interventions.}
 
-\item{interv}{Intervention object from \code{\link{build_intervention}}, or
-a named list of them (template, see
-\code{\link{define_OM_vector_control}}). \code{NULL} (default): entomology
-only.}
+\item{interv}{Intervention from \code{\link{om_vector_control}} (or an
+object from \code{\link{build_intervention}}), or a named list of them
+(template, see \code{\link{define_OM_vector_control}}). \code{NULL}
+(default): entomology only.}
 
 \item{schedule, end_date}{As in \code{\link{deploy_OM_vector_control}}:
 \code{schedule} is needed with \code{interv}, \code{end_date} for
@@ -102,16 +104,14 @@ paste it. For several interventions, call the function once per
 intervention (with \code{entomology = FALSE} after the first).
 }
 \examples{
-model_p = build_model_obj(def_vector_params(), def_host_params())
-itn = build_intervention(
-    efficacy = c(Deterrency = 0.5, PrePrandial = 0.4, PostPrandial = 0.3),
-    halflife_attrition = 2 * 365, shape_attrition = 2,
-    duration_years = 3, model_p = model_p, name = "ITN")
+itn = om_vector_control(
+    c(Deterrency = 0.5, PrePrandial = 0.4, PostPrandial = 0.3),
+    halflife_attrition = 2 * 365, shape_attrition = 2, name = "ITN")
 om_ento = get_OM_ento_snippet("Anopheles gambiae ss/coluzzii",
                               activity = def_activity_patterns())
 schedule = data.frame(date = c("2021-01-01", "2024-01-01"),
                       coverage = c("@cov2021@", "@cov2024@"))
-xml = get_OM_xml(om_ento, itn, schedule, end_date = "2027-01-01")
+xml = get_OM_xml(om_ento, itn, schedule)
 xml
 \dontrun{
 writeLines(unlist(xml), "ITN_snippets.xml")

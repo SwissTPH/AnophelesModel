@@ -7,19 +7,19 @@
 define_OM_vector_control(
   baseList,
   interv,
-  om_ento,
   intervention_type = c("ITN", "IRS"),
   name = NULL
 )
 }
 \arguments{
 \item{baseList}{openMalariaUtilities \code{baseList}, with
-\code{baseList$interventions$human}.}
+\code{baseList$interventions$human} and the entomology written by
+\code{\link{define_OM_entomology}} (whose mosquito populations and
+parameters are used).}
 
-\item{interv}{Intervention object from \code{\link{build_intervention}}, or
-a named list of them (template).}
-
-\item{om_ento}{Output of \code{\link{get_OM_ento_snippet}}.}
+\item{interv}{Intervention from \code{\link{om_vector_control}} (or an
+object from \code{\link{build_intervention}}), or a named list of them
+(template).}
 
 \item{intervention_type}{\code{"ITN"} (acts in bed) or \code{"IRS"} (acts on
 indoor resting mosquitoes).}
@@ -64,9 +64,10 @@ value the average of \eqn{d(t) / muvA} over that period. The message of
 \code{deploy_OM_vector_control()} gives the average vectorial capacity
 reduction from host-seeking killing alone with the exact curve and with the
 steps (at the numeric coverages, or 0.8 for placeholders). Host-seeking
-killing acts on the same populations as the GVI (in bed for ITNs). The
-interventions must last (\code{duration_years}) from the first campaign to
-\code{end_date}.
+killing acts on the same populations as the GVI (in bed for ITNs).
+Interventions from \code{\link{om_vector_control}} are built over exactly
+the period from the first campaign to \code{end_date}; objects from
+\code{build_intervention()} must last (\code{duration_years}) that long.
 
 \strong{Placeholders.} Coverages in the schedule of
 \code{deploy_OM_vector_control()} can be placeholders
@@ -87,20 +88,20 @@ Requires the openMalariaUtilities package (see \code{\link{add_OM_GVI}}).
 }
 \examples{
 \dontrun{
-model_p = build_model_obj(def_vector_params(), def_host_params())
-# Two parameterisations of one net (other nets: list_ITN_params())
-p = get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host")
-make_net = function(...) build_intervention(p$efficacy,
-    halflife_attrition = 2 * 365, shape_attrition = 2, duration_years = 9,
-    model_p = model_p, mode = p$mode,
-    halflife_insecticide = p$halflife_insecticide, ...)
-nets = list(IG2 = make_net(),
-            IG2_no_insecticide_decay = make_net(insecticide_decay = FALSE))
+# Built-in and custom dummy-host nets (other nets: list_ITN_params())
+ig2 = om_vector_control(get_ITN_params("Interceptor G2", "Kibondo",
+                                       mode = "dummy_host"),
+                        halflife_attrition = 2 * 365, shape_attrition = 2)
+custom = om_vector_control(
+    c(Deterrency = 0.3, HostSeekingKilling = 0.5, PostPrandial = 0.4),
+    halflife_attrition = 2 * 365, shape_attrition = 2)
+nets = list(IG2 = ig2, custom = custom)
 om_ento  = get_OM_ento_snippet("Anopheles gambiae ss/coluzzii",
                                activity = def_activity_patterns())
+baseList = define_OM_entomology(baseList, om_ento, seasonality = rep(1, 12))
+baseList = define_OM_vector_control(baseList, nets, name = "ITN")
 schedule = data.frame(date = c("2021-01-01", "2024-01-01", "2027-01-01"),
                       coverage = c("@cov2021@", "@cov2024@", "@cov2027@"))
-baseList = define_OM_vector_control(baseList, nets, om_ento, name = "ITN")
 baseList = deploy_OM_vector_control(baseList, "ITN", schedule,
                                     end_date = "2030-01-01")
 values = om_vector_control_values(nets, om_ento, schedule, "2030-01-01",

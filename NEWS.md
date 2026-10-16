@@ -86,6 +86,18 @@ rewritten and are **not backward compatible**.
   decays), e.g. to loop scenarios over net types; new
   `om_vector_control_values()` computes the placeholder values per net and
   coverage scenario.
+* New `om_vector_control()`: specifies an intervention for the OpenMalaria
+  export from its efficacies (or a `get_ITN_params()` parameterisation) and
+  decays, without a model or a duration; the export builds it with the
+  entomology of the scenario, over the schedule period for host-seeking
+  killing, and fits Weibull decays over 3 years (ITN) or 1 year (IRS) by
+  default (`fit_years`). Intervention objects of `build_intervention()`
+  remain accepted.
+* New `define_OM_entomology()`: writes the entomology with
+  `defineEntomology()` (numeric seasonality, `scaledAnnualEIR`) and keeps it
+  in the `baseList`; `define_OM_vector_control()` takes the mosquito
+  populations and parameters from there (no `om_ento` argument), so the
+  interventions are consistent with the entomology.
 * `get_OM_ento_snippet()` also returns `muvA` (in `shares`) and the model of
   each mosquito population (`model_params`).
 * Relative contribution of the species to the EIR: each population's

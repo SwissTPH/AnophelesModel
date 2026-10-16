@@ -12,7 +12,8 @@ get_OM_GVI_snippet(
 )
 }
 \arguments{
-\item{interv}{Intervention object from \code{\link{build_intervention}}.}
+\item{interv}{Intervention from \code{\link{om_vector_control}} (or an
+object from \code{\link{build_intervention}}).}
 
 \item{om_ento}{Output of \code{\link{get_OM_ento_snippet}}.}
 
@@ -67,11 +68,9 @@ host-seeking killing, which has no GVI equivalent, is exported by
 \code{\link{define_OM_vector_control}}.
 }
 \examples{
-model_p = build_model_obj(def_vector_params(), def_host_params())
-itn = build_intervention(
-    efficacy = c(Deterrency = 0.5, PrePrandial = 0.4, PostPrandial = 0.3),
-    halflife_attrition = 2 * 365, shape_attrition = 2,
-    duration_years = 3, model_p = model_p, name = "ITN")
+itn = om_vector_control(
+    c(Deterrency = 0.5, PrePrandial = 0.4, PostPrandial = 0.3),
+    halflife_attrition = 2 * 365, shape_attrition = 2, name = "ITN")
 om  = get_OM_ento_snippet("Anopheles gambiae ss/coluzzii",
                           activity = def_activity_patterns())
 gvi = get_OM_GVI_snippet(itn, om, intervention_type = "ITN")

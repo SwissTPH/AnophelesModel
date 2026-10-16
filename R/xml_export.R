@@ -411,7 +411,8 @@ om_mosq_params = function(vec_p, chi, hosts_p) {
 #' host-seeking killing, which has no GVI equivalent, is exported by
 #' \code{\link{define_OM_vector_control}}.
 #'
-#' @param interv Intervention object from \code{\link{build_intervention}}.
+#' @param interv Intervention from \code{\link{om_vector_control}} (or an
+#'   object from \code{\link{build_intervention}}).
 #' @param om_ento Output of \code{\link{get_OM_ento_snippet}}.
 #' @param intervention_type \code{"ITN"} (acts in bed) or \code{"IRS"} (acts on
 #'   indoor resting mosquitoes).
@@ -428,11 +429,9 @@ om_mosq_params = function(vec_p, chi, hosts_p) {
 #' @seealso \code{\link{get_OM_ento_snippet}}, \code{\link{build_intervention}}
 #'
 #' @examples
-#' model_p = build_model_obj(def_vector_params(), def_host_params())
-#' itn = build_intervention(
-#'     efficacy = c(Deterrency = 0.5, PrePrandial = 0.4, PostPrandial = 0.3),
-#'     halflife_attrition = 2 * 365, shape_attrition = 2,
-#'     duration_years = 3, model_p = model_p, name = "ITN")
+#' itn = om_vector_control(
+#'     c(Deterrency = 0.5, PrePrandial = 0.4, PostPrandial = 0.3),
+#'     halflife_attrition = 2 * 365, shape_attrition = 2, name = "ITN")
 #' om  = get_OM_ento_snippet("Anopheles gambiae ss/coluzzii",
 #'                           activity = def_activity_patterns())
 #' gvi = get_OM_GVI_snippet(itn, om, intervention_type = "ITN")
@@ -448,12 +447,14 @@ get_OM_GVI_snippet = function(interv, om_ento, intervention_type = c("ITN", "IRS
     intervention_type = match.arg(intervention_type)
     interv = om_unwrap(interv)
     if (is.null(interv))
-        stop("interv must be an intervention object from build_intervention()")
+        stop("interv must be an intervention from om_vector_control() or ",
+             "build_intervention()")
     if (is.null(name)) name = om_default_name(interv, "GVI")
+    interv = om_gvi_objects(list(interv), om_ento, intervention_type)[[1]]
     if (interv$settings$mode == "dummy_host")
         message("get_OM_GVI_snippet: dummy-host intervention, the GVI has ",
                 "deterrency and post-prandial killing only; host-seeking ",
-                "killing is exported by define_OM_vector_control().")
+                "killing is exported by deploy_OM_vector_control().")
     om_gvi_list(interv, om_ento, intervention_type, name)
 }
 
@@ -478,9 +479,11 @@ om_active = function(om_ento, intervention_type) {
     if (intervention_type == "ITN") om_ento$shares$in_bed else om_ento$shares$indoor_resting
 }
 
-# Internal: the intervention object (element of build_intervention()'s list),
-# or NULL
+# Internal: an intervention to export: a specification from
+# om_vector_control(), or an intervention object (element of
+# build_intervention()'s list); NULL otherwise
 om_unwrap = function(x) {
+    if (om_is_spec(x)) return(x)
     if (!is.list(x)) return(NULL)
     if (!is.null(x$settings)) return(x)
     if (length(x) == 1L && is.null(names(x)) && is.list(x[[1]]) &&
@@ -489,8 +492,56 @@ om_unwrap = function(x) {
 }
 
 om_default_name = function(interv, default) {
+    if (om_is_spec(interv)) return(if (!is.null(interv$name)) interv$name else default)
     if (!is.null(interv$description) && interv$description != "custom")
         interv$description else default
+}
+
+om_is_spec = function(x) inherits(x, "om_vector_control")
+
+# Internal: model structure of an intervention or specification
+om_item_mode = function(x) if (om_is_spec(x)) x$mode else x$settings$mode
+
+# Internal: intervention object of a specification, over `years` (one point
+# per day). The model only sets baseline host parameters, which the
+# OpenMalaria export does not use (relative efficacies, absolute host-seeking
+# killing), so any model of the entomology gives the same export.
+om_build_spec = function(spec, model_p, years) {
+    suppressMessages(build_intervention(
+        efficacy = spec$efficacy, halflife_attrition = spec$halflife_attrition,
+        shape_attrition = spec$shape_attrition, decay_attrition = spec$decay_attrition,
+        duration_years = years, model_p = model_p, name = spec$name, mode = spec$mode,
+        halflife_insecticide = spec$halflife_insecticide,
+        component_decay = spec$component_decay,
+        insecticide_decay = spec$insecticide_decay))[[1]]
+}
+
+# Internal: window (years) over which the GVI decays are fitted when
+# attrition and insecticide decay are not a single OpenMalaria decay
+om_fit_years = function(spec, intervention_type) {
+    if (!is.null(spec$fit_years)) spec$fit_years
+    else if (intervention_type == "IRS") 1 else 3
+}
+
+# Internal: a model of the entomology (the first valid population), to build
+# the interventions
+om_model_for = function(om_ento) {
+    mp = Filter(Negate(is.null), om_ento$model_params)
+    if (!length(mp)) stop("om_ento has no valid mosquito population model")
+    mp[[1]]
+}
+
+# Internal: intervention objects for the GVI (specifications built over their
+# fitting window) or over the n_days of a schedule (host-seeking killing);
+# intervention objects are used as they are
+om_gvi_objects = function(items, om_ento, intervention_type) {
+    lapply(items, function(it) if (om_is_spec(it))
+        om_build_spec(it, om_model_for(om_ento), om_fit_years(it, intervention_type))
+        else it)
+}
+om_period_objects = function(items, model_p, n_days) {
+    lapply(items, function(it) if (om_is_spec(it))
+        om_build_spec(it, model_p, n_days / 365) else it)
 }
 
 # Internal: GVI list of get_OM_GVI_snippet() for one intervention
@@ -696,19 +747,20 @@ om_weibull_decay = function(interv, comp) {
 
 
 # Internal: the interventions to export, as list(nets, template): a single
-# intervention object (template = FALSE), or a named list of them, all with
-# the same model (template = TRUE, values as placeholders).
+# intervention (template = FALSE), or a named list of them, all with the same
+# model (template = TRUE, values as placeholders). Each is a specification
+# (om_vector_control()) or an intervention object (build_intervention()).
 om_nets = function(interv) {
     one = om_unwrap(interv)
     if (!is.null(one)) return(list(nets = list(one), template = FALSE))
     nets = if (is.list(interv)) lapply(interv, om_unwrap) else list(NULL)
     if (!length(nets) || any(vapply(nets, is.null, logical(1))))
-        stop("interv must be an intervention from build_intervention(), or a ",
-             "named list of them")
+        stop("interv must be an intervention from om_vector_control() (or ",
+             "build_intervention()), or a named list of them")
     if (is.null(names(interv)) || any(names(interv) == "") ||
         anyDuplicated(names(interv)))
         stop("A list of interventions needs unique, non-empty names")
-    modes = unique(vapply(nets, function(n) n$settings$mode, character(1)))
+    modes = unique(vapply(nets, om_item_mode, character(1)))
     if (length(modes) > 1L)
         stop("All interventions of a list must use the same model (standard or ",
              "dummy_host): the XML structure is shared")
@@ -766,7 +818,8 @@ om_hsk_factors = function(interv, sch) {
     if (interv$duration < n_days)
         stop("The intervention lasts ", interv$duration, " days but must cover ",
              "the period from the first campaign to end_date (", n_days,
-             " days), for the nets of the first campaign: increase duration_years")
+             " days), for the nets of the first campaign: increase duration_years ",
+             "(or use om_vector_control(), built over the period)")
     rows = seq_len(interv$duration)
     g    = interv$effects$alphai[rows, 4] * interv$effects$survival[rows]
     t    = seq_len(n_days) - 1
@@ -809,6 +862,153 @@ om_muvA = function(om_ento, active) {
 }
 
 
+#########om_vector_control####
+#' @title Specify a vector control intervention for OpenMalaria
+#'
+#' @description Specifies an ITN or IRS intervention for the OpenMalaria
+#' export (\code{\link{define_OM_vector_control}},
+#' \code{\link{deploy_OM_vector_control}}, \code{\link{get_OM_xml}},
+#' \code{\link{om_vector_control_values}}) from its efficacies and decays,
+#' without a model or a duration: the export builds the intervention with the
+#' entomology of the scenario, over the right period. Efficacies and decays
+#' are as in \code{\link{build_intervention}}.
+#'
+#' @param efficacy Named efficacies (\code{Deterrency}, \code{PrePrandial},
+#'   \code{PostPrandial}, \code{HostSeekingKilling}), or the output of
+#'   \code{\link{get_ITN_params}}, whose efficacy, insecticide decay, model
+#'   structure and name are used (unless given here).
+#' @param halflife_attrition,shape_attrition,decay_attrition Attrition decay,
+#'   as in \code{build_intervention()} (\code{halflife_attrition} in days).
+#' @param halflife_insecticide,component_decay,insecticide_decay
+#'   Per-component insecticide decay, as in \code{build_intervention()}.
+#' @param mode \code{"standard"} or \code{"dummy_host"} (default: from the
+#'   efficacies).
+#' @param name Optional name (used for the OpenMalaria ids if no other name is
+#'   given).
+#' @param fit_years Window (years) over which a Weibull is fitted to each
+#'   effect's decay when attrition and insecticide decay cannot be exported as
+#'   a single OpenMalaria decay (default: 3 years for ITNs, 1 year for IRS,
+#'   chosen by \code{intervention_type} at the export).
+#'
+#' @return An object of class \code{om_vector_control}.
+#'
+#' @seealso \code{\link{define_OM_vector_control}}, \code{\link{get_ITN_params}}
+#'
+#' @examples
+#' # Built-in parameterisation
+#' ig2 = om_vector_control(get_ITN_params("Interceptor G2", "Kibondo",
+#'                                        mode = "dummy_host", verbose = FALSE),
+#'                         halflife_attrition = 2 * 365, shape_attrition = 2)
+#' # Custom net
+#' custom = om_vector_control(
+#'     c(Deterrency = 0.3, HostSeekingKilling = 0.5, PostPrandial = 0.4),
+#'     halflife_attrition = 2 * 365, shape_attrition = 2, name = "Custom ITN")
+#'
+#' @export
+#'
+om_vector_control = function(efficacy, halflife_attrition = NULL,
+                             shape_attrition = NULL, decay_attrition = "weibull",
+                             halflife_insecticide = NULL, component_decay = NULL,
+                             insecticide_decay = TRUE, mode = NULL, name = NULL,
+                             fit_years = NULL) {
+    if (is.list(efficacy) && !is.null(efficacy$efficacy)) {   # get_ITN_params()
+        p = efficacy
+        efficacy = p$efficacy
+        if (is.null(halflife_insecticide)) halflife_insecticide = p$halflife_insecticide
+        if (is.null(mode)) mode = p$mode
+        if (is.null(name)) name = p$name
+    }
+    if (!is.null(fit_years)) intervention_npoints(fit_years)   # validates
+    spec = structure(list(
+        efficacy = efficacy, halflife_attrition = halflife_attrition,
+        shape_attrition = shape_attrition, decay_attrition = decay_attrition,
+        halflife_insecticide = halflife_insecticide, component_decay = component_decay,
+        insecticide_decay = insecticide_decay, mode = mode, name = name,
+        fit_years = fit_years), class = "om_vector_control")
+    # Validates now (the model does not matter, see om_build_spec())
+    spec$mode = om_build_spec(spec, om_default_model(), 1 / 365)$settings$mode
+    spec
+}
+
+# Internal: a default model, only to validate specifications
+om_default_model = function() {
+    build_model_obj(def_vector_params(verbose = FALSE), def_host_params(verbose = FALSE))
+}
+
+
+#########define_OM_entomology####
+#' @title Define the entomology of an OpenMalaria scenario
+#'
+#' @description Writes the entomology of \code{\link{get_OM_ento_snippet}}
+#' into an openMalariaUtilities \code{baseList}, with
+#' \code{openMalariaUtilities::defineEntomology()}, and keeps it in the
+#' \code{baseList}, so that \code{\link{define_OM_vector_control}} uses the
+#' same mosquito populations and parameters.
+#'
+#' The \code{annualEIR} of each population is its relative contribution to
+#' the EIR (see \code{get_OM_ento_snippet(species_shares = )}); the total EIR
+#' is \code{scaledAnnualEIR}. The seasonality gives the shape of the EIR over
+#' the year; it must be numeric, since \code{defineEntomology()} currently
+#' rejects monthly placeholders with R >= 4.3 (an openMalariaUtilities issue;
+#' \code{get_OM_xml()} writes the entomology with placeholders).
+#'
+#' Requires the openMalariaUtilities package.
+#'
+#' @param baseList openMalariaUtilities \code{baseList}.
+#' @param om_ento Output of \code{\link{get_OM_ento_snippet}}.
+#' @param seasonality Numeric vector of 12 monthly (or 365 daily) values for
+#'   all populations, or a named list with one such vector per population
+#'   (names as in \code{om_ento$shares$mosquito}).
+#' @param scaledAnnualEIR Total annual EIR: a number or a placeholder
+#'   (default \code{"@EIR@"}).
+#' @param ... Passed to \code{defineEntomology()} (e.g. \code{name},
+#'   \code{mode}).
+#'
+#' @return The updated \code{baseList}.
+#'
+#' @seealso \code{\link{get_OM_ento_snippet}}, \code{\link{define_OM_vector_control}}
+#'
+#' @export
+#'
+define_OM_entomology = function(baseList, om_ento, seasonality,
+                                scaledAnnualEIR = "@EIR@", ...) {
+    if (!requireNamespace("openMalariaUtilities", quietly = TRUE))
+        stop("define_OM_entomology() requires the openMalariaUtilities package ",
+             "(get_OM_xml() writes XML text without it)")
+    mosq = om_ento$shares$mosquito
+    if (is.null(mosq)) stop("om_ento must be the output of get_OM_ento_snippet()")
+    seas = if (is.list(seasonality)) seasonality else rep(list(seasonality), length(mosq))
+    if (is.list(seasonality)) {
+        if (is.null(names(seas)) || !setequal(names(seas), mosq))
+            stop("A list seasonality needs one element per population, named as ",
+                 "om_ento$shares$mosquito")
+        seas = seas[mosq]
+    }
+    for (s in seas)
+        if (!is.numeric(s) || !length(s) %in% c(12L, 365L) || any(!is.finite(s)) ||
+            any(s < 0))
+            stop("seasonality must be 12 monthly or 365 daily non-negative numbers ",
+                 "(openMalariaUtilities currently rejects placeholders; use ",
+                 "get_OM_xml() to keep them)")
+    params = om_ento$seasonalityParameters
+    for (j in seq_along(mosq)) params[[mosq[j]]]$seasonality = seas[[j]]
+    baseList = openMalariaUtilities::defineEntomology(
+        baseList, params, om_ento$mosquitoParameters,
+        scaledAnnualEIR = scaledAnnualEIR, ...)
+    baseList$anophelesmodel2$ento = om_ento
+    baseList
+}
+
+# Internal: the entomology kept by define_OM_entomology()
+om_baselist_ento = function(baseList) {
+    om_ento = baseList$anophelesmodel2$ento
+    if (is.null(om_ento))
+        stop("No entomology in baseList: call define_OM_entomology() first ",
+             "(the interventions use its mosquito populations and parameters)")
+    om_ento
+}
+
+
 #########define_OM_vector_control####
 #' @title Define a vector control intervention in an OpenMalaria scenario
 #'
@@ -844,9 +1044,10 @@ om_muvA = function(om_ento, active) {
 #' \code{deploy_OM_vector_control()} gives the average vectorial capacity
 #' reduction from host-seeking killing alone with the exact curve and with the
 #' steps (at the numeric coverages, or 0.8 for placeholders). Host-seeking
-#' killing acts on the same populations as the GVI (in bed for ITNs). The
-#' interventions must last (\code{duration_years}) from the first campaign to
-#' \code{end_date}.
+#' killing acts on the same populations as the GVI (in bed for ITNs).
+#' Interventions from \code{\link{om_vector_control}} are built over exactly
+#' the period from the first campaign to \code{end_date}; objects from
+#' \code{build_intervention()} must last (\code{duration_years}) that long.
 #'
 #' \strong{Placeholders.} Coverages in the schedule of
 #' \code{deploy_OM_vector_control()} can be placeholders
@@ -866,10 +1067,12 @@ om_muvA = function(om_ento, active) {
 #' Requires the openMalariaUtilities package (see \code{\link{add_OM_GVI}}).
 #'
 #' @param baseList openMalariaUtilities \code{baseList}, with
-#'   \code{baseList$interventions$human}.
-#' @param interv Intervention object from \code{\link{build_intervention}}, or
-#'   a named list of them (template).
-#' @param om_ento Output of \code{\link{get_OM_ento_snippet}}.
+#'   \code{baseList$interventions$human} and the entomology written by
+#'   \code{\link{define_OM_entomology}} (whose mosquito populations and
+#'   parameters are used).
+#' @param interv Intervention from \code{\link{om_vector_control}} (or an
+#'   object from \code{\link{build_intervention}}), or a named list of them
+#'   (template).
 #' @param intervention_type \code{"ITN"} (acts in bed) or \code{"IRS"} (acts on
 #'   indoor resting mosquitoes).
 #' @param name Name of the intervention, used for component ids and
@@ -883,20 +1086,20 @@ om_muvA = function(om_ento, active) {
 #'
 #' @examples
 #' \dontrun{
-#' model_p = build_model_obj(def_vector_params(), def_host_params())
-#' # Two parameterisations of one net (other nets: list_ITN_params())
-#' p = get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host")
-#' make_net = function(...) build_intervention(p$efficacy,
-#'     halflife_attrition = 2 * 365, shape_attrition = 2, duration_years = 9,
-#'     model_p = model_p, mode = p$mode,
-#'     halflife_insecticide = p$halflife_insecticide, ...)
-#' nets = list(IG2 = make_net(),
-#'             IG2_no_insecticide_decay = make_net(insecticide_decay = FALSE))
+#' # Built-in and custom dummy-host nets (other nets: list_ITN_params())
+#' ig2 = om_vector_control(get_ITN_params("Interceptor G2", "Kibondo",
+#'                                        mode = "dummy_host"),
+#'                         halflife_attrition = 2 * 365, shape_attrition = 2)
+#' custom = om_vector_control(
+#'     c(Deterrency = 0.3, HostSeekingKilling = 0.5, PostPrandial = 0.4),
+#'     halflife_attrition = 2 * 365, shape_attrition = 2)
+#' nets = list(IG2 = ig2, custom = custom)
 #' om_ento  = get_OM_ento_snippet("Anopheles gambiae ss/coluzzii",
 #'                                activity = def_activity_patterns())
+#' baseList = define_OM_entomology(baseList, om_ento, seasonality = rep(1, 12))
+#' baseList = define_OM_vector_control(baseList, nets, name = "ITN")
 #' schedule = data.frame(date = c("2021-01-01", "2024-01-01", "2027-01-01"),
 #'                       coverage = c("@cov2021@", "@cov2024@", "@cov2027@"))
-#' baseList = define_OM_vector_control(baseList, nets, om_ento, name = "ITN")
 #' baseList = deploy_OM_vector_control(baseList, "ITN", schedule,
 #'                                     end_date = "2030-01-01")
 #' values = om_vector_control_values(nets, om_ento, schedule, "2030-01-01",
@@ -906,10 +1109,11 @@ om_muvA = function(om_ento, active) {
 #'
 #' @export
 #'
-define_OM_vector_control = function(baseList, interv, om_ento,
+define_OM_vector_control = function(baseList, interv,
                                     intervention_type = c("ITN", "IRS"),
                                     name = NULL) {
     intervention_type = match.arg(intervention_type)
+    om_ento = om_baselist_ento(baseList)
     b = om_vc_components(interv, om_ento, intervention_type, name)
     ids = vapply(b$components, `[[`, character(1), "id")
     human = baseList$interventions$human
@@ -937,8 +1141,10 @@ define_OM_vector_control = function(baseList, interv, om_ento,
 # interventions, what the host-seeking killing steps need (hsk, for
 # om_hsk_steps()). Shared by define_OM_vector_control() and get_OM_xml().
 om_vc_components = function(interv, om_ento, intervention_type, name) {
-    x    = om_nets(interv)
-    name = om_name(x, name, intervention_type)
+    x     = om_nets(interv)
+    name  = om_name(x, name, intervention_type)
+    items = x$nets
+    x$nets = om_gvi_objects(items, om_ento, intervention_type)
     pn   = om_ph_name(name)
     mode = x$nets[[1]]$settings$mode
     mosq   = om_ento$shares$mosquito
@@ -970,7 +1176,8 @@ om_vc_components = function(interv, om_ento, intervention_type, name) {
     # Host-seeking killing: computed from the schedule by om_hsk_steps()
     p1 = which(active)[1]
     out$hsk = list(
-        name = name, pn = pn, nets = x$nets, template = x$template,
+        name = name, pn = pn, items = items, model_p = om_model_for(om_ento),
+        template = x$template,
         labels = if (x$template) paste0(names(interv), ": ") else "",
         mosq = mosq, active = active, muvA = om_muvA(om_ento, active),
         check_model = if (!is.na(p1)) om_ento$model_params[[mosq[p1]]])
@@ -984,7 +1191,10 @@ om_vc_components = function(interv, om_ento, intervention_type, name) {
 # get_OM_xml().
 om_hsk_steps = function(hsk, sch) {
     mosq = hsk$mosq; active = hsk$active
-    facs = lapply(hsk$nets, om_hsk_factors, sch = sch)
+    # Specifications are built over exactly the schedule period
+    nets = om_period_objects(hsk$items, hsk$model_p,
+                             as.numeric(sch$end - sch$dates[1]))
+    facs = lapply(nets, om_hsk_factors, sch = sch)
     numeric_values = !hsk$template && !any(sch$placeholder)
     if (numeric_values) d_step = as.vector(facs[[1]]$B %*% sch$num)
     out = list(name = hsk$name, steps = list())
@@ -1066,8 +1276,9 @@ om_vc_messages = function(b, caller) {
 #'   or placeholders such as \code{"@cov2021@"}).
 #' @param end_date End of the simulated period (\code{"YYYY-MM-DD"}), the end of
 #'   the last host-seeking killing step; required for dummy-host
-#'   interventions, whose duration (\code{duration_years}) must cover the
-#'   period from the first campaign to \code{end_date}.
+#'   interventions (objects from \code{build_intervention()} must last
+#'   from the first campaign to \code{end_date}; interventions from
+#'   \code{om_vector_control()} are built over that period).
 #' @param subpop Optional sub-population id suffix: the deployment is
 #'   restricted to the sub-population \code{"<name>-<subpop>"}
 #'   (\code{restrictToSubPop}). This and the next arguments: standard model
@@ -1171,6 +1382,8 @@ om_deployment = function(name, ids, sch, subpop = NULL, cumulative = FALSE,
 #'
 #' @inheritParams define_OM_vector_control
 #' @inheritParams deploy_OM_vector_control
+#' @param om_ento Output of \code{\link{get_OM_ento_snippet}} (the one given to
+#'   \code{define_OM_entomology()}).
 #' @param coverages Data frame with one column per coverage placeholder of
 #'   \code{schedule}, named without the \code{@} (e.g. \code{cov2021}), and one
 #'   row per coverage scenario. Not needed when all coverages are numeric.
@@ -1194,7 +1407,12 @@ om_vector_control_values = function(interv, om_ento, schedule, end_date,
     sch  = om_schedule(schedule, end_date)
     name = om_name(x, name, intervention_type)
     pn   = om_ph_name(name)
-    mode = x$nets[[1]]$settings$mode
+    # As define / deploy: GVI decays over the fitting window, host-seeking
+    # killing over the schedule period
+    gvi_nets = om_gvi_objects(x$nets, om_ento, intervention_type)
+    hsk_nets = om_period_objects(x$nets, om_model_for(om_ento),
+                                 as.numeric(sch$end - sch$dates[1]))
+    mode = gvi_nets[[1]]$settings$mode
     active = om_active(om_ento, intervention_type)
 
     cov_names = sch$names[sch$placeholder]
@@ -1219,7 +1437,7 @@ om_vector_control_values = function(interv, om_ento, schedule, end_date,
     if (hsk) muvA = om_muvA(om_ento, active)
 
     rows = lapply(seq_along(x$nets), function(i) {
-        net = x$nets[[i]]
+        net = gvi_nets[[i]]
         out = cov_tab
         if (x$template) {
             for (comp in om_model_effects(mode)) {
@@ -1232,7 +1450,7 @@ om_vector_control_values = function(interv, om_ento, schedule, end_date,
             }
         }
         if (hsk) {
-            d_step = cov_mat %*% t(om_hsk_factors(net, sch)$B)   # scenarios x steps
+            d_step = cov_mat %*% t(om_hsk_factors(hsk_nets[[i]], sch)$B)   # scenarios x steps
             for (k in seq_len(ncol(d_step))) for (j in which(active))
                 out[[paste0(pn, "_hsk_", k, "_pop", j)]] = d_step[, k] / muvA[j]
         }
@@ -1290,10 +1508,13 @@ om_vector_control_values = function(interv, om_ento, schedule, end_date,
 #'
 #' @inheritParams define_OM_vector_control
 #' @inheritParams deploy_OM_vector_control
-#' @param interv Intervention object from \code{\link{build_intervention}}, or
-#'   a named list of them (template, see
-#'   \code{\link{define_OM_vector_control}}). \code{NULL} (default): entomology
-#'   only.
+#' @param om_ento Output of \code{\link{get_OM_ento_snippet}}: written as the
+#'   entomology snippet, and used for the mosquito populations of the
+#'   interventions.
+#' @param interv Intervention from \code{\link{om_vector_control}} (or an
+#'   object from \code{\link{build_intervention}}), or a named list of them
+#'   (template, see \code{\link{define_OM_vector_control}}). \code{NULL}
+#'   (default): entomology only.
 #' @param schedule,end_date As in \code{\link{deploy_OM_vector_control}}:
 #'   \code{schedule} is needed with \code{interv}, \code{end_date} for
 #'   dummy-host interventions.
@@ -1308,16 +1529,14 @@ om_vector_control_values = function(interv, om_ento, schedule, end_date,
 #'   \code{\link{om_vector_control_values}}
 #'
 #' @examples
-#' model_p = build_model_obj(def_vector_params(), def_host_params())
-#' itn = build_intervention(
-#'     efficacy = c(Deterrency = 0.5, PrePrandial = 0.4, PostPrandial = 0.3),
-#'     halflife_attrition = 2 * 365, shape_attrition = 2,
-#'     duration_years = 3, model_p = model_p, name = "ITN")
+#' itn = om_vector_control(
+#'     c(Deterrency = 0.5, PrePrandial = 0.4, PostPrandial = 0.3),
+#'     halflife_attrition = 2 * 365, shape_attrition = 2, name = "ITN")
 #' om_ento = get_OM_ento_snippet("Anopheles gambiae ss/coluzzii",
 #'                               activity = def_activity_patterns())
 #' schedule = data.frame(date = c("2021-01-01", "2024-01-01"),
 #'                       coverage = c("@cov2021@", "@cov2024@"))
-#' xml = get_OM_xml(om_ento, itn, schedule, end_date = "2027-01-01")
+#' xml = get_OM_xml(om_ento, itn, schedule)
 #' xml
 #' \dontrun{
 #' writeLines(unlist(xml), "ITN_snippets.xml")

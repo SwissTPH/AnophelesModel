@@ -15,10 +15,12 @@ om_vector_control_values(
 )
 }
 \arguments{
-\item{interv}{Intervention object from \code{\link{build_intervention}}, or
-a named list of them (template).}
+\item{interv}{Intervention from \code{\link{om_vector_control}} (or an
+object from \code{\link{build_intervention}}), or a named list of them
+(template).}
 
-\item{om_ento}{Output of \code{\link{get_OM_ento_snippet}}.}
+\item{om_ento}{Output of \code{\link{get_OM_ento_snippet}} (the one given to
+\code{define_OM_entomology()}).}
 
 \item{schedule}{Data frame with one row per campaign: \code{date}
 (\code{"YYYY-MM-DD"}, increasing) and \code{coverage} (numbers in [0, 1]
@@ -26,8 +28,9 @@ or placeholders such as \code{"@cov2021@"}).}
 
 \item{end_date}{End of the simulated period (\code{"YYYY-MM-DD"}), the end of
 the last host-seeking killing step; required for dummy-host
-interventions, whose duration (\code{duration_years}) must cover the
-period from the first campaign to \code{end_date}.}
+interventions (objects from \code{build_intervention()} must last
+from the first campaign to \code{end_date}; interventions from
+\code{om_vector_control()} are built over that period).}
 
 \item{coverages}{Data frame with one column per coverage placeholder of
 \code{schedule}, named without the \code{@} (e.g. \code{cov2021}), and one

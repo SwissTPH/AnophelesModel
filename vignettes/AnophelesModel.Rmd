@@ -593,35 +593,41 @@ cat("Combined VC reduction:", round(combined_impact * 100, 1), "%\n")
 
 ## Export to OpenMalaria
 
+This section can be read on its own: it only uses the objects it creates.
+
 OpenMalaria scenarios (schema 44) are written with
 [openMalariaUtilities](https://github.com/SwissTPH/r-openMalariaUtilities),
 which builds a scenario as an R list (`baseList`) and writes the XML file.
 This package does not write scenarios: it fills in the entomology and the
 vector control interventions of a `baseList`; the rest of the scenario
 (demography, health system, monitoring, ...) and the XML file are produced
-with openMalariaUtilities, as usual.
+with openMalariaUtilities, as usual. The steps are:
+
+1. `get_OM_ento_snippet()`: mosquito populations and their parameters;
+2. `define_OM_entomology()`: writes them into the `baseList`;
+3. `om_vector_control()`: specifies an ITN or IRS intervention;
+4. `define_OM_vector_control()` and `deploy_OM_vector_control()`: write its
+   definition and its deployment.
 
 openMalariaUtilities is not on CRAN and is only a suggested dependency:
-`get_OM_ento_snippet()`, `get_OM_GVI_snippet()` and `get_OM_xml()` (XML text,
-see the end of this section) work without it, but
-`define_OM_vector_control()` and `add_OM_GVI()` require it. Install it from
-GitHub:
+`get_OM_ento_snippet()`, `om_vector_control()`, `om_vector_control_values()`
+and `get_OM_xml()` (XML text, see the end of this section) work without it,
+but `define_OM_entomology()` and `define_OM_vector_control()` require it.
+Install it from GitHub:
 ```{r, eval=FALSE}
 remotes::install_github("SwissTPH/r-openMalariaUtilities")
 ```
 
 ### Entomology
 
-`get_OM_ento_snippet()` returns the mosquito parameters of each species, for
-`defineEntomology()`.
-
-**Mosquito populations.** With activity patterns, each species is split into
-three populations by human exposure: `_indoor1` (exposed in bed and resting
-indoors), `_indoor2` (only one of the two) and `_outdoor`. They share all
-parameters except the human blood index (indoor HBI for the indoor
-populations, outdoor HBI for the outdoor one), and interventions reach them
-differently: ITNs act on the populations exposed in bed, IRS on those resting
-indoors.
+**Mosquito populations.** `get_OM_ento_snippet()` gives the parameters of
+each species, from the bionomics database. With activity patterns, each
+species is split into three populations by human exposure: `_indoor1`
+(exposed in bed and resting indoors), `_indoor2` (only one of the two) and
+`_outdoor`. They share all parameters except the human blood index (indoor
+HBI for the indoor populations, outdoor HBI for the outdoor one), and
+interventions reach them differently: ITNs act on the populations exposed in
+bed, IRS on those resting indoors.
 
 **Contribution of each population to the EIR.** The `annualEIR` of each
 population is its relative contribution to the EIR: the share of its species
@@ -641,15 +647,15 @@ the values below are illustrative). The contributions are either:
 
 Fixed contributions:
 ```{r}
+library(AnophelesModel2)
+
 spz = c("Anopheles gambiae ss/coluzzii" = 0.114, "Anopheles funestus" = 0.235)
 mix = eir_shares(c("Anopheles gambiae ss/coluzzii" = 0.7, "Anopheles funestus" = 0.3), spz)
 mix
 
-om_ento = get_OM_ento_snippet(names(mix), activity = activity_gambiae,
-                              species_shares = mix)
+activity = def_activity_patterns("default_Anopheles_gambiae")
+om_ento = get_OM_ento_snippet(names(mix), activity = activity, species_shares = mix)
 om_ento$shares
-str(om_ento$mosquitoParameters[[1]][c("mosqRestDuration", "mosqSeekingDuration",
-                                      "mosqHumanBloodIndex")])
 ```
 `shares` gives, per population, its share within the species (`share`), the
 share of its species (`species_share`), its share of the EIR (`eir_share`),
@@ -659,48 +665,60 @@ host-seeking death rate `muvA` (used to export host-seeking killing).
 Placeholder contributions, and their values for two compositions (the
 columns `contrib_<population>` fill the placeholders of the same name):
 ```{r}
-om_ento_ph = get_OM_ento_snippet(names(mix), activity = activity_gambiae)
+om_ento_ph = get_OM_ento_snippet(names(mix), activity = activity)
 om_ento_ph$seasonalityParameters[[1]]$annualEIR
 om_ento_values(om_ento_ph, rbind(mix = mix, equal = c(0.5, 0.5)))
 ```
 
-**Writing the entomology.** The total EIR goes into `scaledAnnualEIR`, here a
-placeholder. The monthly seasonality gives the shape of the EIR over the year
-(OpenMalaria rescales it to the annual EIR). With R >= 4.3,
-`defineEntomology()` currently rejects the monthly placeholders `"@m1@"`,
-..., `"@m12@"` of `seasonalityParameters` (an openMalariaUtilities issue), so
-pass numeric values:
+**Writing the entomology.** `define_OM_entomology()` writes the entomology
+into the `baseList`, with the total EIR in `scaledAnnualEIR` (here a
+placeholder) and the seasonality, which gives the shape of the EIR over the
+year (OpenMalaria rescales it to the annual EIR). The `baseList` also keeps
+the entomology, so that the interventions use the same mosquito populations
+and parameters. The seasonality must currently be numeric (with R >= 4.3,
+openMalariaUtilities rejects the monthly placeholders); `get_OM_xml()` keeps
+them as placeholders.
 ```{r, eval=FALSE}
-# baseList: an openMalariaUtilities scenario
-seas = lapply(om_ento$seasonalityParameters, function(s) {
-    s$seasonality = c(2, 3, 5, 8, 6, 3, 1, 1, 1, 1, 1, 2)   # illustrative profile
-    s })
-baseList = openMalariaUtilities::defineEntomology(
-    baseList, seas, om_ento$mosquitoParameters, scaledAnnualEIR = "@EIR@")
+# baseList: an openMalariaUtilities scenario, with baseList$interventions$human
+baseList = define_OM_entomology(baseList, om_ento,
+                                seasonality = c(2, 3, 5, 8, 6, 3, 1, 1, 1, 1, 1, 2),
+                                scaledAnnualEIR = "@EIR@")
 ```
-To keep the seasonality as placeholders, use the text export instead
-(`get_OM_xml(om_ento)`, see the end of this section), which writes the same
-entomology without `defineEntomology()`.
 
 ### Vector control
 
-`define_OM_vector_control()` writes the definition of an ITN or IRS
-intervention, for both model structures, and `deploy_OM_vector_control()` its
-deployment, with the same `name` and a `schedule` of campaigns (dates and
-coverages, numbers or placeholders such as `"@cov2021@"`):
+**Specifying an intervention.** `om_vector_control()` takes the efficacies
+of an intervention and its decays (attrition, and optionally insecticide
+decay), with no model or duration: the export builds the intervention with
+the entomology of the scenario, over the right period. It takes a built-in
+parameterisation from `get_ITN_params()` (see `list_ITN_params()` for the
+available nets and trials), or custom efficacies:
+```{r}
+# Built-in: Interceptor G2, Kibondo hut trial, standard model
+ig2 = om_vector_control(get_ITN_params("Interceptor G2", "Kibondo", verbose = FALSE),
+                        halflife_attrition = 2 * 365, shape_attrition = 2)
+# Custom
+custom = om_vector_control(c(Deterrency = 0.4, PrePrandial = 0.5, PostPrandial = 0.3),
+                           halflife_attrition = 2 * 365, shape_attrition = 2,
+                           name = "Custom ITN")
+```
+
+**Define and deploy.** `define_OM_vector_control()` writes the definition of
+the intervention and `deploy_OM_vector_control()` its deployment, with the
+same `name` and a `schedule` of campaigns (dates and coverages, numbers or
+placeholders such as `"@cov2021@"`):
 ```{r, eval=FALSE}
-baseList = define_OM_vector_control(baseList, my_interv, om_ento,
-                                    intervention_type = "ITN", name = "ITN")
-schedule = data.frame(date     = c("2021-01-01", "2024-01-01"),
-                      coverage = c(0.8, 0.6))
-baseList = deploy_OM_vector_control(baseList, "ITN", schedule)
+baseList = define_OM_vector_control(baseList, ig2, intervention_type = "ITN", name = "IG2")
+schedule = data.frame(date = c("2021-01-01", "2024-01-01"), coverage = c(0.8, 0.6))
+baseList = deploy_OM_vector_control(baseList, "IG2", schedule)
 ```
 
 - **Effects.** Deterrency, pre-prandial and post-prandial killing become an
   OpenMalaria generic vector intervention (GVI). Each effect keeps its own
-  decay (attrition and insecticide decay combined, a fitted Weibull when they
-  cannot be expressed as a single OpenMalaria decay); when all decays are
-  identical, the effects are written as a single component.
+  decay; when attrition and insecticide decay cannot be expressed as a single
+  OpenMalaria decay, a Weibull is fitted to their product, over 3 years for
+  ITNs and 1 year for IRS (`fit_years` in `om_vector_control()`). When all
+  decays are identical, the effects are written as a single component.
 - **Exposure.** The effects act on the mosquito populations exposed in bed
   (ITN) or resting indoors (IRS), see `shares` above.
 - **Same people.** The deployment holds all the components of the
@@ -713,40 +731,40 @@ equivalent to the dummy host). Its value depends on the nets of all campaigns
 still in use, so it is written by `deploy_OM_vector_control()`, as one step
 per campaign lasting until the next campaign or `end_date`; the deploy
 message compares the vectorial capacity reduction of the steps with that of
-the exact curve. Consequences:
-
-- deploy a dummy-host intervention **once**, with the whole schedule and an
-  `end_date` (`deploy_OM_vector_control(baseList, "ITN", schedule, end_date =
-  "2030-01-01")`);
-- the interventions must last (`duration_years`) from the first campaign to
-  `end_date`;
-- the deployment cannot be restricted to a sub-population, by age, or be
-  cumulative.
-
-**Templates.** With a named list of interventions (same model structure), all
-values are placeholders (efficacies, Weibull decays, host-seeking killing
-steps), so that scenarios can loop over net types;
-`om_vector_control_values()` gives their values for each net and coverage
-scenario, in columns named like the placeholders:
+the exact curve. A dummy-host intervention is therefore deployed **once**,
+with the whole schedule and an `end_date`, and cannot be restricted to a
+sub-population, by age, or be cumulative:
 ```{r, eval=FALSE}
-# Other nets / trials: see list_ITN_params() (all with mode = "dummy_host")
-ig2_p = get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host")
-make_net = function(p, ...) build_intervention(
-    efficacy = p$efficacy, halflife_insecticide = p$halflife_insecticide,
-    mode = p$mode, halflife_attrition = 2 * 365, shape_attrition = 2,
-    duration_years = 9, model_p = model_p, name = p$name, ...)
-nets = list(IG2 = make_net(ig2_p),
-            IG2_no_insecticide_decay = make_net(ig2_p, insecticide_decay = FALSE))
+ig2_dh = om_vector_control(get_ITN_params("Interceptor G2", "Kibondo",
+                                          mode = "dummy_host", verbose = FALSE),
+                           halflife_attrition = 2 * 365, shape_attrition = 2)
+baseList = define_OM_vector_control(baseList, ig2_dh, name = "IG2_dh")
+baseList = deploy_OM_vector_control(baseList, "IG2_dh", schedule, end_date = "2027-01-01")
+```
 
-schedule = data.frame(date     = c("2021-01-01", "2024-01-01", "2027-01-01"),
-                      coverage = c("@cov2021@", "@cov2024@", "@cov2027@"))
-baseList = define_OM_vector_control(baseList, nets, om_ento, name = "ITN")
-baseList = deploy_OM_vector_control(baseList, "ITN", schedule, end_date = "2030-01-01")
+**Several nets.** With a named list of interventions (same model structure),
+the XML is the same for all of them and every value is a placeholder
+(efficacies, Weibull decays, host-seeking killing steps), so that scenarios
+can loop over net types. Here the built-in and the custom net, with
+placeholder coverages:
+```{r, eval=FALSE}
+nets = list(IG2 = ig2, custom = custom)
+schedule_ph = data.frame(date = c("2021-01-01", "2024-01-01"),
+                         coverage = c("@cov2021@", "@cov2024@"))
+baseList = define_OM_vector_control(baseList, nets, name = "ITN")
+baseList = deploy_OM_vector_control(baseList, "ITN", schedule_ph)
+```
 
-# One row per net and coverage scenario, to merge into the scenario table
-values = om_vector_control_values(nets, om_ento, schedule, end_date = "2030-01-01",
-    coverages = expand.grid(cov2021 = c(0.5, 0.8), cov2024 = 0.6, cov2027 = 0.6),
-    name = "ITN")
+`om_vector_control_values()` gives the values of the placeholders, one row
+per net and coverage scenario, in columns named like the placeholders, to
+merge into the scenario table (`end_date` is used for the host-seeking
+killing of dummy-host nets):
+```{r}
+nets = list(IG2 = ig2, custom = custom)
+schedule_ph = data.frame(date = c("2021-01-01", "2024-01-01"),
+                         coverage = c("@cov2021@", "@cov2024@"))
+om_vector_control_values(nets, om_ento, schedule_ph, end_date = "2027-01-01",
+    coverages = expand.grid(cov2021 = c(0.5, 0.8), cov2024 = 0.6), name = "ITN")
 ```
 A single intervention (not in a list) writes numbers directly, and
 placeholders only for the host-seeking killing when coverages are
@@ -759,7 +777,7 @@ writes it into a `baseList`. They are useful to write the deployment
 yourself, e.g. with openMalariaUtilities' `deployIT()`; in that case, deploy
 all components of an intervention together.
 ```{r}
-om_gvi = get_OM_GVI_snippet(my_interv, om_ento, intervention_type = "ITN")
+om_gvi = get_OM_GVI_snippet(ig2, om_ento, intervention_type = "ITN")
 om_gvi[[1]]$deterrency$decay   # L in years
 ```
 
@@ -782,10 +800,9 @@ Printing the result shows each snippet with a comment saying where it goes;
 the entomology only; for several interventions, call it once per
 intervention with `entomology = FALSE` after the first.
 ```{r}
-schedule = data.frame(date     = c("2021-01-01", "2024-01-01"),
+schedule = data.frame(date = c("2021-01-01", "2024-01-01"),
                       coverage = c("@cov2021@", "@cov2024@"))
-xml = get_OM_xml(om_ento, my_interv, schedule, end_date = "2027-01-01",
-                 name = "ITN")
+xml = get_OM_xml(om_ento, ig2, schedule, name = "IG2")
 cat(xml$deploy)
 ```
 
