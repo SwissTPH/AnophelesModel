@@ -653,3 +653,74 @@ test_that("define_OM_entomology keeps the entomology used by the interventions",
     b = suppressMessages(deploy_OM_vector_control(b, "IG2", sched_num, "2027-01-01"))
     expect_length(by_name(b$interventions$vectorPop, "intervention"), 2)
 })
+
+# ---------------------------------------------------------------------------
+# 7. Campaign schedules
+# ---------------------------------------------------------------------------
+test_that("om_campaigns builds regular or given schedules", {
+    s = om_campaigns("2015-01-25", "2018-01-25", coverage = "@histITNcov@", by_year = TRUE)
+    expect_equal(s$date, c("2015-01-25", "2016-01-25", "2017-01-25", "2018-01-25"))
+    expect_equal(s$coverage, paste0("@histITNcov", 2015:2018, "@"))
+    s = om_campaigns("2019-01-25", "2021-07-25", every = "6 months", coverage = 0.6)
+    expect_equal(s$date, c("2019-01-25", "2019-07-25", "2020-01-25", "2020-07-25",
+                           "2021-01-25", "2021-07-25"))
+    expect_equal(s$coverage, rep(0.6, 6))
+    s = om_campaigns(dates = c("2021-01-01", "2024-01-01"), coverage = c(0.8, "@c2@"))
+    expect_equal(s$coverage, c("0.8", "@c2@"))
+    expect_error(om_campaigns("2015-01-01", "2016-01-01", every = "6 months",
+                              coverage = "@c@", by_year = TRUE), "one campaign per year")
+    expect_error(om_campaigns("2015-01-01", "2016-01-01", coverage = 0.5, by_year = TRUE),
+                 "placeholder")
+    expect_error(om_campaigns("2015-01-01", "2017-01-01", coverage = c(0.5, 0.6)), "one per")
+    expect_error(om_campaigns(dates = c("2024-01-01", "2021-01-01"), coverage = 1),
+                 "increasing")
+    expect_error(om_campaigns("2015-01-01", coverage = 1), "from and to")
+})
+
+test_that("a placeholder repeated over campaigns gives one coverage column", {
+    spec = om_vector_control(c(Deterrency = 0.3, HostSeekingKilling = 0.6, PostPrandial = 0.4),
+                             halflife_attrition = 365, shape_attrition = 2)
+    same = om_campaigns("2021-01-01", "2023-01-01", coverage = "@cont@")
+    v = suppressMessages(om_vector_control_values(spec, om, same, "2024-01-01",
+                                                  data.frame(cont = c(0.5, 0.8)), name = "N"))
+    expect_equal(sum(names(v) == "cont"), 1)
+    expect_false(any(grepl("^cont\\.", names(v))))
+    # Same values as three placeholders with the same coverages
+    three = om_campaigns(dates = same$date, coverage = c("@a@", "@b@", "@c@"))
+    v3 = suppressMessages(om_vector_control_values(spec, om, three, "2024-01-01",
+        data.frame(a = c(0.5, 0.8), b = c(0.5, 0.8), c = c(0.5, 0.8)), name = "N"))
+    hsk = grep("_hsk_", names(v), value = TRUE)
+    expect_equal(v[hsk], v3[hsk])
+})
+
+test_that("a list keeps the decay function shared by its nets (e.g. a step)", {
+    p = function(eht) get_ITN_params("Interceptor G2", eht, verbose = FALSE)
+    hist = list(
+        martin  = om_vector_control(p("Martin"),  halflife_attrition = 365,
+                                    decay_attrition = "step", insecticide_decay = FALSE),
+        assenga = om_vector_control(p("Assenga"), halflife_attrition = 365,
+                                    decay_attrition = "step", insecticide_decay = FALSE))
+    b = suppressMessages(AnophelesModel2:::om_vc_components(hist, om, "ITN", "histITN"))
+    decay = b$components[[1]]$GVI$decay
+    expect_equal(decay, list(L = "@histITN_deterrency_L@", "function" = "step"))   # no k
+    sched = om_campaigns("2015-01-25", "2018-01-25", coverage = "@histITNcov@")
+    v = suppressMessages(om_vector_control_values(hist, om, sched, "2019-01-25",
+        data.frame(histITNcov = 0.6), name = "histITN"))
+    expect_equal(v$histITN_deterrency_L, c(1, 1))      # 365 days, in years
+    expect_false("histITN_deterrency_k" %in% names(v))
+    # Different decay functions: Weibull for all (step fitted)
+    mixed = list(step = hist$martin,
+                 weib = om_vector_control(p("Martin"), halflife_attrition = 730,
+                                          shape_attrition = 2, insecticide_decay = FALSE))
+    b = suppressMessages(AnophelesModel2:::om_vc_components(mixed, om, "ITN", "mix"))
+    expect_equal(b$components[[1]]$GVI$decay[["function"]], "weibull")
+})
+
+test_that("deploying a member of a list points to the list's name", {
+    skip_if_not_installed("openMalariaUtilities")
+    nets = list(martin = om_vector_control(eff, 730, 2), assenga = om_vector_control(eff, 365, 2))
+    b = suppressMessages(define_OM_vector_control(om_base_ento(), nets, name = "futITN"))
+    expect_error(deploy_OM_vector_control(b, "martin", sched_num),
+                 "one of the interventions of the list defined as 'futITN'.*deploy 'futITN'")
+    expect_no_error(suppressMessages(deploy_OM_vector_control(b, "futITN", sched_num)))
+})

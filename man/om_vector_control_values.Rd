@@ -46,8 +46,9 @@ placeholders (default: the intervention description, or
 \value{
 Data frame with \code{net} (the names of a list of interventions),
 the coverage columns, and one column per placeholder (named without the
-\code{@}): efficacies and Weibull decays (\code{L} in years, \code{k}) for a
-list of interventions, and host-seeking killing steps
+\code{@}): efficacies and decay parameters (\code{L} in years, and
+\code{k} for decay functions with a shape parameter) for a list of
+interventions, and host-seeking killing steps
 \code{<name>_hsk_<k>_pop<j>} for dummy-host interventions.
 }
 \description{

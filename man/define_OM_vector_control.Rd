@@ -73,13 +73,17 @@ the period from the first campaign to \code{end_date}; objects from
 (\code{"@cov2021@"}); the step values then depend on them and are written
 as placeholders \code{"@<name>_hsk_<k>_pop<j>@"} (campaign \eqn{k},
 mosquito population \eqn{j}: row of \code{om_ento$shares}, printed by the
-message). With a \strong{named list} of interventions (e.g. several nets
-or parameterisations, to loop over in scenarios), the structure is shared
-and every value is a placeholder: efficacies \code{"@<name>_deterrency@"},
-\code{"@<name>_preprandial@"}, \code{"@<name>_postprandial@"}, Weibull
-decays \code{"@<name>_deterrency_L@"}, \code{"@<name>_deterrency_k@"}, ...
-(one GVI component per effect; the exact decay if it is a Weibull,
-otherwise a fitted Weibull) and the host-seeking killing steps. All
+message). A \strong{named list} of interventions (e.g. several nets or
+parameterisations, to choose between in scenarios) defines \strong{one}
+intervention, deployed under \code{name}: the structure is shared and
+every value is a placeholder, filled per scenario with the values of one
+of the interventions: efficacies \code{"@<name>_deterrency@"},
+\code{"@<name>_preprandial@"}, \code{"@<name>_postprandial@"}, decay
+parameters \code{"@<name>_deterrency_L@"} (and \code{_k} when the decay
+function has a shape parameter), ... (one GVI component per effect) and
+the host-seeking killing steps. Each effect keeps its decay function when
+it is the same for all the interventions of the list (e.g. a \code{step}
+for historical nets), and is otherwise a Weibull (exact, or fitted). All
 interventions of the list must use the same model. Fill the placeholders
 with \code{\link{om_vector_control_values}}.
 

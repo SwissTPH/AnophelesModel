@@ -16,14 +16,14 @@
 #########list_ITN_params############
 #' @title List available ITN parameterisations
 #'
-#' @description Prints all net type / EHT combinations available in the
+#' @description Lists all net type / EHT combinations available in the
 #' built-in \code{ITN_parameterisations_Champagne2025} dataset.
 #'
 #' Every pair has both parameterisations (standard and dummy-host model),
 #' chosen with \code{mode} in \code{\link{get_ITN_params}}.
 #'
 #' @return Data frame with columns \code{netType}, \code{EHT} and
-#' \code{reference} (also printed to console); \code{netType} and \code{EHT}
+#' \code{reference}; \code{netType} and \code{EHT}
 #' are the \code{net_type} and \code{EHT} arguments of
 #' \code{\link{get_ITN_params}}.
 #'
@@ -40,8 +40,7 @@ list_ITN_params = function() {
                     c("netType", "EHT", "reference")])
     out = out[order(out$EHT, out$netType), ]
     rownames(out) = NULL
-    print(out)
-    invisible(out)
+    out
 }
 
 
@@ -170,7 +169,10 @@ get_ITN_params = function(net_type, EHT, mode = "standard",
     # absolute values (the control alpha_0 may differ between arms).
     alpha_0 = NULL
     if (rescale_hsk && "HostSeekingKilling" %in% names(efficacy)) {
-        alpha_0  = control_alpha_0(db, EHT, ref)
+        # The control of the same fit (a trial can have several fits, each with
+        # its own control, e.g. Sovegnon)
+        fit      = if (!is.null(rows$fit)) unique(rows$fit) else NULL
+        alpha_0  = control_alpha_0(db, EHT, ref, fit)
         hsk      = rows[rows$parameter == "KillingDuringHostSeeking", ]
         hsk_abs  = c(Unwashed = hsk$Unwashed * alpha_0[["Unwashed"]],
                      Washed   = hsk$Washed   * alpha_0[["Washed"]])
@@ -206,14 +208,19 @@ get_ITN_params = function(net_type, EHT, mode = "standard",
 
 # Internal: control-arm availability alpha_0 (Unwashed and Washed fits) of an
 # experimental hut trial, matched on EHT and, when a trial has several control
-# rows, on the reference.
-control_alpha_0 = function(db, EHT, reference) {
+# rows, on the fit (several fits of one trial, each with its own control, e.g.
+# Sovegnon), or else on the reference.
+control_alpha_0 = function(db, EHT, reference, fit = NULL) {
     ctrl = db[db$netType == "control" & db$EHT == EHT &
                   db$parameter == "alpha_0", ]
-    if (nrow(ctrl) > 1L) ctrl = ctrl[ctrl$reference == reference, ]
+    if (nrow(ctrl) > 1L) {
+        ctrl = if (!is.null(fit) && !is.null(ctrl$fit)) ctrl[ctrl$fit %in% fit, ]
+               else ctrl[ctrl$reference == reference, ]
+    }
     if (nrow(ctrl) != 1L)
         stop("Cannot identify a unique control alpha_0 for EHT '", EHT,
-             "' (reference '", reference, "'): found ", nrow(ctrl),
-             " matching control rows.")
+             "' (reference '", reference, "'",
+             if (!is.null(fit)) paste0(", fit ", paste(fit, collapse = ", ")),
+             "): found ", nrow(ctrl), " matching control rows.")
     c(Unwashed = ctrl$Unwashed, Washed = ctrl$Washed)
 }

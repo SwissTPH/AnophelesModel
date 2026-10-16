@@ -93,6 +93,16 @@ rewritten and are **not backward compatible**.
   killing, and fits Weibull decays over 3 years (ITN) or 1 year (IRS) by
   default (`fit_years`). Intervention objects of `build_intervention()`
   remain accepted.
+* New `om_campaigns()`: campaign schedules from regular dates (`from`, `to`,
+  `every`, as `seq.Date()`) or given dates, with one coverage (number or
+  placeholder), one per campaign, or one placeholder per year
+  (`by_year = TRUE`, as `byyear` of `deploy_it_compat()`). A placeholder
+  repeated over campaigns gives one coverage column in
+  `om_vector_control_values()`.
+* In a list of interventions (template), each effect keeps its decay
+  function when all the interventions share it (e.g. a step for historical
+  nets), with its parameters as placeholders; it is a Weibull only when the
+  decay functions differ.
 * New `define_OM_entomology()`: writes the entomology with
   `defineEntomology()` (numeric seasonality, `scaledAnnualEIR`) and keeps it
   in the `baseList`; `define_OM_vector_control()` takes the mosquito
@@ -132,6 +142,9 @@ rewritten and are **not backward compatible**.
   `interv_param_sets`, `exposure_sets`, `coverage_sets`).
 * `get_ITN_params()` / `list_ITN_params()` load ITN efficacies and insecticide
   decay fitted to experimental hut trials (`ITN_parameterisations_Champagne2025`).
+  The dataset has a `fit` column: a trial fitted in several parts (Sovegnon)
+  has one control per fit, and host-seeking killing is rescaled by the
+  control of the net's own fit.
 * **Dummy-host model**: host-seeking killing (`HostSeekingKilling`) adds a
   fourth host type whose availability is the **absolute** killing rate (in
   the units of the host availabilities, not a probability). It is mutually

@@ -230,9 +230,16 @@ ggplot(decay_df, aes(x=day, y=value, colour=shape)) +
     labs(x="Day", y="Remaining efficacy", colour="Decay function")
 ```
 
+**Built-in ITN parameterisations.** `list_ITN_params()` lists the nets and
+experimental hut trials (EHT) of the database [@champagne2025], each
+available for both model structures; `netType` and `EHT` are the arguments of
+`get_ITN_params()`:
+```{r}
+head(list_ITN_params())
+```
+
 **Standard model** — built-in parameterisation for Interceptor G2 from the
-Kibondo EHT [@champagne2025] (`list_ITN_params()` lists the available nets and
-trials), with Weibull attrition (half-life 3 years) and
+Kibondo EHT, with Weibull attrition (half-life 3 years) and
 per-component **linear** insecticide decay, passed via `halflife_insecticide`
 (in years). Despite its name, this is the time at which the effect would
 reach zero, calibrated so that efficacy after 3 years equals the efficacy of
@@ -703,13 +710,22 @@ custom = om_vector_control(c(Deterrency = 0.4, PrePrandial = 0.5, PostPrandial =
                            name = "Custom ITN")
 ```
 
+**Campaign schedules.** `om_campaigns()` builds the `schedule` of
+campaigns: dates (regular, with `from`, `to` and `every`, or given) and
+coverages (numbers or placeholders such as `"@cov2021@"`, one per year with
+`by_year = TRUE`):
+```{r}
+om_campaigns(dates = c("2021-01-01", "2024-01-01"), coverage = c(0.8, 0.6))
+om_campaigns("2015-01-25", "2018-01-25", every = "1 year",
+             coverage = "@histITNcov@", by_year = TRUE)
+```
+
 **Define and deploy.** `define_OM_vector_control()` writes the definition of
 the intervention and `deploy_OM_vector_control()` its deployment, with the
-same `name` and a `schedule` of campaigns (dates and coverages, numbers or
-placeholders such as `"@cov2021@"`):
+same `name` and a schedule:
 ```{r, eval=FALSE}
 baseList = define_OM_vector_control(baseList, ig2, intervention_type = "ITN", name = "IG2")
-schedule = data.frame(date = c("2021-01-01", "2024-01-01"), coverage = c(0.8, 0.6))
+schedule = om_campaigns(dates = c("2021-01-01", "2024-01-01"), coverage = c(0.8, 0.6))
 baseList = deploy_OM_vector_control(baseList, "IG2", schedule)
 ```
 
@@ -742,15 +758,26 @@ baseList = define_OM_vector_control(baseList, ig2_dh, name = "IG2_dh")
 baseList = deploy_OM_vector_control(baseList, "IG2_dh", schedule, end_date = "2027-01-01")
 ```
 
-**Several nets.** With a named list of interventions (same model structure),
-the XML is the same for all of them and every value is a placeholder
-(efficacies, Weibull decays, host-seeking killing steps), so that scenarios
-can loop over net types. Here the built-in and the custom net, with
-placeholder coverages:
+**Several nets.** There are two cases:
+
+- **Different nets in the same scenario** (e.g. historical nets until
+  2018, then new nets): define and deploy each as its own intervention, with
+  its own name and schedule.
+- **Alternative nets across scenarios** (e.g. to compare net types): a named
+  list of interventions (same model structure) defines **one** intervention,
+  deployed under the list's `name`. Its XML is the same for all the nets of
+  the list and every value is a placeholder (efficacies, decay parameters,
+  host-seeking killing steps), filled per scenario with the values of one
+  net: in a scenario, only that net is deployed. Each effect keeps its decay
+  function if it is the same for all the nets (e.g. a `step` for
+  historical nets that last one year), and is otherwise a Weibull.
+
+Here the built-in and the custom net as alternatives, with placeholder
+coverages:
 ```{r, eval=FALSE}
 nets = list(IG2 = ig2, custom = custom)
-schedule_ph = data.frame(date = c("2021-01-01", "2024-01-01"),
-                         coverage = c("@cov2021@", "@cov2024@"))
+schedule_ph = om_campaigns("2021-01-01", "2024-01-01", every = "3 years",
+                           coverage = "@cov@", by_year = TRUE)
 baseList = define_OM_vector_control(baseList, nets, name = "ITN")
 baseList = deploy_OM_vector_control(baseList, "ITN", schedule_ph)
 ```
@@ -761,8 +788,8 @@ merge into the scenario table (`end_date` is used for the host-seeking
 killing of dummy-host nets):
 ```{r}
 nets = list(IG2 = ig2, custom = custom)
-schedule_ph = data.frame(date = c("2021-01-01", "2024-01-01"),
-                         coverage = c("@cov2021@", "@cov2024@"))
+schedule_ph = om_campaigns("2021-01-01", "2024-01-01", every = "3 years",
+                           coverage = "@cov@", by_year = TRUE)
 om_vector_control_values(nets, om_ento, schedule_ph, end_date = "2027-01-01",
     coverages = expand.grid(cov2021 = c(0.5, 0.8), cov2024 = 0.6), name = "ITN")
 ```
@@ -800,8 +827,8 @@ Printing the result shows each snippet with a comment saying where it goes;
 the entomology only; for several interventions, call it once per
 intervention with `entomology = FALSE` after the first.
 ```{r}
-schedule = data.frame(date = c("2021-01-01", "2024-01-01"),
-                      coverage = c("@cov2021@", "@cov2024@"))
+schedule = om_campaigns("2021-01-01", "2024-01-01", every = "3 years",
+                        coverage = "@cov@", by_year = TRUE)
 xml = get_OM_xml(om_ento, ig2, schedule, name = "IG2")
 cat(xml$deploy)
 ```

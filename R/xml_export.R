@@ -744,6 +744,36 @@ om_weibull_decay = function(interv, comp) {
 }
 
 
+# Internal: decay function of an effect in a template (list of
+# interventions): the exact function when all the interventions have the same
+# one (e.g. a step for historical nets), otherwise a Weibull (exact or fitted
+# per intervention)
+om_template_fn = function(nets, comp) {
+    fns = vapply(nets, function(n)
+        suppressMessages(om_gvi_decay(n, comp))[["function"]], character(1),
+        USE.NAMES = FALSE)
+    if (length(unique(fns)) == 1L) fns[1] else "weibull"
+}
+
+# Internal: decay parameters (L in years, k or NA) of an effect of one
+# intervention, for the template decay function fn
+om_template_decay_values = function(net, comp, fn) {
+    if (fn == "weibull") return(om_weibull_decay(net, comp))
+    d = suppressMessages(om_gvi_decay(net, comp))
+    c(L = if (!is.null(d$L)) as.numeric(d$L) else NA_real_,
+      k = if (!is.null(d$k)) as.numeric(d$k) else NA_real_)
+}
+
+# Internal: OpenMalaria decay of a template effect, with placeholders for its
+# parameters (none for a constant decay)
+om_template_decay = function(fn, lab) {
+    if (fn == "constant") return(list("function" = "constant"))
+    out = list(L = paste0("@", lab, "_L@"), "function" = fn)
+    if (fn %in% c("weibull", "hill", "smooth-compact")) out$k = paste0("@", lab, "_k@")
+    out
+}
+
+
 # Internal: the interventions to export, as list(nets, template): a single
 # intervention (template = FALSE), or a named list of them, all with the same
 # model (template = TRUE, values as placeholders). Each is a specification
@@ -928,6 +958,73 @@ om_vector_control = function(efficacy, halflife_attrition = NULL,
     spec
 }
 
+#########om_campaigns####
+#' @title Schedule of vector control campaigns
+#'
+#' @description Builds the \code{schedule} of
+#' \code{\link{deploy_OM_vector_control}}, \code{\link{get_OM_xml}} and
+#' \code{\link{om_vector_control_values}}: one row per campaign, with its date
+#' and coverage, from regular dates (\code{from}, \code{to}, \code{every}) or
+#' given \code{dates}.
+#'
+#' @param from,to First and last possible dates (\code{"YYYY-MM-DD"}); the
+#'   campaigns are \code{seq(from, to, by = every)}.
+#' @param every Interval between campaigns, as \code{by} in
+#'   \code{\link{seq.Date}}: \code{"1 year"} (default), \code{"6 months"},
+#'   \code{"3 weeks"}, ...
+#' @param coverage Coverage: a number in [0, 1] or a placeholder (e.g.
+#'   \code{"@contITNcov@"}), used for every campaign, or one value per
+#'   campaign.
+#' @param by_year Logical (default \code{FALSE}): with a placeholder
+#'   coverage, one placeholder per year (\code{"@histITNcov@"} becomes
+#'   \code{"@histITNcov2015@"}, \code{"@histITNcov2016@"}, ...), as
+#'   \code{byyear} of openMalariaUtilities' \code{deploy_it_compat()}.
+#' @param dates Dates of the campaigns, instead of \code{from}, \code{to} and
+#'   \code{every}.
+#'
+#' @return Data frame with \code{date} and \code{coverage}.
+#'
+#' @examples
+#' # Annual campaigns, one coverage placeholder per year
+#' om_campaigns("2015-01-25", "2018-01-25", coverage = "@histITNcov@", by_year = TRUE)
+#' # Same coverage every year
+#' om_campaigns("2019-01-25", "2030-01-25", coverage = "@contITNcov@")
+#' # Given dates and coverages
+#' om_campaigns(dates = c("2021-01-01", "2024-01-01"), coverage = c(0.8, 0.6))
+#'
+#' @export
+#'
+om_campaigns = function(from = NULL, to = NULL, every = "1 year", coverage,
+                        by_year = FALSE, dates = NULL) {
+    if (is.null(dates)) {
+        if (is.null(from) || is.null(to))
+            stop("Give from and to (with every), or dates")
+        dates = tryCatch(seq(as.Date(from), as.Date(to), by = every),
+                         error = function(e) stop("Invalid from / to / every: ",
+                                                  conditionMessage(e), call. = FALSE))
+    } else {
+        dates = tryCatch(as.Date(as.character(dates)), error = function(e) NA)
+        if (anyNA(dates)) stop("dates must be dates (\"YYYY-MM-DD\")")
+    }
+    if (!length(dates)) stop("No campaign between from and to")
+    if (!length(coverage) %in% c(1L, length(dates)))
+        stop("coverage must be one value, or one per campaign (", length(dates), ")")
+    if (isTRUE(by_year)) {
+        if (length(coverage) != 1L || !is.character(coverage) ||
+            !grepl("^@[^@]+@$", coverage))
+            stop("by_year = TRUE needs one placeholder coverage, e.g. \"@histITNcov@\"")
+        years = format(dates, "%Y")
+        if (anyDuplicated(years))
+            stop("by_year = TRUE needs at most one campaign per year")
+        coverage = paste0(sub("@$", "", coverage), years, "@")
+    }
+    out = data.frame(date = format(dates), coverage = rep(coverage, length.out = length(dates)),
+                     stringsAsFactors = FALSE)
+    om_schedule(out)   # validates dates and coverages
+    out
+}
+
+
 # Internal: a default model, only to validate specifications
 om_default_model = function() {
     build_model_obj(def_vector_params(verbose = FALSE), def_host_params(verbose = FALSE))
@@ -1052,13 +1149,17 @@ om_baselist_ento = function(baseList) {
 #' (\code{"@cov2021@"}); the step values then depend on them and are written
 #' as placeholders \code{"@<name>_hsk_<k>_pop<j>@"} (campaign \eqn{k},
 #' mosquito population \eqn{j}: row of \code{om_ento$shares}, printed by the
-#' message). With a \strong{named list} of interventions (e.g. several nets
-#' or parameterisations, to loop over in scenarios), the structure is shared
-#' and every value is a placeholder: efficacies \code{"@<name>_deterrency@"},
-#' \code{"@<name>_preprandial@"}, \code{"@<name>_postprandial@"}, Weibull
-#' decays \code{"@<name>_deterrency_L@"}, \code{"@<name>_deterrency_k@"}, ...
-#' (one GVI component per effect; the exact decay if it is a Weibull,
-#' otherwise a fitted Weibull) and the host-seeking killing steps. All
+#' message). A \strong{named list} of interventions (e.g. several nets or
+#' parameterisations, to choose between in scenarios) defines \strong{one}
+#' intervention, deployed under \code{name}: the structure is shared and
+#' every value is a placeholder, filled per scenario with the values of one
+#' of the interventions: efficacies \code{"@<name>_deterrency@"},
+#' \code{"@<name>_preprandial@"}, \code{"@<name>_postprandial@"}, decay
+#' parameters \code{"@<name>_deterrency_L@"} (and \code{_k} when the decay
+#' function has a shape parameter), ... (one GVI component per effect) and
+#' the host-seeking killing steps. Each effect keeps its decay function when
+#' it is the same for all the interventions of the list (e.g. a \code{step}
+#' for historical nets), and is otherwise a Weibull (exact, or fitted). All
 #' interventions of the list must use the same model. Fill the placeholders
 #' with \code{\link{om_vector_control_values}}.
 #'
@@ -1119,6 +1220,8 @@ define_OM_vector_control = function(baseList, interv,
         stop("baseList already has components of '", b$name, "'")
 
     baseList = om_add_components(baseList, b$components)
+    # Names of the interventions of a list, to point deploy to the list's name
+    if (!is.null(b$members)) baseList$anophelesmodel2$members[[b$name]] = b$members
     # Dummy host: what the host-seeking killing steps need, for
     # deploy_OM_vector_control(), which writes the steps. Kept in a top-level
     # entry of baseList that openMalariaUtilities does not write to the XML
@@ -1146,21 +1249,21 @@ om_vc_components = function(interv, om_ento, intervention_type, name) {
     mode = x$nets[[1]]$settings$mode
     mosq   = om_ento$shares$mosquito
     active = om_active(om_ento, intervention_type)
-    out = list(name = name, mode = mode)
+    out = list(name = name, mode = mode,
+               members = if (x$template) names(interv))
 
     # GVI: values, or placeholders for a list of interventions
     if (x$template) {
         comps = om_model_effects(mode)
-        for (net in x$nets) for (comp in comps) om_weibull_decay(net, comp)   # checks
         gvi = lapply(comps, function(comp) {
             lab = paste0(pn, "_", om_ph_label[[comp]])
+            fn  = om_template_fn(x$nets, comp)
+            for (net in x$nets) om_template_decay_values(net, comp, fn)   # checks
             params = lapply(seq_along(active), function(j)
                 list(propActive = if (active[j]) 1 else 0,
                      value      = if (active[j]) paste0("@", lab, "@") else "0"))
             names(params) = mosq
-            list(decay = list(L = paste0("@", lab, "_L@"), "function" = "weibull",
-                              k = paste0("@", lab, "_k@")),
-                 anophelesParams = params)
+            list(decay = om_template_decay(fn, lab), anophelesParams = params)
         })
         names(gvi) = unname(om_gvi_effects[comps])
         out$components = om_gvi_components(stats::setNames(list(gvi), name), merge = FALSE)
@@ -1302,9 +1405,17 @@ deploy_OM_vector_control = function(baseList, name, schedule, end_date = NULL,
     ids = vapply(human[names(human) == "component"],
                  function(cm) as.character(cm$id), character(1))
     ids = ids[ids == name | ids %in% paste0(name, "-", om_gvi_effects)]
-    if (!length(ids))
+    if (!length(ids)) {
+        members = baseList$anophelesmodel2$members
+        in_list = names(members)[vapply(members, function(m) name %in% m, logical(1))]
+        if (length(in_list))
+            stop("'", name, "' is one of the interventions of the list defined as '",
+                 in_list[1], "': a list defines one intervention, whose values are ",
+                 "chosen per scenario (om_vector_control_values()); deploy '",
+                 in_list[1], "'")
         stop("No component '", name, "' or '", name, "-<effect>' in baseList: ",
              "call define_OM_vector_control() first")
+    }
 
     # Dummy host: the host-seeking killing steps are computed here, from the
     # information kept by define_OM_vector_control() and the whole schedule
@@ -1387,8 +1498,9 @@ om_deployment = function(name, ids, sch, subpop = NULL, cumulative = FALSE,
 #'
 #' @return Data frame with \code{net} (the names of a list of interventions),
 #' the coverage columns, and one column per placeholder (named without the
-#' \code{@}): efficacies and Weibull decays (\code{L} in years, \code{k}) for a
-#' list of interventions, and host-seeking killing steps
+#' \code{@}): efficacies and decay parameters (\code{L} in years, and
+#' \code{k} for decay functions with a shape parameter) for a list of
+#' interventions, and host-seeking killing steps
 #' \code{<name>_hsk_<k>_pop<j>} for dummy-host interventions.
 #'
 #' @seealso \code{\link{define_OM_vector_control}}
@@ -1411,8 +1523,15 @@ om_vector_control_values = function(interv, om_ento, schedule, end_date,
                                  as.numeric(sch$end - sch$dates[1]))
     mode = gvi_nets[[1]]$settings$mode
     active = om_active(om_ento, intervention_type)
+    # Template decay functions, as written by define (shared by all the nets)
+    if (x$template) {
+        fns = lapply(om_model_effects(mode), function(comp) om_template_fn(gvi_nets, comp))
+        names(fns) = om_model_effects(mode)
+    }
 
-    cov_names = sch$names[sch$placeholder]
+    # Coverage placeholders: one column each, even when a placeholder is used
+    # for several campaigns (e.g. the same coverage every year)
+    cov_names = unique(sch$names[sch$placeholder])
     if (length(cov_names)) {
         if (is.null(coverages))
             stop("coverages is needed for the coverage placeholders: ",
@@ -1429,7 +1548,7 @@ om_vector_control_values = function(interv, om_ento, schedule, end_date,
     }
     n_sc = nrow(cov_tab)
     cov_mat = matrix(sch$num, n_sc, length(sch$num), byrow = TRUE)
-    cov_mat[, sch$placeholder] = as.matrix(cov_tab[, cov_names, drop = FALSE])
+    for (k in which(sch$placeholder)) cov_mat[, k] = cov_tab[[sch$names[k]]]
     hsk = mode == "dummy_host" && (x$template || length(cov_names))
     if (hsk) muvA = om_muvA(om_ento, active)
 
@@ -1440,10 +1559,13 @@ om_vector_control_values = function(interv, om_ento, schedule, end_date,
             for (comp in om_model_effects(mode)) {
                 lab = paste0(pn, "_", om_ph_label[[comp]])
                 eff = net$settings$efficacy
-                w   = om_weibull_decay(net, comp)
+                fn  = fns[[comp]]
+                w   = om_template_decay_values(net, comp, fn)
                 out[[lab]] = if (comp %in% names(eff)) unname(eff[[comp]]) else 0
-                out[[paste0(lab, "_L")]] = unname(w["L"])
-                out[[paste0(lab, "_k")]] = unname(w["k"])
+                # Parameter columns of the placeholders written for fn
+                ph = om_template_decay(fn, lab)
+                if (!is.null(ph$L)) out[[paste0(lab, "_L")]] = unname(w["L"])
+                if (!is.null(ph$k)) out[[paste0(lab, "_k")]] = unname(w["k"])
             }
         }
         if (hsk) {

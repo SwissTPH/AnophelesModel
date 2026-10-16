@@ -184,6 +184,10 @@
 #'     \code{Washed}. Negative values indicate the component efficacy
 #'     increased with washing; they are kept as fitted (the effect then
 #'     increases linearly over time).
+#'   \item \code{fit}: fit of the trial the row belongs to (1, or 1 and 2
+#'     when a trial was fitted in several parts, each with its own control,
+#'     e.g. Sovegnon); host-seeking killing is rescaled by the control
+#'     \code{alpha_0} of the same fit.
 #' }
 #'
 #' @author Clara Champagne, \email{clara.champagne@swisstph.ch}
