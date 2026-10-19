@@ -89,14 +89,18 @@ halves at \eqn{hl / 2}). This is the convention of the Champagne et al.
 \eqn{hl = 3 / (1 - Washed / Unwashed)}, so that efficacy after 3 years
 equals the washed (20x) value. Negative values (washed efficacy higher than
 unwashed) make the effect increase linearly over time; \code{Inf} means no
-insecticide decay. For other decay shapes, use \code{component_decay}.}
+insecticide decay. Zero and \code{NaN} values are invalid; \code{NA} means
+unspecified. For other decay shapes, use \code{component_decay}.}
 
 \item{component_decay}{Optional named list specifying an independent decay
 function for each efficacy component, using the same names as \code{efficacy}.
 Each element is a list with fields \code{decay} (string), \code{L} (days;
 meaning depends on the shape, see \code{decay_function()}), and optionally
-\code{kappa}. Overrides \code{halflife_insecticide} for
-the same component.}
+\code{kappa}. An explicit shape always overrides \code{halflife_insecticide}
+for the same component. Constant shapes (\code{"none"}, \code{"constant"})
+need no \code{L} or \code{kappa}; other shapes require a positive \code{L}
+and, where applicable, a positive \code{kappa}. Incomplete specifications
+raise an error instead of falling back to linear or constant decay.}
 
 \item{insecticide_decay}{Logical (default \code{TRUE}). If \code{FALSE},
 \code{halflife_insecticide} and \code{component_decay} are ignored: the

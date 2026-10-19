@@ -169,7 +169,105 @@ test_that("run_interventions insecticide_decay = FALSE ignores insecticide colum
 })
 
 # ---------------------------------------------------------------------------
-# 7. Weibull fitted to attrition x insecticide decay (for OpenMalaria export)
+# 7. Explicit component shapes take priority and must be complete
+# ---------------------------------------------------------------------------
+
+test_that("constant component shapes override linear decay through both VC interfaces", {
+    mp = build_model_obj(def_vector_params(), def_host_params())
+    ps = data.frame(deterrency = 0, preprandial = 0.4, postprandial = 0,
+                     decay_attrition = "none", halflife_attrition = NA_real_,
+                     shape_attrition = NA_real_, halflife_pre = 1)
+    run = function(p) suppressMessages(run_interventions(
+        p, mp, 0.8, duration_years = 1, keep_time = TRUE))
+    constant = ps
+    constant$halflife_pre = NA_real_
+    expected = run(constant)
+    for (shape in c("none", "constant", "no decay", "NONE")) {
+        p = ps
+        p$decay_pre = shape
+        actual = run(p)
+        expect_equal(actual$time$vc, expected$time$vc, info = shape)
+        expect_equal(actual$impact$avg_impact, expected$impact$avg_impact)
+        iv = suppressMessages(build_intervention(
+            c(PrePrandial = 0.4), decay_attrition = "none",
+            halflife_insecticide = c(PrePrandial = 1),
+            component_decay = list(PrePrandial = list(decay = shape)),
+            duration_years = 1, model_p = mp))
+        built = calculate_impact(iv, 0.8, mp, keep_time = TRUE)
+        expect_equal(built$time$vc, expected$time$vc, info = shape)
+    }
+    expect_lt(tail(run(ps)$time$impact, 1), expected$time$impact[1])
+})
+
+test_that("incomplete explicit component decays fail instead of falling back", {
+    mp = build_model_obj(def_vector_params(), def_host_params())
+    specs = list(list(decay = "exponential"),
+                 list(decay = "weibull", L = 90),
+                 list(decay = "hill", L = 90, kappa = 0),
+                 list(decay = "linear", L = 0),
+                 list(decay = "typo"))
+    for (spec in specs) {
+        expect_error(suppressMessages(build_intervention(
+            c(PrePrandial = 0.4), decay_attrition = "none",
+            halflife_insecticide = c(PrePrandial = 1),
+            component_decay = list(PrePrandial = spec),
+            duration_years = 2 / 365, model_p = mp)),
+            "PrePrandial.*row 1")
+        ps = data.frame(deterrency = 0, preprandial = 0.4, postprandial = 0,
+                          decay_attrition = "none", halflife_attrition = NA_real_,
+                          shape_attrition = NA_real_, halflife_pre = 1,
+                          decay_pre = c(NA_character_, spec$decay))
+        if (!is.null(spec$L)) ps$L_pre = c(NA_real_, spec$L)
+        if (!is.null(spec$kappa)) ps$kappa_pre = c(NA_real_, spec$kappa)
+        expect_error(suppressMessages(run_interventions(
+            ps, mp, 0.8, duration_years = 2 / 365)), "PrePrandial.*row 2")
+        expect_no_error(suppressMessages(run_interventions(
+            ps, mp, 0.8, duration_years = 2 / 365, insecticide_decay = FALSE)))
+    }
+})
+
+test_that("valid general decay overrides linear decay with the expected daily VC", {
+    mp = build_model_obj(def_vector_params(), def_host_params())
+    iv = suppressMessages(build_intervention(
+        c(PrePrandial = 0.4), decay_attrition = "none",
+        halflife_insecticide = c(PrePrandial = 1),
+        component_decay = list(PrePrandial = list(decay = "exponential", L = 100)),
+        duration_years = 201 / 365, model_p = mp))
+    ps = iv[[1]]$param_set
+    built = calculate_impact(iv, 0.8, mp, keep_time = TRUE)
+    batch = suppressMessages(run_interventions(
+        ps, mp, 0.8, duration_years = 201 / 365, keep_time = TRUE))
+    expect_equal(built$time$vc, batch$time$vc)
+    for (day in c(0, 100, 200)) {
+        snapshot = suppressMessages(build_intervention(
+            c(PrePrandial = 0.4 * 2^(-day / 100)), decay_attrition = "none",
+            duration_years = 2 / 365, model_p = mp, insecticide_decay = FALSE))
+        expected = calculate_impact(snapshot, 0.8, mp)$avg_vc
+        expect_equal(built$time$vc[day + 1], expected, tolerance = 1e-12)
+    }
+})
+
+test_that("linear insecticide decay rejects zero and NaN while keeping existing conventions", {
+    mp = build_model_obj(def_vector_params(), def_host_params())
+    for (hl in c(0, NaN)) {
+        expect_error(suppressMessages(build_intervention(
+            c(PrePrandial = 0.4), decay_attrition = "none",
+            halflife_insecticide = c(PrePrandial = hl),
+            duration_years = 2 / 365, model_p = mp)), "PrePrandial.*row 1.*non-zero")
+    }
+    ps = data.frame(deterrency = 0, preprandial = 0.4, postprandial = 0,
+                     decay_attrition = "none", halflife_attrition = NA_real_,
+                     shape_attrition = NA_real_, halflife_pre = c(NA_real_, Inf, -2))
+    mm = AnophelesModel2:::make_mult_matrices(ps, c(0, 365))
+    expect_equal(mm$mult_pre[1:2, ], matrix(0.6, 2, 2))
+    expect_equal(mm$mult_pre[3, ], c(0.6, 0.4))
+    ps$halflife_pre[2] = 0
+    expect_error(suppressMessages(run_interventions(
+        ps, mp, 0.8, duration_years = 2 / 365)), "PrePrandial.*row 2.*non-zero")
+})
+
+# ---------------------------------------------------------------------------
+# 8. Weibull fitted to attrition x insecticide decay (for OpenMalaria export)
 # ---------------------------------------------------------------------------
 test_that("fitted_decay recovers the attrition Weibull when there is no insecticide decay", {
     interv = build_ins(TRUE, halflife_attrition = 180, shape_attrition = 2,

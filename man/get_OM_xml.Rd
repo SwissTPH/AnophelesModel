@@ -16,7 +16,9 @@ get_OM_xml(
   cumulative = FALSE,
   minAge = NULL,
   maxAge = NULL,
-  entomology = TRUE
+  entomology = TRUE,
+  decay = c("fixed", "placeholder"),
+  schema = 44
 )
 
 \method{print}{om_xml}(x, ...)
@@ -32,8 +34,7 @@ object from \code{\link{build_intervention}}), or a named list of them
 (default): entomology only.}
 
 \item{schedule, end_date}{As in \code{\link{deploy_OM_vector_control}}:
-\code{schedule} is needed with \code{interv}, \code{end_date} for
-dummy-host interventions.}
+\code{schedule} is needed with \code{interv}.}
 
 \item{intervention_type}{\code{"ITN"} (acts in bed) or \code{"IRS"} (acts on
 indoor resting mosquitoes).}
@@ -57,18 +58,26 @@ placeholders).}
 \item{entomology}{Logical (default \code{TRUE}): include the entomology
 snippet.}
 
+\item{decay}{\code{"fixed"} (default: decays written from the
+interventions) or \code{"placeholder"} (decay parameters as placeholders,
+e.g. when the attrition varies between scenarios).}
+
+\item{schema}{OpenMalaria schema version of the scenario (default 44).
+Dummy-host interventions need 46 or later (developed for 49); from 49,
+the entomology has no \code{propInfected} / \code{propInfectious}.}
+
 \item{x}{Object of class \code{om_xml}.}
 
 \item{...}{Not used.}
 }
 \value{
 Object of class \code{om_xml}: named list with \code{entomology},
-\code{define}, \code{deploy} and \code{hsk}, each a single string (XML
-text) or \code{NULL}.
+\code{define}, \code{deploy}, \code{add_hosts} and \code{modify_hosts},
+each a single string (XML text) or \code{NULL}.
 }
 \description{
 Writes the entomology and the vector control of an
-OpenMalaria scenario (schema 44) as XML text, to paste into an existing
+OpenMalaria scenario (schema 44, or \code{schema}) as XML text, to paste into an existing
 scenario, without openMalariaUtilities. The vector control snippets are
 those that \code{\link{define_OM_vector_control}} and
 \code{\link{deploy_OM_vector_control}} write into a \code{baseList}
@@ -92,13 +101,18 @@ those that \code{\link{define_OM_vector_control}} and
     to paste inside \code{<interventions><human>} after all
     \code{<component>} elements (OpenMalaria requires the components
     first);
-  \item \code{hsk}: dummy-host interventions only, the host-seeking
-    killing steps (vector population \code{<intervention>} elements, with
-    their deployment dates), to paste inside
-    \code{<interventions><vectorPop>}.
+  \item \code{add_hosts} and \code{modify_hosts}: dummy-host interventions
+    only (schema >= 46), the host-seeking killing as one dummy host per
+    campaign (\code{<nonHumanHosts>} elements, with their deployment
+    dates, to paste inside \code{<interventions><addNonHumanHosts>}) and
+    the decays of their availability (\code{<intervention>} elements, to
+    paste inside \code{<interventions><nonHumanHostsModifications>}); see
+    \code{\link{define_OM_vector_control}}.
 }
-Placeholders (coverages, values of a list of interventions) are kept in
-the text; \code{\link{om_vector_control_values}} gives their values.
+Placeholders (coverages, and the values that vary, as in
+\code{define_OM_vector_control()}) are kept in the text;
+\code{om_scenario_values(scenarios, xml)} fills them in a scenario table
+(the result keeps the record of the intervention and its schedule).
 Printing the result shows each snippet with a comment saying where to
 paste it. For several interventions, call the function once per
 intervention (with \code{entomology = FALSE} after the first).
@@ -120,5 +134,5 @@ writeLines(unlist(xml), "ITN_snippets.xml")
 }
 \seealso{
 \code{\link{define_OM_vector_control}},
-  \code{\link{om_vector_control_values}}
+  \code{\link{om_scenario_values}}
 }

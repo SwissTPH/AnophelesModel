@@ -164,30 +164,43 @@ make_mult_matrices = function(ps, days, insecticide_decay = TRUE) {
                        decay = as.character(col_decay[p]))
     }, numeric(npoints)))
 
-    comp_decay_mat = function(decay_col, L_col, kappa_col, hl_yrs) {
+    comp_decay_mat = function(decay_col, L_col, kappa_col, hl_yrs, component) {
         mat = matrix(1.0, np, npoints)
         if (!insecticide_decay) return(mat)
         for (p in seq_len(np)) {
             dc = if (!is.null(decay_col) && !is.na(decay_col[p])) decay_col[p] else NA
             Lc = if (!is.null(L_col)     && !is.na(L_col[p]))     L_col[p]     else NA
-            if (!is.na(dc) && !is.na(Lc)) {
-                kc = if (!is.null(kappa_col) && !is.na(kappa_col[p])) kappa_col[p] else NULL
-                mat[p, ] = pmax(decay_function(L = Lc, kappa = kc, datej = days, decay = dc), 0)
-            } else if (!is.na(hl_yrs[p])) {
-                # Linear time-to-zero in years; a negative value (washed > unwashed)
-                # gives an increasing factor, kept as fitted.
-                mat[p, ] = pmax(1 - days / (365 * hl_yrs[p]), 0)
-            }
+            mat[p, ] = tryCatch({
+                if (!is.na(dc)) {
+                    # An explicit shape always wins. decay_function validates
+                    # its parameters and lets constant shapes omit L / kappa.
+                    kc = if (!is.null(kappa_col) && !is.na(kappa_col[p])) kappa_col[p] else NULL
+                    decay_function(L = Lc, kappa = kc, datej = days, decay = dc)
+                } else if (!is.na(hl_yrs[p]) || is.nan(hl_yrs[p])) {
+                    hl = hl_yrs[p]
+                    if (!is.numeric(hl) || is.nan(hl) || hl == 0)
+                        stop("linear insecticide half-life must be numeric and non-zero; ",
+                             "NA means unspecified and Inf means no decay")
+                    # Negative values (washed > unwashed) remain increasing;
+                    # infinite half-lives remain constant.
+                    pmax(1 - days / (365 * hl), 0)
+                } else {
+                    rep(1, npoints)
+                }
+            }, error = function(err) stop(
+                "Insecticide decay for component '", component,
+                "', parameter set row ", p, ": ", conditionMessage(err),
+                call. = FALSE))
         }
         mat
     }
     gc = function(name) if (!is.null(ps[[name]])) ps[[name]]               else rep(NA_real_,      np)
     gs = function(name) if (!is.null(ps[[name]])) as.character(ps[[name]]) else rep(NA_character_, np)
 
-    ins_det  = comp_decay_mat(gs("decay_det"),  gc("L_det"),  gc("kappa_det"),  gc("halflife_det"))
-    ins_pre  = comp_decay_mat(gs("decay_pre"),  gc("L_pre"),  gc("kappa_pre"),  gc("halflife_pre"))
-    ins_post = comp_decay_mat(gs("decay_post"), gc("L_post"), gc("kappa_post"), gc("halflife_post"))
-    ins_hsk  = comp_decay_mat(gs("decay_hsk"),  gc("L_hsk"),  gc("kappa_hsk"),  gc("halflife_hsk"))
+    ins_det  = comp_decay_mat(gs("decay_det"),  gc("L_det"),  gc("kappa_det"),  gc("halflife_det"), "Deterrency")
+    ins_pre  = comp_decay_mat(gs("decay_pre"),  gc("L_pre"),  gc("kappa_pre"),  gc("halflife_pre"), "PrePrandial")
+    ins_post = comp_decay_mat(gs("decay_post"), gc("L_post"), gc("kappa_post"), gc("halflife_post"), "PostPrandial")
+    ins_hsk  = comp_decay_mat(gs("decay_hsk"),  gc("L_hsk"),  gc("kappa_hsk"),  gc("halflife_hsk"), "HostSeekingKilling")
 
     eff_det  = ps$deterrency
     eff_pre  = ps$preprandial
@@ -341,13 +354,17 @@ apply_eff_matrices = function(mm, host_p) {
 #' \eqn{hl = 3 / (1 - Washed / Unwashed)}, so that efficacy after 3 years
 #' equals the washed (20x) value. Negative values (washed efficacy higher than
 #' unwashed) make the effect increase linearly over time; \code{Inf} means no
-#' insecticide decay. For other decay shapes, use \code{component_decay}.
+#' insecticide decay. Zero and \code{NaN} values are invalid; \code{NA} means
+#' unspecified. For other decay shapes, use \code{component_decay}.
 #' @param component_decay Optional named list specifying an independent decay
 #' function for each efficacy component, using the same names as \code{efficacy}.
 #' Each element is a list with fields \code{decay} (string), \code{L} (days;
 #' meaning depends on the shape, see \code{decay_function()}), and optionally
-#' \code{kappa}. Overrides \code{halflife_insecticide} for
-#' the same component.
+#' \code{kappa}. An explicit shape always overrides \code{halflife_insecticide}
+#' for the same component. Constant shapes (\code{"none"}, \code{"constant"})
+#' need no \code{L} or \code{kappa}; other shapes require a positive \code{L}
+#' and, where applicable, a positive \code{kappa}. Incomplete specifications
+#' raise an error instead of falling back to linear or constant decay.
 #' @param insecticide_decay Logical (default \code{TRUE}). If \code{FALSE},
 #' \code{halflife_insecticide} and \code{component_decay} are ignored: the
 #' efficacies keep their initial (e.g. unwashed) values throughout and only
@@ -578,7 +595,9 @@ build_intervention = function(efficacy,
 #'     function, \code{L} (days; meaning depends on the shape, see
 #'     \code{decay_function()}), and shape. \code{_hsk} controls the decay of
 #'     \code{host_seeking_killing}. Overrides the corresponding
-#'     \code{halflife_*} column when both are present.
+#'     \code{halflife_*} column whenever a shape is specified. Constant shapes
+#'     need no \code{L_*} or \code{kappa_*}; other shapes require their
+#'     parameters (incomplete specifications raise an error).
 #' }
 #' @param model_p Model object from \code{build_model_obj()}.
 #' @param coverage_vec Non-empty numeric vector of finite deployment coverages

@@ -8,7 +8,8 @@ define_OM_vector_control(
   baseList,
   interv,
   intervention_type = c("ITN", "IRS"),
-  name = NULL
+  name = NULL,
+  decay = c("fixed", "placeholder")
 )
 }
 \arguments{
@@ -26,66 +27,77 @@ indoor resting mosquitoes).}
 \item{name}{Name of the intervention, used for component ids and
 placeholders (default: the intervention description, or
 \code{intervention_type}).}
+
+\item{decay}{\code{"fixed"} (default: decays written from the
+interventions) or \code{"placeholder"} (decay parameters as placeholders,
+e.g. when the attrition varies between scenarios).}
 }
 \value{
 The updated \code{baseList}.
 }
 \description{
 Writes the definition of a vector control intervention (ITN or
-IRS) into an openMalariaUtilities \code{baseList} (OpenMalaria schema 44),
-for both model structures: the components of the generic vector
-intervention (GVI) of \code{\link{add_OM_GVI}} (deterrency, pre-prandial
-killing in the standard model, post-prandial killing). Deploy it with
+IRS) into an openMalariaUtilities \code{baseList}, for both model
+structures: the components of the generic vector intervention (GVI) of
+\code{\link{add_OM_GVI}} (deterrency, pre-prandial killing in the standard
+model, post-prandial killing). Deploy it with
 \code{\link{deploy_OM_vector_control}} and the same \code{name}.
 
-For dummy-host interventions, the host-seeking killing depends on the
-campaigns (dates and coverages), so it is written by
-\code{deploy_OM_vector_control()}; \code{define_OM_vector_control()} keeps
-what it needs in \code{baseList$anophelesmodel2} (not written to the XML)
-and says so in a message.
+For dummy-host interventions, the host-seeking killing is written by
+\code{deploy_OM_vector_control()}, one dummy host per campaign;
+\code{define_OM_vector_control()} keeps what it needs in
+\code{baseList$anophelesmodel2} (not written to the XML) and says so in a
+message.
 
-\strong{Host-seeking killing.} OpenMalaria's GVI has no host-seeking
-killing. In this package it is a dummy host whose availability \eqn{d(t)},
-per human, kills the mosquitoes that find it; this is exactly an increase
-of the host-seeking death rate \code{muvA} by the factor \eqn{1 + d(t) /
-muvA}, OpenMalaria's vector population intervention
-\code{seekingDeathRateIncrease} (same death rate formula). Its value is a
-population average: \eqn{d(t) = \sum_j c_j\, g(t - t_j)}, with \eqn{c_j}
-the coverage of the campaign at date \eqn{t_j} and \eqn{g} the
-\code{HostSeekingKilling} \eqn{\times} insecticide decay \eqn{\times}
-attrition of a net of that age (nets of earlier campaigns still in use are
-included). As several instances of \code{seekingDeathRateIncrease} multiply
-and a redeployment of an instance replaces it, \eqn{d(t)} is written as
-\strong{steps}: one vector population intervention
-\code{<name>_hsk_<k>} per campaign, deployed at its date with a
-\code{step} decay lasting until the next campaign (or \code{end_date}), of
-value the average of \eqn{d(t) / muvA} over that period. The message of
-\code{deploy_OM_vector_control()} gives the average vectorial capacity
-reduction from host-seeking killing alone with the exact curve and with the
-steps (at the numeric coverages, or 0.8 for placeholders). Host-seeking
-killing acts on the same populations as the GVI (in bed for ITNs).
-Interventions from \code{\link{om_vector_control}} are built over exactly
-the period from the first campaign to \code{end_date}; objects from
-\code{build_intervention()} must last (\code{duration_years}) that long.
+\strong{Host-seeking killing (OpenMalaria schema >= 46).} OpenMalaria's
+GVI has no host-seeking killing. In this package it is a dummy host per
+covered person, of availability \code{HostSeekingKilling} \eqn{\times}
+insecticide decay (relative to the human availability \eqn{\alpha_h}),
+on which every mosquito that finds it dies. It is written exactly as
+OpenMalaria non-human hosts: for each campaign \eqn{k} (date \eqn{t_k},
+coverage \eqn{c_k}), an added non-human host \code{<name>_dummy_<k>}
+(\code{addNonHumanHosts}, deployed at \eqn{t_k}), of availability
+relative to an adult human \eqn{c_k \times} \code{HostSeekingKilling}
+\eqn{/ \alpha_h} (\eqn{\alpha_h} of the population's model) and biting
+probability 0, whose availability decays with the attrition and the
+insecticide decay of host-seeking killing (two
+\code{nonHumanHostsModifications} \code{<name>_dummy_<k>_attrition} and
+\code{_insecticide}: an availability reduction of 1 with an
+\code{increasing} decay multiplies the availability by the decay). The
+hosts of the campaigns add up, as the nets of earlier campaigns still in
+use. Increasing decays need OpenMalaria schema 46 or later (developed for
+49): the \code{OMVersion} of the \code{baseList}. A rising insecticide
+decay (negative \code{halflife_insecticide}) is written with a negative
+availability reduction, exactly. Host-seeking killing acts on the same
+populations as the GVI (in bed for ITNs).
 
-\strong{Placeholders.} Coverages in the schedule of
-\code{deploy_OM_vector_control()} can be placeholders
-(\code{"@cov2021@"}); the step values then depend on them and are written
-as placeholders \code{"@<name>_hsk_<k>_pop<j>@"} (campaign \eqn{k},
-mosquito population \eqn{j}: row of \code{om_ento$shares}, printed by the
-message). A \strong{named list} of interventions (e.g. several nets or
-parameterisations, to choose between in scenarios) defines \strong{one}
-intervention, deployed under \code{name}: the structure is shared and
-every value is a placeholder, filled per scenario with the values of one
-of the interventions: efficacies \code{"@<name>_deterrency@"},
-\code{"@<name>_preprandial@"}, \code{"@<name>_postprandial@"}, decay
-parameters \code{"@<name>_deterrency_L@"} (and \code{_k} when the decay
-function has a shape parameter), ... (one GVI component per effect) and
-the host-seeking killing steps. Each effect keeps its decay function when
-it is the same for all the interventions of the list (e.g. a \code{step}
-for historical nets), and is otherwise a Weibull (exact, or fitted). All
-interventions of the list must use the same model. Fill the placeholders
-with \code{\link{om_vector_control_values}}.
+\strong{Placeholders, only where something varies.}
+\itemize{
+  \item \strong{Efficacies:} written for one intervention; placeholders
+    (\code{"@<name>_deterrency@"}, \code{"@<name>_preprandial@"},
+    \code{"@<name>_postprandial@"}) for a \strong{named list} of several
+    interventions (e.g. nets or parameterisations to choose between in
+    scenarios). A list defines \strong{one} intervention, deployed under
+    \code{name}; each scenario uses the values of one of its interventions.
+  \item \strong{Decays:} with \code{decay = "fixed"} (default), written
+    from the interventions (which must then have the same decays); with
+    \code{decay = "placeholder"}, \code{"@<name>_deterrency_L@"} (and
+    \code{_k} when the decay function has a shape parameter), ... Each
+    effect keeps its decay function when it is the same for all the
+    interventions (e.g. a \code{step} for historical nets), and is
+    otherwise a Weibull (exact, or fitted).
+  \item \strong{Dummy hosts:} availabilities written when one intervention
+    and numeric coverages fix them; otherwise
+    \code{"@<name>_dummy_<k>_pop<j>@"} (campaign \eqn{k}, mosquito
+    population \eqn{j}: row of \code{om_ento$shares}, printed by the
+    message). Their decays follow \code{decay}: with
+    \code{"placeholder"}, \code{"@<name>_attrition_L@"} (and \code{_k}) and
+    \code{"@<name>_hsk_L@"} (and \code{_k}, or \code{_initial} for a
+    linear decay, negative when rising); the decay functions must be the
+    same for all the interventions.
+}
+All interventions of a list must use the same model structure. Fill the
+placeholders of a scenario table with \code{\link{om_scenario_values}}.
 
 Requires the openMalariaUtilities package (see \code{\link{add_OM_GVI}}).
 }
@@ -101,19 +113,23 @@ custom = om_vector_control(
 nets = list(IG2 = ig2, custom = custom)
 om_ento  = get_OM_ento_snippet("Anopheles gambiae ss/coluzzii",
                                activity = def_activity_patterns())
+baseList$OMVersion = 49L     # dummy hosts need schema >= 46
 baseList = define_OM_entomology(baseList, om_ento, seasonality = rep(1, 12))
-baseList = define_OM_vector_control(baseList, nets, name = "ITN")
-schedule = data.frame(date = c("2021-01-01", "2024-01-01", "2027-01-01"),
-                      coverage = c("@cov2021@", "@cov2024@", "@cov2027@"))
-baseList = deploy_OM_vector_control(baseList, "ITN", schedule,
-                                    end_date = "2030-01-01")
-values = om_vector_control_values(nets, om_ento, schedule, "2030-01-01",
-    coverages = expand.grid(cov2021 = c(0.5, 0.8), cov2024 = 0.6,
-                            cov2027 = 0.6), name = "ITN")
+baseList = define_OM_vector_control(baseList, nets, name = "ITN",
+                                    decay = "placeholder")
+schedule = om_campaigns("2021-01-01", "2027-01-01", every = "3 years",
+                        coverage = "@cov@", by_year = TRUE,
+                        end_date = "2030-01-01")
+baseList = deploy_OM_vector_control(baseList, "ITN", schedule)
+# The user's scenario table, filled with the values of the placeholders
+scens = expand.grid(net = c("IG2", "custom"), attrition = c(2, 3),
+                    cov2021 = c(0.5, 0.8), cov2024 = 0.6, cov2027 = 0.6)
+scens = om_scenario_values(scens, baseList, "ITN", net = "net",
+                           halflife = "attrition")
 }
 
 }
 \seealso{
 \code{\link{deploy_OM_vector_control}},
-  \code{\link{om_vector_control_values}}, \code{\link{get_ITN_params}}
+  \code{\link{om_scenario_values}}, \code{\link{get_ITN_params}}
 }

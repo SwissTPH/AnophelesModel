@@ -10,7 +10,8 @@ om_campaigns(
   every = "1 year",
   coverage,
   by_year = FALSE,
-  dates = NULL
+  dates = NULL,
+  end_date = NULL
 )
 }
 \arguments{
@@ -32,22 +33,31 @@ coverage, one placeholder per year (\code{"@histITNcov@"} becomes
 
 \item{dates}{Dates of the campaigns, instead of \code{from}, \code{to} and
 \code{every}.}
+
+\item{end_date}{Optional end of the simulated period (\code{"YYYY-MM-DD"},
+after the last campaign): the dummy hosts of dummy-host interventions
+last until then (otherwise 100 years). Kept with the schedule, so that
+\code{deploy_OM_vector_control()} and \code{get_OM_xml()} need no
+\code{end_date} argument.}
 }
 \value{
-Data frame with \code{date} and \code{coverage}.
+Data frame with \code{date} and \code{coverage}, and the
+\code{end_date} as an attribute when given (subsetting the data frame
+drops it).
 }
 \description{
 Builds the \code{schedule} of
-\code{\link{deploy_OM_vector_control}}, \code{\link{get_OM_xml}} and
-\code{\link{om_vector_control_values}}: one row per campaign, with its date
+\code{\link{deploy_OM_vector_control}} and \code{\link{get_OM_xml}} (which
+keep it for \code{\link{om_scenario_values}}): one row per campaign, with its date
 and coverage, from regular dates (\code{from}, \code{to}, \code{every}) or
 given \code{dates}.
 }
 \examples{
 # Annual campaigns, one coverage placeholder per year
 om_campaigns("2015-01-25", "2018-01-25", coverage = "@histITNcov@", by_year = TRUE)
-# Same coverage every year
-om_campaigns("2019-01-25", "2030-01-25", coverage = "@contITNcov@")
+# Same coverage every year, period ending in 2031
+om_campaigns("2019-01-25", "2030-01-25", coverage = "@contITNcov@",
+             end_date = "2031-01-01")
 # Given dates and coverages
 om_campaigns(dates = c("2021-01-01", "2024-01-01"), coverage = c(0.8, 0.6))
 

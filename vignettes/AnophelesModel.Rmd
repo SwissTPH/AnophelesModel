@@ -602,7 +602,8 @@ cat("Combined VC reduction:", round(combined_impact * 100, 1), "%\n")
 
 This section can be read on its own: it only uses the objects it creates.
 
-OpenMalaria scenarios (schema 44) are written with
+OpenMalaria scenarios (schema 44 by default; dummy-host nets need schema 46
+or later, see below) are written with
 [openMalariaUtilities](https://github.com/SwissTPH/r-openMalariaUtilities),
 which builds a scenario as an R list (`baseList`) and writes the XML file.
 This package does not write scenarios: it fills in the entomology and the
@@ -617,7 +618,7 @@ with openMalariaUtilities, as usual. The steps are:
    definition and its deployment.
 
 openMalariaUtilities is not on CRAN and is only a suggested dependency:
-`get_OM_ento_snippet()`, `om_vector_control()`, `om_vector_control_values()`
+`get_OM_ento_snippet()`, `om_vector_control()`, `om_scenario_values()`
 and `get_OM_xml()` (XML text, see the end of this section) work without it,
 but `define_OM_entomology()` and `define_OM_vector_control()` require it.
 Install it from GitHub:
@@ -667,7 +668,7 @@ om_ento$shares
 `shares` gives, per population, its share within the species (`share`), the
 share of its species (`species_share`), its share of the EIR (`eir_share`),
 whether ITNs (`in_bed`) or IRS (`indoor_resting`) reach it, and the
-host-seeking death rate `muvA` (used to export host-seeking killing).
+host-seeking death rate `muvA`.
 
 Placeholder contributions, and their values for two compositions (the
 columns `contrib_<population>` fill the placeholders of the same name):
@@ -740,22 +741,34 @@ baseList = deploy_OM_vector_control(baseList, "IG2", schedule)
 - **Same people.** The deployment holds all the components of the
   intervention, so that all effects reach the same people.
 
-**Dummy-host nets.** The GVI has deterrency and post-prandial killing only;
-host-seeking killing, which the GVI cannot represent, becomes an increase of
-the host-seeking death rate (OpenMalaria's `seekingDeathRateIncrease`, exactly
-equivalent to the dummy host). Its value depends on the nets of all campaigns
-still in use, so it is written by `deploy_OM_vector_control()`, as one step
-per campaign lasting until the next campaign or `end_date`; the deploy
-message compares the vectorial capacity reduction of the steps with that of
-the exact curve. A dummy-host intervention is therefore deployed **once**,
-with the whole schedule and an `end_date`, and cannot be restricted to a
-sub-population, by age, or be cumulative:
+**Dummy-host nets.** The GVI has deterrency and post-prandial killing only.
+Host-seeking killing, which the GVI cannot represent, is written as it is in
+the model, a dummy host on which every mosquito that finds it dies: for each
+campaign, an OpenMalaria non-human host (`<name>_dummy_<k>`, added at the
+campaign date), whose availability relative to an adult human is the
+coverage × `HostSeekingKilling` / human availability, and decays with the
+attrition and the insecticide decay of host-seeking killing (two
+modifications with increasing decays). The hosts of all campaigns add up, as
+the nets still in use, so the representation is exact. Increasing decays
+need **OpenMalaria schema 46 or later** (developed for 49): set
+`OMVersion = 49L` in the `baseList` (or `schema = 49` in `get_OM_xml()`);
+from schema 49, the entomology is written without `propInfected` /
+`propInfectious`, which 49 removed. Standard nets work with both 44 and 49.
+
+The dummy hosts are written by `deploy_OM_vector_control()`, with the
+schedule. A dummy-host intervention is deployed **once**, with the whole
+schedule, and cannot be restricted to a sub-population, by age, or be
+cumulative. The hosts last until `end_date` if given (e.g. in
+`om_campaigns()`), otherwise 100 years:
 ```{r, eval=FALSE}
 ig2_dh = om_vector_control(get_ITN_params("Interceptor G2", "Kibondo",
                                           mode = "dummy_host", verbose = FALSE),
                            halflife_attrition = 2 * 365, shape_attrition = 2)
+# baseList with OMVersion = 49L, set before define_OM_entomology()
 baseList = define_OM_vector_control(baseList, ig2_dh, name = "IG2_dh")
-baseList = deploy_OM_vector_control(baseList, "IG2_dh", schedule, end_date = "2027-01-01")
+schedule_dh = om_campaigns(dates = c("2021-01-01", "2024-01-01"), coverage = c(0.8, 0.6),
+                           end_date = "2027-01-01")
+baseList = deploy_OM_vector_control(baseList, "IG2_dh", schedule_dh)
 ```
 
 **Several nets.** There are two cases:
@@ -763,39 +776,61 @@ baseList = deploy_OM_vector_control(baseList, "IG2_dh", schedule, end_date = "20
 - **Different nets in the same scenario** (e.g. historical nets until
   2018, then new nets): define and deploy each as its own intervention, with
   its own name and schedule.
-- **Alternative nets across scenarios** (e.g. to compare net types): a named
-  list of interventions (same model structure) defines **one** intervention,
-  deployed under the list's `name`. Its XML is the same for all the nets of
-  the list and every value is a placeholder (efficacies, decay parameters,
-  host-seeking killing steps), filled per scenario with the values of one
-  net: in a scenario, only that net is deployed. Each effect keeps its decay
-  function if it is the same for all the nets (e.g. a `step` for
-  historical nets that last one year), and is otherwise a Weibull.
+- **Alternative nets across scenarios** (e.g. to compare net types or trial
+  parameterisations): a named list of interventions (same model structure)
+  defines **one** intervention, deployed under the list's `name`; in each
+  scenario, one net of the list is used.
+
+**Placeholders only where something varies.** The XML has numbers wherever
+the scenarios cannot differ, and placeholders elsewhere:
+
+- **efficacies:** placeholders with several nets;
+- **decays:** with `decay = "placeholder"` in `define_OM_vector_control()`
+  (e.g. when the attrition varies between scenarios), otherwise the nets'
+  decays (which must then be the same). Each effect keeps its decay function
+  when all the nets share it (e.g. a `step` for historical nets that last one
+  year), and is otherwise a Weibull;
+- **dummy hosts** (dummy-host nets): availabilities as placeholders unless
+  the net and the coverages are fixed; their decays (attrition, insecticide
+  decay of host-seeking killing) as the other decays.
 
 Here the built-in and the custom net as alternatives, with placeholder
-coverages:
-```{r, eval=FALSE}
-nets = list(IG2 = ig2, custom = custom)
-schedule_ph = om_campaigns("2021-01-01", "2024-01-01", every = "3 years",
-                           coverage = "@cov@", by_year = TRUE)
-baseList = define_OM_vector_control(baseList, nets, name = "ITN")
-baseList = deploy_OM_vector_control(baseList, "ITN", schedule_ph)
-```
-
-`om_vector_control_values()` gives the values of the placeholders, one row
-per net and coverage scenario, in columns named like the placeholders, to
-merge into the scenario table (`end_date` is used for the host-seeking
-killing of dummy-host nets):
+coverages and decays:
 ```{r}
 nets = list(IG2 = ig2, custom = custom)
 schedule_ph = om_campaigns("2021-01-01", "2024-01-01", every = "3 years",
                            coverage = "@cov@", by_year = TRUE)
-om_vector_control_values(nets, om_ento, schedule_ph, end_date = "2027-01-01",
-    coverages = expand.grid(cov2021 = c(0.5, 0.8), cov2024 = 0.6), name = "ITN")
 ```
-A single intervention (not in a list) writes numbers directly, and
-placeholders only for the host-seeking killing when coverages are
-placeholders.
+```{r, eval=FALSE}
+baseList = define_OM_vector_control(baseList, nets, name = "ITN", decay = "placeholder")
+baseList = deploy_OM_vector_control(baseList, "ITN", schedule_ph)
+```
+
+**Filling the scenario table.** The scenario table is yours (built e.g.
+with `expand.grid()`, with your own coverages). `om_scenario_values()` adds
+to it, row by row, the values of the placeholders that were written: the
+efficacies of the net named in column `net`, the decays and, for dummy-host
+nets, the availabilities of the dummy hosts (from the coverage columns, named
+like the placeholders of the schedule). The source is the `baseList` (after
+define and deploy) or the result of `get_OM_xml()`, which keep what was
+written, so the values cannot disagree with the XML.
+
+The decays differ between effects through the insecticide decay of each
+effect (from the trial parameterisation), while the attrition is the same
+for all effects. So by default `halflife` and `kappa` name one **attrition**
+column each (in years, `decay_unit = "days"` otherwise), and each effect's
+decay is this attrition combined with its insecticide decay (the dummy
+hosts take the attrition as it is, their insecticide decay being separate;
+`combine = FALSE` writes final decays given per effect instead):
+```{r}
+# Without openMalariaUtilities, the same definition and deployment as text
+xml = get_OM_xml(om_ento, nets, schedule_ph, name = "ITN", decay = "placeholder",
+                 entomology = FALSE)
+scens = expand.grid(net = c("IG2", "custom"), attrition = c(2, 3),
+                    cov2021 = c(0.5, 0.8), cov2024 = 0.6, seed = 1:2)
+scens = om_scenario_values(scens, xml, net = "net", halflife = "attrition")
+head(scens)
+```
 
 **Lower-level functions.** `define_OM_vector_control()` is built on
 `get_OM_GVI_snippet()`, which returns the GVI as the input list of
@@ -819,8 +854,11 @@ paste into an existing scenario:
   you add the total EIR as `scaledAnnualEIR="@EIR@"` (or a number);
 - `define` (the components) and `deploy` (the deployment): inside
   `<interventions><human>`, the components before all deployments;
-- `hsk`, for dummy-host interventions: the host-seeking killing steps, inside
-  `<interventions><vectorPop>`.
+- `add_hosts` and `modify_hosts`, for dummy-host interventions (with
+  `schema = 49`): the dummy hosts, inside `<interventions><addNonHumanHosts>`,
+  and their decays, inside `<interventions><nonHumanHostsModifications>`.
+
+`schema` (default 44) is the OpenMalaria schema version of the scenario.
 
 Printing the result shows each snippet with a comment saying where it goes;
 `writeLines(unlist(xml), "file.xml")` saves them. `get_OM_xml(om_ento)` gives

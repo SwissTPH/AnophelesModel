@@ -75,11 +75,12 @@ List with
     \code{in_bed} and \code{indoor_resting} (exposure to interventions
     acting in bed, e.g. ITNs, or on indoor resting mosquitoes, e.g. IRS),
     and \code{muvA}, the host-seeking death rate without interventions
-    (per day, with the population's HBI), used to export host-seeking
-    killing (\code{\link{define_OM_vector_control}});
+    (per day, with the population's HBI);
   \item \code{model_params}: named list (one element per mosquito
     population) of \code{\link{build_model_obj}} outputs with the
-    population's HBI (\code{NULL} if the bionomics give no valid death rate).
+    population's HBI (\code{NULL} if the bionomics give no valid death
+    rate); their human availability scales the dummy hosts of
+    host-seeking killing (\code{\link{define_OM_vector_control}}).
 }
 }
 \description{

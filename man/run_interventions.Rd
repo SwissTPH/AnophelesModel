@@ -54,7 +54,9 @@ Optional columns:
     function, \code{L} (days; meaning depends on the shape, see
     \code{decay_function()}), and shape. \code{_hsk} controls the decay of
     \code{host_seeking_killing}. Overrides the corresponding
-    \code{halflife_*} column when both are present.
+    \code{halflife_*} column whenever a shape is specified. Constant shapes
+    need no \code{L_*} or \code{kappa_*}; other shapes require their
+    parameters (incomplete specifications raise an error).
 }}
 
 \item{model_p}{Model object from \code{build_model_obj()}.}

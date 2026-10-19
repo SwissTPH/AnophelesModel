@@ -26,11 +26,11 @@ deploy_OM_vector_control(
 (\code{"YYYY-MM-DD"}, increasing) and \code{coverage} (numbers in [0, 1]
 or placeholders such as \code{"@cov2021@"}).}
 
-\item{end_date}{End of the simulated period (\code{"YYYY-MM-DD"}), the end of
-the last host-seeking killing step; required for dummy-host
-interventions (objects from \code{build_intervention()} must last
-from the first campaign to \code{end_date}; interventions from
-\code{om_vector_control()} are built over that period).}
+\item{end_date}{Optional end of the simulated period (\code{"YYYY-MM-DD"}):
+the dummy hosts of dummy-host interventions last until then (otherwise
+100 years). It can also be kept in the schedule
+(\code{\link{om_campaigns}(end_date = )}; if both are given, they must
+agree).}
 
 \item{subpop}{Optional sub-population id suffix: the deployment is
 restricted to the sub-population \code{"<name>-<subpop>"}
@@ -54,15 +54,14 @@ Writes the deployment of an intervention defined with
 one merged component), so that all effects reach the same people, with one
 \code{<deploy>} per campaign of \code{schedule}.
 
-For dummy-host interventions, it also writes the host-seeking killing:
-one \code{seekingDeathRateIncrease} step per campaign, whose values depend
-on the dates and coverages of all campaigns (nets of earlier campaigns
-still in use are included; see \code{\link{define_OM_vector_control}}).
-Such an intervention must therefore be deployed \strong{once}, with the
-whole schedule, and \code{end_date} is required; \code{subpop},
-\code{cumulative}, \code{minAge} and \code{maxAge} are rejected (not
-accounted for in the steps). The message compares the vectorial capacity
-reduction of the steps with that of the exact curve.
+For dummy-host interventions, it also writes the host-seeking killing: one
+dummy host per campaign (\code{addNonHumanHosts}, with its decays in
+\code{nonHumanHostsModifications}; see
+\code{\link{define_OM_vector_control}}), which needs OpenMalaria schema
+>= 46. Such an intervention is deployed \strong{once}, with the whole
+schedule; \code{subpop}, \code{cumulative}, \code{minAge} and
+\code{maxAge} are rejected (the dummy hosts assume campaigns covering the
+whole population at the schedule coverages).
 }
 \seealso{
 \code{\link{define_OM_vector_control}}

@@ -46,7 +46,7 @@ An object of class \code{om_vector_control}.
 Specifies an ITN or IRS intervention for the OpenMalaria
 export (\code{\link{define_OM_vector_control}},
 \code{\link{deploy_OM_vector_control}}, \code{\link{get_OM_xml}},
-\code{\link{om_vector_control_values}}) from its efficacies and decays,
+\code{\link{om_scenario_values}}) from its efficacies and decays,
 without a model or a duration: the export builds the intervention with the
 entomology of the scenario, over the right period. Efficacies and decays
 are as in \code{\link{build_intervention}}.

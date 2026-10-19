@@ -8,6 +8,10 @@ rewritten and are **not backward compatible**.
 
 ## Numerical correctness
 
+* Explicit per-component insecticide decay shapes always take priority over
+  linear half-lives. Constant shapes need no decay parameters; incomplete
+  non-constant specifications and zero or NaN linear half-lives now raise
+  errors identifying the component and parameter-set row.
 * Intervention interfaces reject unnamed, duplicate, missing or invalid
   efficacies, out-of-range coverages (including uncertainty draws), and
   non-positive or non-finite durations. Positive subday durations use one
@@ -77,28 +81,44 @@ rewritten and are **not backward compatible**.
   per campaign of a `schedule` (dates, numeric or placeholder coverages).
   The define writes the components, the deploy the deployment (the schedule
   is given only there). Host-seeking killing of dummy-host nets is exported
-  as OpenMalaria's `seekingDeathRateIncrease` (exact equivalent of the dummy
-  host, `d / muvA`), written by the deploy as one step per campaign (step
-  mean over the campaign interval, including nets of earlier campaigns; one
-  deploy with the whole schedule and an `end_date`); the message compares the
-  vectorial capacity reduction of the steps with the exact curve. A named list of
-  interventions gives a template whose values are all placeholders (Weibull
-  decays), e.g. to loop scenarios over net types; new
-  `om_vector_control_values()` computes the placeholder values per net and
-  coverage scenario.
+  exactly as the model's dummy host: per campaign, an OpenMalaria added
+  non-human host (`addNonHumanHosts`, availability relative to an adult human
+  = coverage × `HostSeekingKilling` / human availability, biting probability
+  0) whose availability decays with the attrition and the insecticide decay
+  of host-seeking killing (`nonHumanHostsModifications` with increasing
+  decays; a rising insecticide decay as a negative reduction). Written by the
+  deploy (once, with the whole schedule); it needs OpenMalaria schema >= 46
+  (developed for 49), from the `baseList`'s `OMVersion`. A named list of
+  interventions defines one intervention whose values are chosen per
+  scenario, e.g. to loop scenarios over net types.
+* Schema version: 44 by default; `get_OM_xml(schema = )` or the
+  `baseList`'s `OMVersion`. From 49, the entomology has no `propInfected` /
+  `propInfectious` (removed in 49; also dropped by `define_OM_entomology()`).
+  Standard interventions are the same in 44 and 49.
+* Placeholders only where something varies: efficacies with several nets,
+  decays with `define_OM_vector_control(decay = "placeholder")` (otherwise
+  written from the nets), dummy-host availabilities unless the net and the
+  coverages are fixed.
+* New `om_scenario_values()`: fills these placeholders in the user's own
+  scenario table, row by row (net from a column, coverages from the columns
+  named like the schedule's placeholders), from the `baseList` or the
+  `get_OM_xml()` result, which keep what was written. Decays: by default one
+  attrition column (years, or `decay_unit = "days"`) combined with each
+  effect's insecticide decay (the dummy hosts take the attrition as it is);
+  `combine = FALSE` for final decays per effect. Computed once per distinct
+  net and decay.
 * New `om_vector_control()`: specifies an intervention for the OpenMalaria
   export from its efficacies (or a `get_ITN_params()` parameterisation) and
   decays, without a model or a duration; the export builds it with the
-  entomology of the scenario, over the schedule period for host-seeking
-  killing, and fits Weibull decays over 3 years (ITN) or 1 year (IRS) by
-  default (`fit_years`). Intervention objects of `build_intervention()`
-  remain accepted.
+  entomology of the scenario and fits Weibull decays over 3 years (ITN) or
+  1 year (IRS) by default (`fit_years`). Intervention objects of
+  `build_intervention()` remain accepted.
 * New `om_campaigns()`: campaign schedules from regular dates (`from`, `to`,
   `every`, as `seq.Date()`) or given dates, with one coverage (number or
   placeholder), one per campaign, or one placeholder per year
-  (`by_year = TRUE`, as `byyear` of `deploy_it_compat()`). A placeholder
-  repeated over campaigns gives one coverage column in
-  `om_vector_control_values()`.
+  (`by_year = TRUE`, as `byyear` of `deploy_it_compat()`), and optionally
+  the `end_date` of the period (life of the dummy hosts), kept with the
+  schedule so that deploy and `get_OM_xml()` need no `end_date` argument.
 * In a list of interventions (template), each effect keeps its decay
   function when all the interventions share it (e.g. a step for historical
   nets), with its parameters as placeholders; it is a Weibull only when the
@@ -109,7 +129,10 @@ rewritten and are **not backward compatible**.
   populations and parameters from there (no `om_ento` argument), so the
   interventions are consistent with the entomology.
 * `get_OM_ento_snippet()` also returns `muvA` (in `shares`) and the model of
-  each mosquito population (`model_params`).
+  each mosquito population (`model_params`, whose human availability scales
+  the dummy hosts).
+* The OpenMalaria export follows the model's priorities for insecticide
+  decay: an explicit shape, then a linear half-life (`NA`: unspecified).
 * Relative contribution of the species to the EIR: each population's
   `annualEIR` is its relative contribution (species share × share within
   the species), the total EIR being set with `scaledAnnualEIR` on
@@ -124,8 +147,8 @@ rewritten and are **not backward compatible**.
   snippet for the entomology (`<vector>`, same structure as
   `defineEntomology()` but with the animal host parameters of `hosts_p`), and
   per intervention one for the components (define), one for the deployment
-  (deploy) and, for dummy-host interventions, one for the host-seeking killing
-  steps. It shares the list builders of `define_OM_vector_control()` /
+  (deploy) and, for dummy-host interventions, the dummy hosts and their
+  decays. It shares the list builders of `define_OM_vector_control()` /
   `deploy_OM_vector_control()`, so both routes write the same XML.
 * New `add_OM_GVI()`: writes these interventions into an openMalariaUtilities
   `baseList`, as a single component when the three decays are identical and
