@@ -52,8 +52,10 @@ only.}
 (\code{cumulativeCoverage}, people already covered are not redeployed),
 measured on \code{"<name>-<subpop>"} or the first component.}
 
-\item{minAge, maxAge}{Optional age limits of the deployment (numbers or
-placeholders).}
+\item{minAge, maxAge}{Optional age limits of the deployment, in years
+(numbers or placeholders): \strong{both or neither} (all ages), e.g.
+\code{minAge = 0, maxAge = 5} for under-fives. Several age groups:
+one deploy per group.}
 
 \item{entomology}{Logical (default \code{TRUE}): include the entomology
 snippet.}

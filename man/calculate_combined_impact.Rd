@@ -17,9 +17,11 @@ calculate_combined_impact(
 \arguments{
 \item{combination_name}{String label for the combination.}
 
-\item{intervention1}{Intervention object from \code{build_intervention()}.}
+\item{intervention1}{Intervention object from \code{build_intervention()}
+(an element, e.g. \code{interv[[1]]}).}
 
-\item{intervention2}{Intervention object from \code{build_intervention()}.}
+\item{intervention2}{Intervention object from \code{build_intervention()}
+(an element, e.g. \code{interv[[1]]}).}
 
 \item{cov_intervention1}{Coverage of intervention 1 (scalar in \code{[0,1]}).}
 
@@ -44,6 +46,11 @@ as its own dummy host, so for people covered by both interventions the
 dummy-host availabilities add up.
 
 The two interventions are evaluated over the shorter of their durations.
+As in \code{calculate_impact()}, their daily effects are rebuilt from their
+parameters (\code{$param_set}: efficacies, attrition, insecticide decay,
+with their duration and \code{insecticide_decay} setting) with the host
+and vector parameters of \code{model_p}: the model used to build them does
+not matter.
 
 Unlike \code{calculate_impact()}, there is no \code{exposure} argument:
 the protected exposure of two products overlaps (e.g. in-bed exposure for

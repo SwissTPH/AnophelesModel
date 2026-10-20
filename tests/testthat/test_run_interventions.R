@@ -375,3 +375,35 @@ test_that("eval_entomological_model reparameterisation is numerically identical"
     avg_vc_new = tapply(vc_new, rep(seq_along(coverage_vec), npoints), mean)
     expect_equal(as.numeric(avg_vc_new), avg_vc_loop, tolerance = 1e-8)
 })
+
+# ---------------------------------------------------------------------------
+# Matrix dimensions: one-day and sub-day batches
+# ---------------------------------------------------------------------------
+test_that("one-day, sub-day and multi-day batches match separate single-row runs", {
+    model_p = suppressMessages(make_model_p())
+    ps = data.frame(deterrency = c(0.2, 0.5, 0.8), preprandial = c(0.1, 0.3, 0.5),
+                    postprandial = 0.3, decay_attrition = c("weibull", "step", "linear"),
+                    halflife_attrition = c(30, 2, 90), shape_attrition = 2,
+                    stringsAsFactors = FALSE)
+    cov = c(0.5, 0.8)
+    for (days in c(1, 0.5, 10)) {
+        run = function(p) suppressMessages(run_interventions(
+            p, model_p, cov, duration_years = days / 365, keep_time = TRUE))
+        batch = run(ps)
+        # Attrition matrix: one row per parameter set, one column per day
+        mm = AnophelesModel2:::make_mult_matrices(ps, seq_len(max(1, round(days))) - 1)
+        expect_equal(dim(mm$surv_mat), c(nrow(ps), max(1L, round(days))), info = days)
+        for (i in seq_len(nrow(ps))) {
+            single = run(ps[i, ])
+            rows = (i - 1) * length(cov) + seq_along(cov)
+            expect_equal(batch$impact$avg_impact[rows], single$impact$avg_impact,
+                         tolerance = 1e-12, info = paste(days, i))
+            expect_equal(batch$impact$avg_vc[rows], single$impact$avg_vc,
+                         tolerance = 1e-12, info = paste(days, i))
+            t_batch = batch$time[batch$time$param_set == i, ]
+            expect_equal(t_batch$vc, single$time$vc, tolerance = 1e-12, info = paste(days, i))
+            expect_equal(t_batch$impact, single$time$impact, tolerance = 1e-12,
+                         info = paste(days, i))
+        }
+    }
+})

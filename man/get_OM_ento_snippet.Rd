@@ -112,8 +112,9 @@ Mapping to OpenMalaria: \code{mosqRestDuration} = resting duration
 \code{mosqSurvivalFeedingCycleProbability} = \code{M} (parous rate), human
 host probabilities from \code{hosts_p}. Each population also carries a
 \code{nonHumanHosts} entry with the animal host probabilities of
-\code{hosts_p}; note that \code{defineEntomology()} currently writes fixed
-animal values and ignores this entry.
+\code{hosts_p}, written by \code{\link{define_OM_entomology}} and
+\code{\link{get_OM_xml}} (\code{defineEntomology()} alone writes fixed
+animal values and ignores this entry).
 }
 \examples{
 om = get_OM_ento_snippet("Anopheles gambiae ss/coluzzii",

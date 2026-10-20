@@ -282,6 +282,11 @@ calculate_impact_timepoint = function(intervention_obj, model_obj, n_vec, Ni) {
 #' dummy-host availabilities add up.
 #'
 #' The two interventions are evaluated over the shorter of their durations.
+#' As in \code{calculate_impact()}, their daily effects are rebuilt from their
+#' parameters (\code{$param_set}: efficacies, attrition, insecticide decay,
+#' with their duration and \code{insecticide_decay} setting) with the host
+#' and vector parameters of \code{model_p}: the model used to build them does
+#' not matter.
 #'
 #' Unlike \code{calculate_impact()}, there is no \code{exposure} argument:
 #' the protected exposure of two products overlaps (e.g. in-bed exposure for
@@ -289,8 +294,10 @@ calculate_impact_timepoint = function(intervention_obj, model_obj, n_vec, Ni) {
 #' coverages (e.g. \code{coverage * Exposure_Indoor_whileinbed}) directly.
 #'
 #' @param combination_name String label for the combination.
-#' @param intervention1 Intervention object from \code{build_intervention()}.
-#' @param intervention2 Intervention object from \code{build_intervention()}.
+#' @param intervention1 Intervention object from \code{build_intervention()}
+#'   (an element, e.g. \code{interv[[1]]}).
+#' @param intervention2 Intervention object from \code{build_intervention()}
+#'   (an element, e.g. \code{interv[[1]]}).
 #' @param cov_intervention1 Coverage of intervention 1 (scalar in \code{[0,1]}).
 #' @param cov_intervention2 Coverage of intervention 2 (scalar in \code{[0,1]}).
 #' @param cov_combination Coverage of the overlap (default \code{NULL} sets it
@@ -325,33 +332,38 @@ calculate_combined_impact = function(combination_name = "combination",
              max((C_i + C_j - 1), 0), " and ", min(C_i, C_j))
     }
 
-    # One point per day: evaluate over the shorter of the two durations
-    rows = seq_len(min(intervention1$duration, intervention2$duration))
-    e1   = intervention1$effects
-    e2   = intervention2$effects
+    # Daily effects of both interventions rebuilt from their parameters
+    # ($param_set: efficacies, attrition, insecticide decay; duration and
+    # insecticide_decay setting kept) with the supplied model, as in
+    # calculate_impact(): the model used to build them does not matter.
+    # Evaluated over the shorter of the two durations.
+    e1 = combined_effects(intervention1, "intervention1", model_p)
+    e2 = combined_effects(intervention2, "intervention2", model_p)
+    rows = seq_len(min(length(e1$surv), length(e2$surv)))
+    h = model_p$host_params
 
-    # Baseline (unintervened) parameters from intervention 1
-    alphau = e1$alphai[rows, 2]
-    P_Bu   = e1$PBi[rows, 2]
-    P_Cu   = e1$PCi[rows, 2]
-    P_Du   = e1$PDi[rows, 2]
-    P_Eu   = e1$PEi[rows, 2]
+    # Baseline (unintervened) human parameters of the model
+    alphau = rep(h$alphai[1], length(rows))
+    P_Bu   = rep(h$PBi[1], length(rows))
+    P_Cu   = rep(h$PCi[1], length(rows))
+    P_Du   = rep(h$PDi[1], length(rows))
+    P_Eu   = rep(h$PEi[1], length(rows))
 
     # Intervention 1 parameters
-    alphai = e1$alphai[rows, 1]
-    P_Bi   = e1$PBi[rows, 1]
-    P_Ci   = e1$PCi[rows, 1]
-    P_Di   = e1$PDi[rows, 1]
-    P_Ei   = e1$PEi[rows, 1]
-    S_i    = e1$survival[rows]
+    alphai = e1$alphai[rows]
+    P_Bi   = e1$PBi[rows]
+    P_Ci   = e1$PCi[rows]
+    P_Di   = e1$PDi[rows]
+    P_Ei   = e1$PEi[rows]
+    S_i    = e1$surv[rows]
 
     # Intervention 2 parameters
-    alphaj = e2$alphai[rows, 1]
-    P_Bj   = e2$PBi[rows, 1]
-    P_Cj   = e2$PCi[rows, 1]
-    P_Dj   = e2$PDi[rows, 1]
-    P_Ej   = e2$PEi[rows, 1]
-    S_j    = e2$survival[rows]
+    alphaj = e2$alphai[rows]
+    P_Bj   = e2$PBi[rows]
+    P_Cj   = e2$PCi[rows]
+    P_Dj   = e2$PDi[rows]
+    P_Ej   = e2$PEi[rows]
+    S_j    = e2$surv[rows]
 
     # Relative efficacies
     R_alphai = alphai / alphau; R_alphaj = alphaj / alphau
@@ -405,8 +417,8 @@ calculate_combined_impact = function(combination_name = "combination",
         PDw * PCw * PBw * alphaw)
 
     # Dummy hosts (host-seeking killing), additive for people covered by both
-    d_i = if (ncol(e1$alphai) == 4L) e1$alphai[rows, 4] else 0
-    d_j = if (ncol(e2$alphai) == 4L) e2$alphai[rows, 4] else 0
+    d_i = if (e1$use_dummy) e1$dummy[rows] else 0
+    d_j = if (e2$use_dummy) e2$dummy[rows] else 0
     dummyw = CovEff[,2]*d_i + CovEff[,3]*d_j + CovEff[,4]*(d_i + d_j)
 
     # The four coverage groups (incl. survival) collapse exactly into a single
@@ -417,13 +429,27 @@ calculate_combined_impact = function(combination_name = "combination",
                PDi_1     = as_row(PDw), PEi_1 = as_row(PEw),
                alphai_4  = as_row(dummyw),
                surv_mat  = as_row(rep(1, length(rows))),
-               use_dummy = ncol(e1$alphai) == 4L || ncol(e2$alphai) == 4L)
-    base = list(alpha = e1$alphai[1, 2:3],
-                PBi   = e1$PBi[1, 2:3], PCi = e1$PCi[1, 2:3],
-                PDi   = e1$PDi[1, 2:3], PEi = e1$PEi[1, 2:3],
-                Kvi   = e1$Kvi[1:3])
+               use_dummy = e1$use_dummy || e2$use_dummy)
 
-    sim = simulate_vc(eff, base, model_p$vec_params, model_p$host_params,
-                      coverage_vec = 1)
+    sim = simulate_vc(eff, host_base(h), model_p$vec_params, h, coverage_vec = 1)
     return(sim$avg_impact[1, 1])
+}
+
+# Internal: daily parameters of protected humans of an intervention from
+# build_intervention(), rebuilt from its $param_set with the host parameters
+# of model_p (same decay engine as calculate_impact() / run_interventions())
+combined_effects = function(iv, what, model_p) {
+    if (!is.list(iv) || is.null(iv$param_set) || is.null(iv$duration))
+        stop("calculate_combined_impact: ", what, " must be an intervention from ",
+             "build_intervention(), e.g. interv[[1]]")
+    days = seq_len(iv$duration) - 1L
+    mm = tryCatch(
+        make_mult_matrices(iv$param_set, days,
+                           insecticide_decay = !isFALSE(iv$settings$insecticide_decay)),
+        error = function(err) stop("calculate_combined_impact, ", what, ": ",
+                                   conditionMessage(err), call. = FALSE))
+    eff = apply_eff_matrices(mm, model_p$host_params)
+    list(alphai = eff$alphai_1[1L, ], PBi = eff$PBi_1[1L, ], PCi = eff$PCi_1[1L, ],
+         PDi = eff$PDi_1[1L, ], PEi = eff$PEi_1[1L, ], surv = eff$surv_mat[1L, ],
+         dummy = eff$alphai_4[1L, ], use_dummy = isTRUE(eff$use_dummy))
 }

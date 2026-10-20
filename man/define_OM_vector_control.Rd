@@ -63,9 +63,15 @@ probability 0, whose availability decays with the attrition and the
 insecticide decay of host-seeking killing (two
 \code{nonHumanHostsModifications} \code{<name>_dummy_<k>_attrition} and
 \code{_insecticide}: an availability reduction of 1 with an
-\code{increasing} decay multiplies the availability by the decay). The
-hosts of the campaigns add up, as the nets of earlier campaigns still in
-use. Increasing decays need OpenMalaria schema 46 or later (developed for
+\code{increasing} decay multiplies the availability by the decay). As for
+the GVI, whose components are refreshed (not stacked) in people who
+receive them again, a campaign \strong{replaces} the nets of its
+recipients: each earlier dummy host is reduced by the coverage \eqn{c_k}
+of every later campaign \eqn{k}
+(\code{<name>_dummy_<j>_replaced_<k>}, constant availability reduction
+\eqn{c_k}, the same number or placeholder as the schedule), which gives
+the expected effect of campaigns reaching random, independent shares of
+the population. Increasing decays need OpenMalaria schema 46 or later (developed for
 49): the \code{OMVersion} of the \code{baseList}. A rising insecticide
 decay (negative \code{halflife_insecticide}) is written with a negative
 availability reduction, exactly. Host-seeking killing acts on the same

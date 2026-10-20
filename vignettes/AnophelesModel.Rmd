@@ -741,6 +741,9 @@ baseList = deploy_OM_vector_control(baseList, "IG2", schedule)
 - **Same people.** The deployment holds all the components of the
   intervention, so that all effects reach the same people.
 
+Deployments restricted to age groups, and continuous deployment (e.g. EPI),
+are described in [Age-specific deployments](#age-specific-deployments) below.
+
 **Dummy-host nets.** The GVI has deterrency and post-prandial killing only.
 Host-seeking killing, which the GVI cannot represent, is written as it is in
 the model, a dummy host on which every mosquito that finds it dies: for each
@@ -748,8 +751,10 @@ campaign, an OpenMalaria non-human host (`<name>_dummy_<k>`, added at the
 campaign date), whose availability relative to an adult human is the
 coverage × `HostSeekingKilling` / human availability, and decays with the
 attrition and the insecticide decay of host-seeking killing (two
-modifications with increasing decays). The hosts of all campaigns add up, as
-the nets still in use, so the representation is exact. Increasing decays
+modifications with increasing decays). As for the GVI, whose effects are
+refreshed (not stacked) in people who receive a net again, each campaign
+replaces the nets of its recipients: earlier dummy hosts are reduced by the
+coverage of every later campaign. Increasing decays
 need **OpenMalaria schema 46 or later** (developed for 49): set
 `OMVersion = 49L` in the `baseList` (or `schema = 49` in `get_OM_xml()`);
 from schema 49, the entomology is written without `propInfected` /
@@ -870,5 +875,66 @@ schedule = om_campaigns("2021-01-01", "2024-01-01", every = "3 years",
 xml = get_OM_xml(om_ento, ig2, schedule, name = "IG2")
 cat(xml$deploy)
 ```
+
+### Age-specific deployments
+
+Nets can be deployed to age groups in two ways:
+
+- **campaigns restricted to an age group:** at given dates, people of an age
+  range receive the net (e.g. under-fives);
+- **continuous deployment:** people receive the net when they reach a target
+  age (e.g. infants at 3 months through EPI), while the deployment is active.
+
+Both take the same arguments in `deploy_OM_vector_control()`
+(openMalariaUtilities) and `get_OM_xml()` (text). They apply to standard
+interventions (dummy-host interventions are deployed to the whole
+population).
+
+**Campaigns for an age group.** `minAge` and `maxAge` (in years, numbers or
+placeholders) restrict every campaign of the schedule to that age range; the
+coverage is then the coverage within the age group. Give **both or
+neither**: a single limit is an error, to avoid a deployment that silently
+reaches all ages. Here the IG2 net to under-fives, in 2021 and 2024:
+```{r, eval=FALSE}
+baseList = define_OM_vector_control(baseList, ig2, name = "IG2")
+schedule_u5 = om_campaigns(dates = c("2021-01-01", "2024-01-01"),
+                           coverage = "@covU5@", by_year = TRUE)
+baseList = deploy_OM_vector_control(baseList, "IG2", schedule_u5, minAge = 0, maxAge = 5)
+```
+The same deployment as text:
+```{r}
+schedule_u5 = om_campaigns(dates = c("2021-01-01", "2024-01-01"),
+                           coverage = "@covU5@", by_year = TRUE)
+xml_u5 = get_OM_xml(om_ento, ig2, schedule_u5, name = "IG2",
+                    minAge = 0, maxAge = 5, entomology = FALSE)
+cat(xml_u5$deploy)
+```
+For several age groups, deploy the net once per group, each with its own
+schedule and coverage placeholders (in text: the `define` snippet once, the
+`deploy` snippet of each group). The age ranges should not overlap,
+otherwise people in both ranges receive a net from each deployment.
+
+**Continuous deployment.** `om_continuous()` gives the target ages, the
+coverage at each age (numbers or placeholders) and, optionally, the dates
+between which the deployment is active (by default, from the start of the
+intervention period, without end). It is used as the `schedule`; campaign
+options (`minAge`, `maxAge`, `cumulative`, `end_date`) do not apply, but
+`subpop` does. Here nets to infants at 3 months (EPI), from 2021:
+```{r, eval=FALSE}
+baseList = deploy_OM_vector_control(baseList, "IG2",
+    om_continuous(age = 0.25, coverage = "@covEPI@", begin = "2021-01-01"))
+```
+The same deployment as text:
+```{r}
+cont = om_continuous(age = 0.25, coverage = "@covEPI@", begin = "2021-01-01")
+xml_cont = get_OM_xml(om_ento, ig2, cont, name = "IG2", entomology = FALSE)
+cat(xml_cont$deploy)
+```
+
+**Continuous and campaigns together.** A net distributed both routinely and
+by mass campaigns is deployed twice under the same name, once with each
+schedule (two deployments of the same components); in text, call
+`get_OM_xml()` once per schedule and paste the `define` snippet of one call
+only.
 
 ## References

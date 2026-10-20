@@ -156,13 +156,16 @@ make_mult_matrices = function(ps, days, insecticide_decay = TRUE) {
     col_kappa = if (!is.null(ps$shape_attrition))    ps$shape_attrition    else ps$kappa
     col_decay = if (!is.null(ps$decay_attrition))    ps$decay_attrition    else ps$decay
 
-    surv_mat = t(vapply(seq_len(np), function(p) {
+    # Attrition survival [np x npoints], built explicitly (t(vapply()) would
+    # simplify to a vector, i.e. a 1 x np matrix, when npoints is 1)
+    surv_mat = matrix(NA_real_, np, npoints)
+    for (p in seq_len(np)) {
         kp = col_kappa[p]
-        decay_function(L     = col_L[p],
-                       kappa = if (is.na(kp)) NULL else kp,
-                       datej = days,
-                       decay = as.character(col_decay[p]))
-    }, numeric(npoints)))
+        surv_mat[p, ] = decay_function(L     = col_L[p],
+                                       kappa = if (is.na(kp)) NULL else kp,
+                                       datej = days,
+                                       decay = as.character(col_decay[p]))
+    }
 
     comp_decay_mat = function(decay_col, L_col, kappa_col, hl_yrs, component) {
         mat = matrix(1.0, np, npoints)

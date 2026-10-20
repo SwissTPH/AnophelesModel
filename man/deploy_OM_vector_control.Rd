@@ -24,7 +24,10 @@ deploy_OM_vector_control(
 
 \item{schedule}{Data frame with one row per campaign: \code{date}
 (\code{"YYYY-MM-DD"}, increasing) and \code{coverage} (numbers in [0, 1]
-or placeholders such as \code{"@cov2021@"}).}
+or placeholders such as \code{"@cov2021@"}), e.g. from
+\code{\link{om_campaigns}}; or a continuous schedule from
+\code{\link{om_continuous}} (deployment at target ages; standard model,
+without \code{cumulative}, \code{minAge}, \code{maxAge}).}
 
 \item{end_date}{Optional end of the simulated period (\code{"YYYY-MM-DD"}):
 the dummy hosts of dummy-host interventions last until then (otherwise
@@ -41,8 +44,10 @@ only.}
 (\code{cumulativeCoverage}, people already covered are not redeployed),
 measured on \code{"<name>-<subpop>"} or the first component.}
 
-\item{minAge, maxAge}{Optional age limits of the deployment (numbers or
-placeholders).}
+\item{minAge, maxAge}{Optional age limits of the deployment, in years
+(numbers or placeholders): \strong{both or neither} (all ages), e.g.
+\code{minAge = 0, maxAge = 5} for under-fives. Several age groups:
+one deploy per group.}
 }
 \value{
 The updated \code{baseList}.

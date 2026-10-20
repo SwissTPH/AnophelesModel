@@ -247,6 +247,45 @@ test_that("dummy-host combinations run and add host-seeking killing", {
                  tolerance = 1e-10)
 })
 
+test_that("calculate_combined_impact uses the supplied model, not the one that built the interventions", {
+    other_p = build_model_obj(def_vector_params("Anopheles funestus", verbose = FALSE),
+                              def_host_params(verbose = FALSE))
+    build_with = function(mp, efficacy, days = 60) suppressMessages(build_intervention(
+        efficacy, halflife_attrition = 180, shape_attrition = 2, duration_years = days / 365,
+        halflife_insecticide = c(PostPrandial = 2), model_p = mp))[[1]]
+    irs_eff = c(Deterrency = 0, PrePrandial = 0.3, PostPrandial = 0.8)
+    for (eff2 in list(irs_eff, dummy)) {
+        same  = combined(intervention1 = build_with(model_p, std),
+                         intervention2 = build_with(model_p, eff2, days = 40),
+                         cov_intervention1 = 0.7, cov_intervention2 = 0.5)
+        other = combined(intervention1 = build_with(other_p, std),
+                         intervention2 = build_with(other_p, eff2, days = 40),
+                         cov_intervention1 = 0.7, cov_intervention2 = 0.5)
+        mixed = combined(intervention1 = build_with(model_p, std),
+                         intervention2 = build_with(other_p, eff2, days = 40),
+                         cov_intervention1 = 0.7, cov_intervention2 = 0.5)
+        expect_equal(other, same, tolerance = 1e-12)
+        expect_equal(mixed, same, tolerance = 1e-12)
+        # The supplied model does matter
+        with_other = suppressMessages(calculate_combined_impact(
+            intervention1 = build_with(model_p, std),
+            intervention2 = build_with(model_p, eff2, days = 40),
+            cov_intervention1 = 0.7, cov_intervention2 = 0.5, model_p = other_p))
+        expect_false(isTRUE(all.equal(with_other, same)))
+    }
+    # A second intervention at coverage 0 gives calculate_impact() of the first,
+    # whichever model built them (insecticide decay included)
+    itn = build_with(other_p, std)
+    single = avg_impact(calculate_impact(list(itn), 0.7, model_p))
+    expect_equal(combined(intervention1 = itn, intervention2 = build_with(other_p, irs_eff),
+                          cov_intervention1 = 0.7, cov_intervention2 = 0),
+                 single, tolerance = 1e-10)
+    # Not an intervention element
+    expect_error(combined(intervention1 = list(itn), intervention2 = itn,
+                          cov_intervention1 = 0.5, cov_intervention2 = 0.5),
+                 "intervention1 must be an intervention")
+})
+
 test_that("complete protection survives combination with a null intervention", {
     constant = function(efficacy) suppressMessages(build_intervention(
         efficacy, decay_attrition = "none", duration_years = 2 / 365,

@@ -29,8 +29,8 @@ to \code{define_OM_vector_control()}); needed when the list has several
 nets.}
 
 \item{halflife, kappa}{Columns of decay parameters (see Decays): half-life
-(or time to zero, for linear / step decays) and shape. Interventions
-specified with \code{om_vector_control()} are needed for
+(or time to zero, for linear / step decays) and shape, each optional.
+Interventions specified with \code{om_vector_control()} are needed for
 \code{combine = TRUE}.}
 
 \item{decay_unit}{Unit of the \code{halflife} columns: \code{"years"}
@@ -87,6 +87,13 @@ effects; the final decay of host-seeking killing is written as the dummy
 hosts' attrition (in its decay function), their insecticide decay then
 being neutral. Without columns, each net's own decay is used. Decay
 columns need an intervention defined with \code{decay = "placeholder"}.
+
+Half-life and shape are replaced \strong{independently}: a \code{kappa}
+column alone changes the shape and keeps the half-life (and the other way
+round), the rest coming from the net (its attrition with \code{combine =
+TRUE}; its exported decay of the effect with \code{combine = FALSE}).
+Values must be positive numbers (the shape only where the decay function
+has one); errors name the rows and the effect.
 
 Values are computed once per distinct net and decay, so large tables are
 fast.

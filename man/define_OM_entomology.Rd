@@ -44,9 +44,12 @@ the year; it must be numeric, since \code{defineEntomology()} currently
 rejects monthly placeholders with R >= 4.3 (an openMalariaUtilities issue;
 \code{get_OM_xml()} writes the entomology with placeholders).
 
-The schema version is that of the \code{baseList} (\code{OMVersion}, 44
-if absent); from schema 49, \code{propInfected} and \code{propInfectious}
-(removed from the schema) are not written.
+The animal host parameters of each population are those of \code{om_ento}
+(its \code{hosts_p}), as in \code{\link{get_OM_xml}}:
+\code{defineEntomology()} writes fixed values (0.95, 0.95, 0.99), which
+are replaced. The schema version is that of the \code{baseList}
+(\code{OMVersion}, 44 if absent); from schema 49, \code{propInfected} and
+\code{propInfectious} (removed from the schema) are not written.
 
 Requires the openMalariaUtilities package.
 }

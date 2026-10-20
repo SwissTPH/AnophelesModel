@@ -91,6 +91,34 @@ rewritten and are **not backward compatible**.
   (developed for 49), from the `baseList`'s `OMVersion`. A named list of
   interventions defines one intervention whose values are chosen per
   scenario, e.g. to loop scenarios over net types.
+* Age-restricted deployments need both `minAge` and `maxAge` (or neither,
+  all ages); a single limit, negative ages or `minAge >= maxAge` are errors.
+* Dummy hosts in OpenMalaria: each campaign replaces the nets of its
+  recipients, as the GVI does (a component redeployed to a person is
+  refreshed, not stacked): earlier dummy hosts are reduced by the coverage of
+  every later campaign (`<name>_dummy_<j>_replaced_<k>`, constant
+  availability reduction = the campaign's coverage or its placeholder).
+  Before, cohorts accumulated (two campaigns at 100% gave twice the
+  host-seeking killing while the GVI stayed at one net).
+* `calculate_combined_impact()` rebuilds both interventions' daily effects
+  from their parameters (`$param_set`, duration, `insecticide_decay`) with
+  the supplied `model_p`, as `calculate_impact()`: results no longer depend
+  on the model used to build the interventions.
+* One-day (and shorter) batches with several parameter sets: the attrition
+  matrix keeps one row per parameter set (it was transposed, giving an
+  error).
+* `om_scenario_values()`: half-life and shape columns are independent
+  overrides (a `kappa` column alone changes the shape and keeps the
+  half-life); with `combine = FALSE`, the net's own decay parameters are
+  kept for what is not supplied. Values are validated (positive, shape
+  where needed), errors naming rows and effect.
+* `define_OM_entomology()` writes the animal host parameters of `om_ento`
+  (`hosts_p`) instead of openMalariaUtilities' fixed values, so both routes
+  write the same entomology.
+* New `om_continuous()`: continuous deployment at target ages (e.g. EPI,
+  school), with coverage and optional begin / end, accepted as `schedule` by
+  `deploy_OM_vector_control()` and `get_OM_xml()` (standard model; same
+  structure as openMalariaUtilities' `deploy_cont_compat()`).
 * Schema version: 44 by default; `get_OM_xml(schema = )` or the
   `baseList`'s `OMVersion`. From 49, the entomology has no `propInfected` /
   `propInfectious` (removed in 49; also dropped by `define_OM_entomology()`).
