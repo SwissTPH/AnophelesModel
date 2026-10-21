@@ -219,3 +219,175 @@ test_that("exported GVI decays reproduce the package's curves where exact", {
                          unname(efficacy_of("standard")[[comp]]), info = paste(dc, comp))
     }
 })
+
+# ---------------------------------------------------------------------------
+# 6. Row and coverage ordering
+# ---------------------------------------------------------------------------
+test_that("reordered parameter rows and unsorted coverages give the same results", {
+    for (mode in c("standard", "dummy_host")) {
+        cases = c("weibull", "step", "rising")
+        ps = as.data.frame(data.table::rbindlist(lapply(cases, function(dc)
+            build_case(mode, dc)[[1]]$param_set), fill = TRUE))
+        ps$name = cases
+        run = function(p, coverage) suppressMessages(run_interventions(
+            p, model_p, coverage, duration_years = days / 365, keep_time = TRUE))
+        sorted   = run(ps, c(0, 0.3, 0.7, 1))
+        shuffled = run(ps[c(3, 1, 2), ], c(1, 0.3, 0, 0.7))   # 0 not first
+        key = c("name", "coverage")
+        m = merge(as.data.frame(sorted$impact)[c(key, "avg_vc", "avg_impact")],
+                  as.data.frame(shuffled$impact)[c(key, "avg_vc", "avg_impact")],
+                  by = key, suffixes = c(".s", ".u"))
+        expect_equal(nrow(m), length(cases) * 4L, info = mode)
+        expect_equal(m$avg_impact.u, m$avg_impact.s, tolerance = 1e-12, info = mode)
+        expect_equal(m$avg_vc.u, m$avg_vc.s, tolerance = 1e-12, info = mode)
+        expect_equal(m$avg_impact.u[m$coverage == 0], rep(0, length(cases)), info = mode)
+        # Daily outputs
+        dkey = c("name", "coverage", "day")
+        md = merge(as.data.frame(sorted$time)[c(dkey, "vc", "impact")],
+                   as.data.frame(shuffled$time)[c(dkey, "vc", "impact")],
+                   by = dkey, suffixes = c(".s", ".u"))
+        expect_equal(nrow(md), length(cases) * 4L * days, info = mode)
+        expect_equal(md$impact.u, md$impact.s, tolerance = 1e-12, info = mode)
+        expect_equal(md$vc.u, md$vc.s, tolerance = 1e-12, info = mode)
+        # calculate_impact, unsorted coverages
+        iv = build_case(mode, "weibull")
+        a = calculate_impact(iv, c(0, 0.3, 0.7, 1), model_p)
+        b = calculate_impact(iv, c(1, 0.3, 0, 0.7), model_p)
+        expect_equal(b$avg_impact[match(a$coverage, b$coverage)], a$avg_impact,
+                     tolerance = 1e-12, info = mode)
+    }
+})
+
+# ---------------------------------------------------------------------------
+# 7. A combined decay with a known analytical answer
+# ---------------------------------------------------------------------------
+test_that("exponential attrition x exponential insecticide decay = 20-day half-life", {
+    # Half-lives 60 and 30 days: 2^(-t/60) x 2^(-t/30) = 2^(-t/20)
+    t  = 0:119
+    expected = 0.4 * exp(-log(2) * t / 20)
+    iv = suppressMessages(build_intervention(
+        c(Deterrency = 0, PrePrandial = 0.4, PostPrandial = 0),
+        decay_attrition = "exponential", halflife_attrition = 60,
+        component_decay = list(PrePrandial = list(decay = "exponential", L = 30)),
+        duration_years = length(t) / 365, model_p = model_p))[[1]]
+    # The package: population-level protection = survival x efficacy reduction
+    e = iv$effects
+    protection = e$survival * (1 - e$PBi[, 1] / e$PBi[, 2])
+    expect_equal(protection, expected, tolerance = 1e-12)
+    # The export: a single Weibull (fitted to the product), ~ exponential, L = 20 days
+    om  = suppressMessages(get_OM_ento_snippet(gss))
+    gvi = suppressMessages(get_OM_GVI_snippet(list(iv), om, "ITN"))[[1]]
+    pre = gvi$preprandialKillingEffect
+    d   = pre$decay
+    expect_equal(d[["function"]], "weibull")
+    expect_equal(as.numeric(d$L) * 365, 20, tolerance = 1e-3)
+    expect_equal(as.numeric(d$k), 1, tolerance = 1e-3)
+    curve = decay_function(L = 365 * as.numeric(d$L), kappa = as.numeric(d$k),
+                           datej = t, decay = "weibull")
+    expect_equal(as.numeric(pre$anophelesParams[[1]]$value) * curve, expected,
+                 tolerance = 1e-3)
+})
+
+test_that("a product that is not a Weibull is exported as a close fitted Weibull", {
+    # Weibull attrition (60 days, k = 2) x exponential insecticide decay (30
+    # days): no closed-form Weibull, the export fits one. The package keeps
+    # the exact product.
+    t  = 0:(3 * 365 - 1)
+    exact = 0.4 * exp(-log(2) * ((t / 60)^2 + t / 30))
+    iv = suppressMessages(build_intervention(
+        c(Deterrency = 0, PrePrandial = 0.4, PostPrandial = 0),
+        decay_attrition = "weibull", halflife_attrition = 60, shape_attrition = 2,
+        component_decay = list(PrePrandial = list(decay = "exponential", L = 30)),
+        duration_years = 3, model_p = model_p))[[1]]
+    e = iv$effects
+    expect_equal(e$survival * (1 - e$PBi[, 1] / e$PBi[, 2]), exact, tolerance = 1e-12)
+
+    om  = suppressMessages(get_OM_ento_snippet(gss))
+    gvi = suppressMessages(get_OM_GVI_snippet(list(iv), om, "ITN"))[[1]]
+    d   = gvi$preprandialKillingEffect$decay
+    fd  = iv$fitted_decay[iv$fitted_decay$component == "PrePrandial", ]
+    # The export writes the package's fit (L in years)...
+    expect_equal(d[["function"]], "weibull")
+    expect_equal(as.numeric(d$L) * 365, fd$L, tolerance = 1e-5)
+    expect_equal(as.numeric(d$k), fd$kappa, tolerance = 1e-5)
+    # ... which stays close to the exact product: within 5% of the initial
+    # effect at every day
+    fitted = 0.4 * decay_function(L = 365 * as.numeric(d$L), kappa = as.numeric(d$k),
+                                  datej = t, decay = "weibull")
+    expect_lt(max(abs(fitted - exact)), 0.05 * 0.4)
+    expect_lt(fd$rmse, 0.05)
+})
+
+# ---------------------------------------------------------------------------
+# 8. Overlap boundaries of combined interventions
+# ---------------------------------------------------------------------------
+test_that("combined impact at the smallest and largest overlaps, and just outside", {
+    itn = build_case("standard", "weibull")[[1]]
+    irs = suppressMessages(build_intervention(
+        c(Deterrency = 0, PrePrandial = 0.3, PostPrandial = 0.8), decay_attrition = "none",
+        duration_years = days / 365, model_p = model_p))[[1]]
+    comb = function(a, b, c1, c2, overlap) suppressMessages(calculate_combined_impact(
+        intervention1 = a, intervention2 = b, cov_intervention1 = c1,
+        cov_intervention2 = c2, cov_combination = overlap, model_p = model_p))
+    # Coverages exact in binary, so that the bounds are exact
+    for (cv in list(c(0.75, 0.5), c(0.25, 0.5))) {
+        c1 = cv[1]; c2 = cv[2]
+        lo = max(0, c1 + c2 - 1)
+        hi = min(c1, c2)
+        for (overlap in c(lo, hi)) {
+            info = paste(c1, c2, overlap)
+            res = comb(itn, irs, c1, c2, overlap)
+            expect_equal(res, reference_combined_impact(itn, irs, c1, c2, overlap,
+                                                        model_p = model_p),
+                         tolerance = 1e-10, info = info)
+            expect_equal(comb(irs, itn, c2, c1, overlap), res, tolerance = 1e-10, info = info)
+        }
+        # Just outside: the overlap rule (below only where the lower bound is
+        # positive; below 0 is a negative coverage, a separate check)
+        if (lo > 0)
+            expect_error(comb(itn, irs, c1, c2, lo - 0.001),
+                         "Coverage of combination must be between")
+        else
+            expect_error(comb(itn, irs, c1, c2, lo - 0.001), "cov_combination must be")
+        expect_error(comb(itn, irs, c1, c2, hi + 0.001),
+                     "Coverage of combination must be between")
+    }
+})
+
+# ---------------------------------------------------------------------------
+# 9. Simultaneous uncertainty inputs
+# ---------------------------------------------------------------------------
+test_that("intervention, vector and exposure draws together equal separate runs", {
+    base = vec_ent_param[vec_ent_param$species_name == gss & vec_ent_param$level == "species", ]
+    vec_draws = rbind(base, base)
+    vec_draws$M[2]   = base$M * 0.85                  # deliberately different draws
+    vec_draws$Chi[2] = base$Chi * 0.8
+    vec_draws$A0[2]  = min(base$A0 * 1.1, 0.95)
+    rownames(vec_draws) = NULL
+    exposures = c(1, 0.5)
+
+    for (mode in c("standard", "dummy_host")) {
+        interv_draws = as.data.frame(data.table::rbindlist(list(
+            build_case(mode, "weibull")[[1]]$param_set,
+            build_case(mode, "weibull", scale = 0.6)[[1]]$param_set)))
+        interv_draws$halflife_attrition[2] = 30
+
+        drawn = suppressMessages(run_interventions(
+            interv_draws[1, ], model_p, cov, vec_param_sets = vec_draws,
+            interv_param_sets = interv_draws, exposure_sets = exposures,
+            duration_years = days / 365))
+        for (d in 1:2) {
+            model_d = build_model_obj(def_vector_params(vector_table = vec_draws[d, ],
+                                                        verbose = FALSE),
+                                      def_host_params(verbose = FALSE))
+            single = suppressMessages(run_interventions(
+                interv_draws[d, ], model_d, cov, exposure = exposures[d],
+                duration_years = days / 365))
+            expect_equal(drawn$avg_impact[drawn$draw == d], single$avg_impact,
+                         tolerance = 1e-12, info = paste(mode, "draw", d))
+        }
+        # The draws do differ
+        expect_false(isTRUE(all.equal(drawn$avg_impact[drawn$draw == 1],
+                                      drawn$avg_impact[drawn$draw == 2])), info = mode)
+    }
+})
