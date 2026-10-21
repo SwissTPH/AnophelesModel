@@ -21,6 +21,23 @@ check_efficacy_values = function(x, label, probability = TRUE, allow_na = FALSE)
     invisible(x)
 }
 
+# Shared validation of an activity pattern (def_activity_patterns()): a list
+# with HBI, HBO, humans_indoors and humans_in_bed, each once. Several patterns
+# combined with c() give duplicated entries, of which R would silently use
+# the first ones (e.g. the first species' pattern for all species).
+check_activity_pattern = function(x, label = "activity") {
+    fields = c("HBI", "HBO", "humans_indoors", "humans_in_bed")
+    if (!is.list(x) || !all(fields %in% names(x)))
+        stop(label, " must be an activity pattern from def_activity_patterns() (with ",
+             paste(fields, collapse = ", "), ")")
+    dup = unique(names(x)[duplicated(names(x))])
+    if (length(dup))
+        stop(label, " has duplicated entries (", paste(dup, collapse = ", "), "): ",
+             "several activity patterns were combined with c(); give one pattern ",
+             "per taxon with list(), e.g. list(pattern_1, pattern_2)")
+    invisible(x)
+}
+
 check_intervention_params = function(ps, label) {
     if (!is.data.frame(ps) || nrow(ps) == 0L)
         stop(label, " must be a non-empty data frame")

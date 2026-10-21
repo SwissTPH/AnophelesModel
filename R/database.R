@@ -113,6 +113,7 @@ list_activity = function(species = "Anopheles gambiae", sampling = "HBI",
 #' @export
 #'
 calculate_exposure = function(activity_cycles, vec_p) {
+    check_activity_pattern(activity_cycles, "activity_cycles")
     activity_cycles$HBI = activity_cycles$HBI /
         sum(activity_cycles$HBI, na.rm = TRUE) * vec_p$endophagy
     activity_cycles$HBO = activity_cycles$HBO /

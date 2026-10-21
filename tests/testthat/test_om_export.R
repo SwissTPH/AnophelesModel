@@ -75,6 +75,23 @@ test_that("activity splits each taxon into indoor1 / indoor2 / outdoor", {
     expect_length(om$seasonalityParameters[[1]]$seasonality, 12)
 })
 
+test_that("activity patterns: one per taxon with list(), c() is an error", {
+    a1 = def_activity_patterns("default_Anopheles_gambiae")
+    a2 = def_activity_patterns(list(HBI = 35, HBO = 166, humans_indoors = 4,
+                                    humans_in_bed = 24))
+    taxa = c(gss, "Anopheles funestus")
+    # c() merges the patterns (duplicated entries): the second taxon would
+    # silently get the first one's pattern
+    expect_error(get_OM_ento_snippet(taxa, activity = c(a1, a2)), "combined with c\\(\\)")
+    expect_error(calculate_exposure(c(a1, a2), def_vector_params(gss, verbose = FALSE)),
+                 "combined with c\\(\\)")
+    ok = suppressMessages(get_OM_ento_snippet(taxa, activity = list(a1, a2)))
+    expect_equal(nrow(ok$shares), 6)
+    expect_error(get_OM_ento_snippet(taxa, activity = list(a1)), "one pattern per taxon")
+    expect_error(get_OM_ento_snippet(taxa, activity = list(a1, list(HBI = 1))),
+                 "activity\\[\\[2\\]\\] must be an activity pattern")
+})
+
 test_that("species shares give relative annualEIR contributions", {
     taxa = c("Anopheles funestus", gss)
     sp = c("Anopheles funestus" = 0.9, "Anopheles gambiae" = 0.1)   # a synonym works

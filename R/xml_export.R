@@ -143,10 +143,17 @@ get_OM_ento_snippet = function(taxa, level = "species", activity = NULL,
     level = rep_len(level, length(taxa))
     split = !is.null(activity)
     if (split) {
-        if (!is.null(activity$HBI)) activity = rep(list(activity), length(taxa))
-        if (length(activity) != length(taxa))
+        if (!is.null(activity$HBI)) {
+            # A single pattern for all taxa (c() of several patterns ends here
+            # too, with duplicated entries: an error)
+            check_activity_pattern(activity)
+            activity = rep(list(activity), length(taxa))
+        }
+        if (!is.list(activity) || length(activity) != length(taxa))
             stop("activity must be one activity pattern, or a list with one ",
-                 "pattern per taxon")
+                 "pattern per taxon (", length(taxa), "), made with list()")
+        for (i in seq_along(activity))
+            check_activity_pattern(activity[[i]], paste0("activity[[", i, "]]"))
     }
 
     mosquitoParameters = list()

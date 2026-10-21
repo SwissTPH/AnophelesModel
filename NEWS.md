@@ -93,6 +93,9 @@ rewritten and are **not backward compatible**.
   scenario, e.g. to loop scenarios over net types.
 * Age-restricted deployments need both `minAge` and `maxAge` (or neither,
   all ages); a single limit, negative ages or `minAge >= maxAge` are errors.
+* Activity patterns combined with `c()` (instead of `list()`, one per taxon)
+  are an error in `get_OM_ento_snippet()` and `calculate_exposure()`: their
+  duplicated entries silently gave every taxon the first pattern.
 * Dummy hosts in OpenMalaria: each campaign replaces the nets of its
   recipients, as the GVI does (a component redeployed to a person is
   refreshed, not stacked): earlier dummy hosts are reduced by the coverage of
