@@ -744,7 +744,9 @@ baseList = deploy_OM_vector_control(baseList, "IG2", schedule)
 Deployments restricted to age groups, and continuous deployment (e.g. EPI),
 are described in [Age-specific deployments](#age-specific-deployments) below.
 
-**Dummy-host nets.** The GVI has deterrency and post-prandial killing only.
+**Dummy-host nets (work in progress).** Their export has not been
+validated in OpenMalaria yet and gives a warning (the export of standard
+nets is validated). The GVI has deterrency and post-prandial killing only.
 Host-seeking killing, which the GVI cannot represent, is written as it is in
 the model, a dummy host on which every mosquito that finds it dies: for each
 campaign, an OpenMalaria non-human host (`<name>_dummy_<k>`, added at the

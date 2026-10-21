@@ -1,6 +1,10 @@
 library(AnophelesModel2)
 library(testthat)
 
+# The dummy-host export warns that it is work in progress (tested below);
+# acknowledged here so that the other tests do not repeat the warning
+old_opts = options(AnophelesModel2.om_dummy_host = TRUE)
+
 # Export to OpenMalaria through openMalariaUtilities (OMU) input lists.
 
 gss      = "Anopheles gambiae ss/coluzzii"
@@ -264,6 +268,18 @@ om_rebuild = function(h, k, j, days) {
     }
     v
 }
+
+test_that("the dummy-host export warns that it is work in progress", {
+    options(AnophelesModel2.om_dummy_host = NULL)
+    on.exit(options(AnophelesModel2.om_dummy_host = TRUE))
+    expect_warning(suppressMessages(get_OM_xml(om, dh_net(), sched_num, schema = 49)),
+                   "WORK IN PROGRESS")
+    expect_warning(suppressMessages(get_OM_GVI_snippet(dh_net(), om, "ITN")),
+                   "WORK IN PROGRESS")
+    # Standard interventions: no warning
+    expect_no_warning(get_OM_xml(om, bi(halflife_attrition = 730, shape_attrition = 2),
+                                 sched_num, entomology = FALSE))
+})
 
 test_that("dummy hosts reproduce the package's dummy host exactly", {
     days = 0:729
@@ -1150,3 +1166,6 @@ test_that("deploying a member of a list points to the list's name", {
                  "one of the interventions of the list defined as 'futITN'.*deploy 'futITN'")
     expect_no_error(suppressMessages(deploy_OM_vector_control(b, "futITN", sched_num)))
 })
+
+# Restore the options changed at the top of this file
+options(old_opts)

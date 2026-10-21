@@ -20,6 +20,25 @@ om_baselist_schema = function(baseList)
 # Smallest schema with increasing decays (dummy host)
 om_dummy_min_schema = 46L
 
+# Internal: the OpenMalaria export of dummy-host interventions is work in
+# progress (not yet validated in OpenMalaria): a warning, unless acknowledged
+# with options(AnophelesModel2.om_dummy_host = TRUE). The GVI export of
+# standard interventions is validated.
+om_check_dummy_enabled = function() {
+    if (!isTRUE(getOption("AnophelesModel2.om_dummy_host")))
+        warning("\n",
+            "*************************************************************************\n",
+            "* WORK IN PROGRESS: the OpenMalaria export of dummy-host interventions  *\n",
+            "* (host-seeking killing as added non-human hosts, schema >= 46) has not *\n",
+            "* been validated in OpenMalaria yet. Check the results carefully, or    *\n",
+            "* use standard interventions (get_ITN_params(mode = \"standard\")), whose *\n",
+            "* export is validated.                                                  *\n",
+            "* (Silence: options(AnophelesModel2.om_dummy_host = TRUE))              *\n",
+            "*************************************************************************",
+            call. = FALSE)
+    invisible()
+}
+
 # Internal: decay shape names of this package -> OpenMalaria decay functions
 om_decay_name = function(decay) {
     shape = tolower(as.character(decay))
@@ -475,6 +494,7 @@ get_OM_GVI_snippet = function(interv, om_ento, intervention_type = c("ITN", "IRS
              "build_intervention()")
     if (is.null(name)) name = om_default_name(interv, "GVI")
     interv = om_gvi_objects(list(interv), om_ento, intervention_type)[[1]]
+    if (interv$settings$mode == "dummy_host") om_check_dummy_enabled()
     if (interv$settings$mode == "dummy_host")
         message("get_OM_GVI_snippet: dummy-host intervention, the GVI has ",
                 "deterrency and post-prandial killing only; host-seeking ",
@@ -1433,7 +1453,10 @@ om_baselist_ento = function(baseList) {
 #' \code{baseList$anophelesmodel2} (not written to the XML) and says so in a
 #' message.
 #'
-#' \strong{Host-seeking killing (OpenMalaria schema >= 46).} OpenMalaria's
+#' \strong{Host-seeking killing (OpenMalaria schema >= 46), work in
+#' progress:} this part has not been validated in OpenMalaria yet, and gives
+#' a warning (silenced with \code{options(AnophelesModel2.om_dummy_host =
+#' TRUE)}); the export of standard interventions is validated. OpenMalaria's
 #' GVI has no host-seeking killing. In this package it is a dummy host per
 #' covered person, of availability \code{HostSeekingKilling} \eqn{\times}
 #' insecticide decay (relative to the human availability \eqn{\alpha_h}),
@@ -1583,6 +1606,7 @@ om_vc_components = function(interv, om_ento, intervention_type, name,
     name  = om_name(x, name, intervention_type)
     items = x$nets
     mode  = om_item_mode(items[[1]])
+    if (mode == "dummy_host") om_check_dummy_enabled()
     if (mode == "dummy_host" && schema < om_dummy_min_schema)
         stop("The host-seeking killing of dummy-host interventions is written as ",
              "non-human hosts with increasing decays, which need OpenMalaria schema >= ",

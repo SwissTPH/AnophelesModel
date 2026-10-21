@@ -93,6 +93,11 @@ rewritten and are **not backward compatible**.
   scenario, e.g. to loop scenarios over net types.
 * Age-restricted deployments need both `minAge` and `maxAge` (or neither,
   all ages); a single limit, negative ages or `minAge >= maxAge` are errors.
+* The OpenMalaria export of dummy-host interventions (`define_OM_vector_control()`,
+  `get_OM_xml()`, `get_OM_GVI_snippet()`) warns that it is work in progress,
+  not yet validated in OpenMalaria (silenced with
+  `options(AnophelesModel2.om_dummy_host = TRUE)`); the export of standard
+  interventions is validated (OpenMalaria 44).
 * Activity patterns combined with `c()` (instead of `list()`, one per taxon)
   are an error in `get_OM_ento_snippet()` and `calculate_exposure()`: their
   duplicated entries silently gave every taxon the first pattern.

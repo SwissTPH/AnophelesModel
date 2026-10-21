@@ -49,7 +49,10 @@ For dummy-host interventions, the host-seeking killing is written by
 \code{baseList$anophelesmodel2} (not written to the XML) and says so in a
 message.
 
-\strong{Host-seeking killing (OpenMalaria schema >= 46).} OpenMalaria's
+\strong{Host-seeking killing (OpenMalaria schema >= 46), work in
+progress:} this part has not been validated in OpenMalaria yet, and gives
+a warning (silenced with \code{options(AnophelesModel2.om_dummy_host =
+TRUE)}); the export of standard interventions is validated. OpenMalaria's
 GVI has no host-seeking killing. In this package it is a dummy host per
 covered person, of availability \code{HostSeekingKilling} \eqn{\times}
 insecticide decay (relative to the human availability \eqn{\alpha_h}),
