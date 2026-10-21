@@ -77,6 +77,34 @@ test_that("activity splits each taxon into indoor1 / indoor2 / outdoor", {
     expect_named(om$seasonalityParameters, sh$mosquito)
     expect_match(om$seasonalityParameters[[1]]$annualEIR, "^@contrib_[A-Za-z0-9_]+@$")
     expect_length(om$seasonalityParameters[[1]]$seasonality, 12)
+    expect_equal(om$irs_exposure, "indoor_resting")             # the default
+})
+
+test_that("IRS can reach the mosquitoes biting indoors instead of resting indoors", {
+    om  = suppressMessages(get_OM_ento_snippet(gss, activity = activity,
+                                               irs_exposure = "indoor_biting"))
+    exposure = calculate_exposure(activity, def_vector_params(gss, verbose = FALSE))
+    in_bed = exposure$Exposure_Indoor_whileinbed
+    indoor = exposure$Exposure_Indoor_total
+    expect_lte(in_bed, indoor)                       # bites in bed are bites indoors
+    sh = om$shares
+    expect_equal(om$irs_exposure, "indoor_biting")
+    # indoor1 = in bed (ITN and IRS), indoor2 = indoors outside bed (IRS only)
+    expect_equal(sh$share, c(in_bed, indoor - in_bed, 1 - indoor))
+    expect_equal(sh$in_bed,         c(TRUE, FALSE, FALSE))
+    expect_equal(sh$indoor_resting, c(TRUE, TRUE, FALSE))
+    # The IRS export acts on indoor1 and indoor2, ITNs on indoor1 only
+    irs = suppressWarnings(get_OM_GVI_snippet(
+        bi(decay_attrition = "none", insecticide_decay = FALSE), om, "IRS"))[[1]]
+    expect_equal(unname(sapply(irs$deterrency$anophelesParams, `[[`, "propActive")),
+                 c(1, 1, 0))
+    itn = get_OM_GVI_snippet(bi(halflife_attrition = 730, shape_attrition = 2), om, "ITN")[[1]]
+    expect_equal(unname(sapply(itn$deterrency$anophelesParams, `[[`, "propActive")),
+                 c(1, 0, 0))
+    # Default unchanged; invalid choice rejected
+    expect_equal(suppressMessages(get_OM_ento_snippet(gss, activity = activity))$irs_exposure,
+                 "indoor_resting")
+    expect_error(get_OM_ento_snippet(gss, activity = activity, irs_exposure = "outdoor"))
 })
 
 test_that("activity patterns: one per taxon with list(), c() is an error", {

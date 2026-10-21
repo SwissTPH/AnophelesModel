@@ -6,6 +6,19 @@
 # Internal: number -> string, as in the OMU examples
 om_num = function(x) as.character(signif(x, 6))
 
+# Internal: decay parameter L (years) -> string. For decays ending at L (step,
+# linear, smooth-compact), rounding up would keep protection beyond the end
+# (e.g. 45 days = 0.123288 years = 45.0001 days with 6 digits: still active
+# at day 45, and possibly one more OpenMalaria step). L is therefore written
+# with 10 significant digits, rounded towards zero for these shapes.
+om_time_to_zero = c("step", "linear", "smooth-compact")
+om_num_L = function(L, fn) {
+    if (!fn %in% om_time_to_zero || !is.finite(L) || L <= 0) return(om_num(L))
+    digits = 10
+    scale  = 10^(digits - 1 - floor(log10(L)))
+    as.character(floor(L * scale * (1 + 1e-15)) / scale)
+}
+
 # Internal: validated OpenMalaria schema version
 om_check_schema = function(schema) {
     if (!is.numeric(schema) || length(schema) != 1L || is.na(schema) ||
@@ -21,18 +34,19 @@ om_baselist_schema = function(baseList)
 om_dummy_min_schema = 46L
 
 # Internal: the OpenMalaria export of dummy-host interventions is work in
-# progress (not yet validated in OpenMalaria): a warning, unless acknowledged
-# with options(AnophelesModel2.om_dummy_host = TRUE). The GVI export of
-# standard interventions is validated.
+# progress (not yet run in OpenMalaria): a warning, unless acknowledged with
+# options(AnophelesModel2.om_dummy_host = TRUE). The GVI export of standard
+# ITNs deployed by campaigns was checked in OpenMalaria 44 (see
+# define_OM_vector_control()).
 om_check_dummy_enabled = function() {
     if (!isTRUE(getOption("AnophelesModel2.om_dummy_host")))
         warning("\n",
             "*************************************************************************\n",
             "* WORK IN PROGRESS: the OpenMalaria export of dummy-host interventions  *\n",
             "* (host-seeking killing as added non-human hosts, schema >= 46) has not *\n",
-            "* been validated in OpenMalaria yet. Check the results carefully, or    *\n",
-            "* use standard interventions (get_ITN_params(mode = \"standard\")), whose *\n",
-            "* export is validated.                                                  *\n",
+            "* been run in OpenMalaria yet. Check the results carefully, or use      *\n",
+            "* standard ITNs (get_ITN_params(mode = \"standard\")), whose export by    *\n",
+            "* campaigns was checked in OpenMalaria 44.                              *\n",
             "* (Silence: options(AnophelesModel2.om_dummy_host = TRUE))              *\n",
             "*************************************************************************",
             call. = FALSE)
@@ -56,16 +70,25 @@ om_decay_name = function(decay) {
 #'
 #' With \code{activity}, each taxon is split into three mosquito populations
 #' according to human exposure (\code{\link{calculate_exposure}}): with
-#' \code{in_bed} the exposure indoors while in bed and \code{resting} the
-#' proportion resting indoors (endophily),
+#' \code{in_bed} the share of bites indoors while in bed (reached by ITNs) and
+#' \code{irs} the share reached by IRS, chosen with \code{irs_exposure}: the
+#' proportion resting indoors (\code{"indoor_resting"}, the endophily;
+#' default) or the share of bites indoors (\code{"indoor_biting"},
+#' \code{Exposure_Indoor_total}),
 #' \itemize{
-#'   \item \code{<taxon>_indoor1}: share \code{min(in_bed, resting)}, exposed
-#'     both in bed and while resting indoors;
-#'   \item \code{<taxon>_indoor2}: share \code{max(in_bed, resting) -
-#'     min(in_bed, resting)}, exposed in bed only (if \code{in_bed > resting})
-#'     or while resting indoors only;
-#'   \item \code{<taxon>_outdoor}: the rest, not exposed indoors.
+#'   \item \code{<taxon>_indoor1}: share \code{min(in_bed, irs)}, reached by
+#'     both ITNs and IRS;
+#'   \item \code{<taxon>_indoor2}: share \code{max(in_bed, irs) -
+#'     min(in_bed, irs)}, reached by ITNs only (if \code{in_bed > irs}) or by
+#'     IRS only;
+#'   \item \code{<taxon>_outdoor}: the rest, reached by neither.
 #' }
+#' With \code{"indoor_resting"}, the overlap between biting in bed and
+#' resting indoors is an assumption (the largest possible, \code{min()}).
+#' With \code{"indoor_biting"}, bites in bed are a part of bites indoors, so
+#' \code{indoor1} is exactly the in-bed share and \code{indoor2} the indoor
+#' bites outside bed. The vectorial capacity calculation has the same choice
+#' through its \code{exposure} argument (see \code{\link{calculate_exposure}}).
 #' The populations share all parameters except the human blood index: indoor
 #' populations use the indoor HBI, the outdoor population the outdoor HBI.
 #' Without \code{activity}, each taxon is a single population whose human blood
@@ -112,6 +135,11 @@ om_decay_name = function(decay) {
 #'   the total EIR is set with the \code{scaledAnnualEIR} attribute of
 #'   \code{<entomology>} (a number or a placeholder, e.g.
 #'   \code{defineEntomology(..., scaledAnnualEIR = "@EIR@")}).
+#' @param irs_exposure With \code{activity}: the mosquitoes reached by IRS,
+#'   \code{"indoor_resting"} (default: those resting indoors, the endophily)
+#'   or \code{"indoor_biting"} (those biting indoors,
+#'   \code{Exposure_Indoor_total}). It sets the split and the
+#'   \code{indoor_resting} flag of \code{shares}, used by the IRS export.
 #'
 #' @return List with
 #' \itemize{
@@ -129,15 +157,18 @@ om_decay_name = function(decay) {
 #'     \code{all}), \code{share} within the taxon (with
 #'     \code{species_shares}, also \code{species_share} and the overall
 #'     \code{eir_share}), and the logical columns
-#'     \code{in_bed} and \code{indoor_resting} (exposure to interventions
-#'     acting in bed, e.g. ITNs, or on indoor resting mosquitoes, e.g. IRS),
+#'     \code{in_bed} and \code{indoor_resting} (reached by interventions
+#'     acting in bed, e.g. ITNs, or by IRS: resting indoors, or biting
+#'     indoors with \code{irs_exposure = "indoor_biting"}),
 #'     and \code{muvA}, the host-seeking death rate without interventions
 #'     (per day, with the population's HBI);
 #'   \item \code{model_params}: named list (one element per mosquito
 #'     population) of \code{\link{build_model_obj}} outputs with the
 #'     population's HBI (\code{NULL} if the bionomics give no valid death
 #'     rate); their human availability scales the dummy hosts of
-#'     host-seeking killing (\code{\link{define_OM_vector_control}}).
+#'     host-seeking killing (\code{\link{define_OM_vector_control}});
+#'   \item \code{irs_exposure}: the choice above (\code{NULL} without
+#'     \code{activity}).
 #' }
 #'
 #' @seealso \code{\link{get_OM_GVI_snippet}}, \code{\link{define_OM_vector_control}}
@@ -157,8 +188,10 @@ om_decay_name = function(decay) {
 get_OM_ento_snippet = function(taxa, level = "species", activity = NULL,
                                hbi = "weighted", hosts_p = def_host_params(),
                                propInfected = 0.078, propInfectious = 0.021,
-                               bionomics_table = NULL, species_shares = NULL) {
+                               bionomics_table = NULL, species_shares = NULL,
+                               irs_exposure = c("indoor_resting", "indoor_biting")) {
     hbi   = match.arg(hbi, c("weighted", "indoor", "outdoor"))
+    irs_exposure = match.arg(irs_exposure)
     level = rep_len(level, length(taxa))
     split = !is.null(activity)
     if (split) {
@@ -191,7 +224,10 @@ get_OM_ento_snippet = function(taxa, level = "species", activity = NULL,
                      "HBI_outdoor for ", taxon)
             exposure = calculate_exposure(activity[[i]], vec_p)
             in_bed   = exposure$Exposure_Indoor_whileinbed
-            resting  = exposure$indoor_resting
+            # Share reached by IRS: resting indoors (endophily) or biting
+            # indoors (bites in bed are then a part of it)
+            resting  = if (irs_exposure == "indoor_biting") exposure$Exposure_Indoor_total
+                       else exposure$indoor_resting
             indoor1  = min(in_bed, resting)
             indoor2  = max(in_bed, resting) - indoor1
             sh = data.frame(
@@ -252,10 +288,12 @@ get_OM_ento_snippet = function(taxa, level = "species", activity = NULL,
         propInfectious = propInfectious))
     names(seasonalityParameters) = shares$mosquito
 
-    list(mosquitoParameters    = mosquitoParameters,
-         seasonalityParameters = seasonalityParameters,
-         shares                = shares,
-         model_params          = model_params)
+    out = list(mosquitoParameters    = mosquitoParameters,
+               seasonalityParameters = seasonalityParameters,
+               shares                = shares,
+               model_params          = model_params)
+    if (split) out$irs_exposure = irs_exposure
+    out
 }
 
 
@@ -447,7 +485,10 @@ om_mosq_params = function(vec_p, chi, hosts_p) {
 #'
 #' The effects act on the mosquito populations exposed to the intervention
 #' (see \code{\link{get_OM_ento_snippet}}): in bed for ITNs, resting indoors for
-#' IRS; other populations get \code{propActive = 0}.
+#' IRS (or biting indoors, with \code{get_OM_ento_snippet(irs_exposure =
+#' "indoor_biting")}); other populations get \code{propActive = 0}. Use the
+#' same choice for the \code{exposure} of \code{calculate_impact()} (see
+#' \code{\link{calculate_exposure}}).
 #'
 #' Dummy-host interventions (\code{HostSeekingKilling}) have no pre-prandial
 #' killing: their GVI has deterrency and post-prandial killing only, and the
@@ -725,7 +766,7 @@ om_gvi_decay = function(interv, comp) {
     shape_list = function(decay, L_days, k) {
         fn = om_decay_name(decay)
         if (fn == "constant") return(list("function" = "constant"))
-        out = list(L = om_num(L_days / 365), "function" = fn)
+        out = list(L = om_num_L(L_days / 365, fn), "function" = fn)
         if (fn %in% c("weibull", "hill", "smooth-compact")) out$k = om_num(k)
         out
     }
@@ -980,7 +1021,7 @@ om_dummy_values = function(f) {
 # placeholders @<lab>_L@ / @<lab>_k@
 om_dummy_decay = function(fn, v = NULL, lab = NULL) {
     out = list("function" = fn,
-               L = if (is.null(lab)) om_num(v[["L"]]) else paste0("@", lab, "_L@"))
+               L = if (is.null(lab)) om_num_L(v[["L"]], fn) else paste0("@", lab, "_L@"))
     if (fn %in% om_k_fns)
         out$k = if (is.null(lab)) om_num(v[["k"]]) else paste0("@", lab, "_k@")
     out$increasing = "true"
@@ -1453,10 +1494,23 @@ om_baselist_ento = function(baseList) {
 #' \code{baseList$anophelesmodel2} (not written to the XML) and says so in a
 #' message.
 #'
+#' \strong{What has been checked in OpenMalaria.} The export of
+#' \strong{standard ITNs deployed by campaigns} was run in OpenMalaria 44
+#' through openMalariaUtilities, and its entomological outputs checked: each
+#' effect (deterrency, pre- and post-prandial killing) changes its own
+#' parameter, in the in-bed mosquito populations only; Weibull decays
+#' (exact and fitted); refresh on redeployment; baseline EIR and population
+#' contributions. \strong{Not yet run in OpenMalaria:} IRS, deployments
+#' restricted by age, sub-population or cumulative coverage, continuous
+#' deployment (\code{\link{om_continuous}}), the plain-text route
+#' (\code{\link{get_OM_xml}}, same lists, compared with the
+#' openMalariaUtilities route in the package tests) and the dummy host
+#' (below).
+#'
 #' \strong{Host-seeking killing (OpenMalaria schema >= 46), work in
-#' progress:} this part has not been validated in OpenMalaria yet, and gives
-#' a warning (silenced with \code{options(AnophelesModel2.om_dummy_host =
-#' TRUE)}); the export of standard interventions is validated. OpenMalaria's
+#' progress:} this part has not been run in OpenMalaria yet, and gives a
+#' warning (silenced with \code{options(AnophelesModel2.om_dummy_host =
+#' TRUE)}). OpenMalaria's
 #' GVI has no host-seeking killing. In this package it is a dummy host per
 #' covered person, of availability \code{HostSeekingKilling} \eqn{\times}
 #' insecticide decay (relative to the human availability \eqn{\alpha_h}),

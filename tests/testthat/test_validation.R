@@ -21,6 +21,39 @@ test_that("efficacy requires a non-empty numeric vector with unique valid names"
     for (efficacy in invalid) expect_error(validation_build(efficacy), "efficacy|component")
 })
 
+test_that("misspelled decay component names are errors, not silently ignored", {
+    # halflife_insecticide / component_decay of build_intervention()
+    expect_error(validation_build(c(PrePrandial = 0.4),
+                                  halflife_insecticide = c(Preprandial = 2)),
+                 "halflife_insecticide: unknown component\\(s\\) Preprandial")
+    expect_error(validation_build(c(PrePrandial = 0.4), component_decay = list(
+        Preprandial = list(decay = "exponential", L = 30))),
+        "component_decay: unknown component\\(s\\) Preprandial")
+    expect_error(validation_build(c(PrePrandial = 0.4), halflife_insecticide = 2),
+                 "must be named by component")
+    expect_error(validation_build(c(PrePrandial = 0.4),
+                                  halflife_insecticide = c(PrePrandial = 2, PrePrandial = 3)),
+                 "duplicated component")
+    # The same through om_vector_control()
+    expect_error(om_vector_control(c(PrePrandial = 0.4), decay_attrition = "none",
+                                   halflife_insecticide = c(Preprandial = 2)),
+                 "unknown component")
+    # Valid names still work
+    expect_no_error(validation_build(c(PrePrandial = 0.4),
+                                     halflife_insecticide = c(PrePrandial = 2)))
+    # Batch tables: misspelled decay columns of run_interventions()
+    ps = validation_ps
+    ps$halflife_pree = 2
+    expect_error(validation_run(ps), "unknown decay column\\(s\\) halflife_pree")
+    ps = validation_ps
+    ps$decay_Pre = "exponential"
+    expect_error(validation_run(ps), "unknown decay column\\(s\\) decay_Pre")
+    ps = validation_ps
+    ps$halflife_pre = 2
+    ps$my_label = "kept"                     # other columns are still allowed
+    expect_no_error(validation_run(ps))
+})
+
 test_that("both interfaces reject invalid probability efficacies", {
     mapping = c(Deterrency = "deterrency", PrePrandial = "preprandial",
                 PostPrandial = "postprandial")

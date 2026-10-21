@@ -456,6 +456,11 @@ build_intervention = function(efficacy,
     if (use_dummy_host)
         ps$host_seeking_killing = if (has_hsk) unname(efficacy["HostSeekingKilling"]) else 0
 
+    # Component names of the decays must be valid (a misspelled name would
+    # silently leave that effect without its decay)
+    check_component_names(halflife_insecticide, "halflife_insecticide", valid_components)
+    check_component_names(component_decay, "component_decay", valid_components)
+
     # halflife_insecticide (named vector, years) → per-component columns
     if (!is.null(halflife_insecticide)) {
         nm_map = c(Deterrency         = "halflife_det",
@@ -629,8 +634,9 @@ build_intervention = function(efficacy,
 #' @param exposure Proportion of human exposure to bites that occurs where
 #' the intervention protects, in \code{[0, 1]} (default 1). The intervention
 #' acts on an effective coverage \code{coverage * exposure}. Typically
-#' \code{calculate_exposure(...)$Exposure_Indoor_whileinbed} for ITNs or
-#' \code{$Exposure_Indoor_total} for IRS.
+#' \code{calculate_exposure(...)$Exposure_Indoor_whileinbed} for ITNs, and
+#' \code{$indoor_resting} or \code{$Exposure_Indoor_total} for IRS (see
+#' \code{\link{calculate_exposure}}).
 #' @param keep_time Logical (default \code{FALSE}): also return the
 #' vectorial capacity and impact on each day (memory-heavy for large sweeps).
 #'

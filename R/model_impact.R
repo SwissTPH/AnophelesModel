@@ -162,8 +162,9 @@ host_base = function(host_p) {
 #' @param exposure Proportion of human exposure to bites that occurs where
 #' the intervention protects, in \code{[0, 1]} (default 1). The intervention
 #' acts on an effective coverage \code{coverage_vec * exposure}. Typically
-#' \code{calculate_exposure(...)$Exposure_Indoor_whileinbed} for ITNs or
-#' \code{$Exposure_Indoor_total} for IRS. Reported coverages remain the
+#' \code{calculate_exposure(...)$Exposure_Indoor_whileinbed} for ITNs, and
+#' \code{$indoor_resting} or \code{$Exposure_Indoor_total} for IRS (see
+#' \code{\link{calculate_exposure}}). Reported coverages remain the
 #' deployment coverages.
 #' @param keep_time Logical (default \code{FALSE}): also return the
 #' vectorial capacity and impact on each day.
@@ -326,11 +327,16 @@ calculate_combined_impact = function(combination_name = "combination",
     C_ij = if (is.null(cov_combination)) C_i * C_j else cov_combination
 
     Cov = c(1 - C_i - C_j + C_ij, C_i - C_ij, C_j - C_ij, C_ij)
-    message(combination_name, ": assigned coverages ", paste(Cov, collapse = " "))
-    if (min(Cov) < 0) {
+    # Valid overlaps at the bounds (max(0, C_i + C_j - 1), min(C_i, C_j)) can
+    # give a group coverage of about -1e-16 in floating point: tolerated (and
+    # set to 0 below), anything more negative is an error
+    tol = 1e-12
+    if (min(Cov) < -tol) {
         stop("\nCoverage of combination must be between ",
              max((C_i + C_j - 1), 0), " and ", min(C_i, C_j))
     }
+    Cov = pmax(Cov, 0)
+    message(combination_name, ": assigned coverages ", paste(Cov, collapse = " "))
 
     # Daily effects of both interventions rebuilt from their parameters
     # ($param_set: efficacies, attrition, insecticide decay; duration and
@@ -386,6 +392,9 @@ calculate_combined_impact = function(combination_name = "combination",
                     C_iEff  - C_ijEff,
                     C_jEff  - C_ijEff,
                     C_ijEff)
+    # Non-negative for feasible overlaps (survival <= 1); only floating-point
+    # noise at the bounds is removed
+    CovEff[CovEff < 0 & CovEff > -tol] = 0
 
     # Conditional probabilities of later feeding stages are irrelevant when
     # no mosquitoes reach the preceding stage. Only this exact 0/0 case is

@@ -13,7 +13,8 @@ get_OM_ento_snippet(
   propInfected = 0.078,
   propInfectious = 0.021,
   bionomics_table = NULL,
-  species_shares = NULL
+  species_shares = NULL,
+  irs_exposure = c("indoor_resting", "indoor_biting")
 )
 }
 \arguments{
@@ -54,6 +55,12 @@ infectious mosquitoes, written to \code{seasonalityParameters}.}
   the total EIR is set with the \code{scaledAnnualEIR} attribute of
   \code{<entomology>} (a number or a placeholder, e.g.
   \code{defineEntomology(..., scaledAnnualEIR = "@EIR@")}).}
+
+\item{irs_exposure}{With \code{activity}: the mosquitoes reached by IRS,
+\code{"indoor_resting"} (default: those resting indoors, the endophily)
+or \code{"indoor_biting"} (those biting indoors,
+\code{Exposure_Indoor_total}). It sets the split and the
+\code{indoor_resting} flag of \code{shares}, used by the IRS export.}
 }
 \value{
 List with
@@ -72,15 +79,18 @@ List with
     \code{all}), \code{share} within the taxon (with
     \code{species_shares}, also \code{species_share} and the overall
     \code{eir_share}), and the logical columns
-    \code{in_bed} and \code{indoor_resting} (exposure to interventions
-    acting in bed, e.g. ITNs, or on indoor resting mosquitoes, e.g. IRS),
+    \code{in_bed} and \code{indoor_resting} (reached by interventions
+    acting in bed, e.g. ITNs, or by IRS: resting indoors, or biting
+    indoors with \code{irs_exposure = "indoor_biting"}),
     and \code{muvA}, the host-seeking death rate without interventions
     (per day, with the population's HBI);
   \item \code{model_params}: named list (one element per mosquito
     population) of \code{\link{build_model_obj}} outputs with the
     population's HBI (\code{NULL} if the bionomics give no valid death
     rate); their human availability scales the dummy hosts of
-    host-seeking killing (\code{\link{define_OM_vector_control}}).
+    host-seeking killing (\code{\link{define_OM_vector_control}});
+  \item \code{irs_exposure}: the choice above (\code{NULL} without
+    \code{activity}).
 }
 }
 \description{
@@ -90,16 +100,25 @@ input lists of \code{openMalariaUtilities::defineEntomology()}.
 
 With \code{activity}, each taxon is split into three mosquito populations
 according to human exposure (\code{\link{calculate_exposure}}): with
-\code{in_bed} the exposure indoors while in bed and \code{resting} the
-proportion resting indoors (endophily),
+\code{in_bed} the share of bites indoors while in bed (reached by ITNs) and
+\code{irs} the share reached by IRS, chosen with \code{irs_exposure}: the
+proportion resting indoors (\code{"indoor_resting"}, the endophily;
+default) or the share of bites indoors (\code{"indoor_biting"},
+\code{Exposure_Indoor_total}),
 \itemize{
-  \item \code{<taxon>_indoor1}: share \code{min(in_bed, resting)}, exposed
-    both in bed and while resting indoors;
-  \item \code{<taxon>_indoor2}: share \code{max(in_bed, resting) -
-    min(in_bed, resting)}, exposed in bed only (if \code{in_bed > resting})
-    or while resting indoors only;
-  \item \code{<taxon>_outdoor}: the rest, not exposed indoors.
+  \item \code{<taxon>_indoor1}: share \code{min(in_bed, irs)}, reached by
+    both ITNs and IRS;
+  \item \code{<taxon>_indoor2}: share \code{max(in_bed, irs) -
+    min(in_bed, irs)}, reached by ITNs only (if \code{in_bed > irs}) or by
+    IRS only;
+  \item \code{<taxon>_outdoor}: the rest, reached by neither.
 }
+With \code{"indoor_resting"}, the overlap between biting in bed and
+resting indoors is an assumption (the largest possible, \code{min()}).
+With \code{"indoor_biting"}, bites in bed are a part of bites indoors, so
+\code{indoor1} is exactly the in-bed share and \code{indoor2} the indoor
+bites outside bed. The vectorial capacity calculation has the same choice
+through its \code{exposure} argument (see \code{\link{calculate_exposure}}).
 The populations share all parameters except the human blood index: indoor
 populations use the indoor HBI, the outdoor population the outdoor HBI.
 Without \code{activity}, each taxon is a single population whose human blood

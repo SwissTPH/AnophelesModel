@@ -32,8 +32,15 @@ The relevant proportion is used as the \code{exposure} argument of
 \code{calculate_impact()} / \code{run_interventions()}, which reduces the
 effective coverage (\code{coverage * exposure}); it does not modify the
 intervention efficacies (unlike AnophelesModel). Typically
-\code{Exposure_Indoor_whileinbed} for ITNs and \code{Exposure_Indoor_total}
-for IRS.
+\code{Exposure_Indoor_whileinbed} for ITNs; for IRS, see below.
+
+For IRS, two choices are defensible: the mosquitoes resting indoors
+(\code{indoor_resting}, the endophily) or the bites received indoors
+(\code{Exposure_Indoor_total}). They describe different pathways and agree
+only when both shares are equal; neither is wrong in itself. The
+OpenMalaria export offers the same choice
+(\code{get_OM_ento_snippet(irs_exposure = )}, default
+\code{"indoor_resting"}): use the same one in both routes.
 }
 \author{
 Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}

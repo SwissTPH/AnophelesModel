@@ -7,6 +7,11 @@ library(testthat)
 # data-raw/v1_reference.R, so v1 is not needed here. Differences between the
 # versions in the bundled data (bionomics) or in exposure are deliberate and
 # not tested here.
+#
+# Scope: the vectorial capacity calculation (model set-up, average VC and
+# impact), with intervention effects built by v2 and given to both versions.
+# It does not check v1's own intervention construction (its decays and
+# parameterisations) or the daily trajectories.
 
 fixture = test_path("fixtures", "v1_reference.rds")
 

@@ -38,6 +38,30 @@ check_activity_pattern = function(x, label = "activity") {
     invisible(x)
 }
 
+# Shared validation of the names of per-component inputs (halflife_insecticide,
+# component_decay): a misspelled name (e.g. "Preprandial") would otherwise be
+# silently ignored, leaving that effect without its decay
+check_component_names = function(x, label, valid) {
+    if (is.null(x)) return(invisible())
+    nm = names(x)
+    if (length(x) && (is.null(nm) || anyNA(nm) || any(nm == "")))
+        stop(label, " must be named by component (", paste(valid, collapse = ", "), ")")
+    unknown = setdiff(nm, valid)
+    if (length(unknown))
+        stop(label, ": unknown component(s) ", paste(unknown, collapse = ", "),
+             ". Valid names: ", paste(valid, collapse = ", "))
+    if (anyDuplicated(nm))
+        stop(label, ": duplicated component(s) ", paste(unique(nm[duplicated(nm)]),
+                                                        collapse = ", "))
+    invisible()
+}
+
+# Decay columns of batch tables (run_interventions): a misspelled column
+# (e.g. halflife_pree) would otherwise be carried to the output unused
+.DECAY_COLUMNS = c("halflife_attrition", "decay_attrition",
+                   as.vector(outer(c("halflife_", "decay_", "L_", "kappa_"),
+                                   c("det", "pre", "post", "hsk"), paste0)))
+
 check_intervention_params = function(ps, label) {
     if (!is.data.frame(ps) || nrow(ps) == 0L)
         stop(label, " must be a non-empty data frame")
@@ -48,6 +72,12 @@ check_intervention_params = function(ps, label) {
         stop(label, ": missing efficacy column(s): ", paste(missing_cols, collapse = ", "))
     for (nm in required)
         check_efficacy_values(ps[[nm]], paste0(label, "$", nm))
+    decay_like = grep("^(halflife|decay|L|kappa)_", names(ps), value = TRUE)
+    unknown = setdiff(decay_like, .DECAY_COLUMNS)
+    if (length(unknown))
+        stop(label, ": unknown decay column(s) ", paste(unknown, collapse = ", "),
+             " (decay columns end in _det, _pre, _post, _hsk, or are ",
+             "halflife_attrition / decay_attrition)")
     if (!is.null(ps$host_seeking_killing))
         check_efficacy_values(ps$host_seeking_killing,
                              paste0(label, "$host_seeking_killing"),

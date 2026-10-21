@@ -94,8 +94,9 @@ per-component insecticide decay columns (\code{halflife_*}, \code{decay_*},
 \item{exposure}{Proportion of human exposure to bites that occurs where
 the intervention protects, in \code{[0, 1]} (default 1). The intervention
 acts on an effective coverage \code{coverage * exposure}. Typically
-\code{calculate_exposure(...)$Exposure_Indoor_whileinbed} for ITNs or
-\code{$Exposure_Indoor_total} for IRS.}
+\code{calculate_exposure(...)$Exposure_Indoor_whileinbed} for ITNs, and
+\code{$indoor_resting} or \code{$Exposure_Indoor_total} for IRS (see
+\code{\link{calculate_exposure}}).}
 
 \item{keep_time}{Logical (default \code{FALSE}): also return the
 vectorial capacity and impact on each day (memory-heavy for large sweeps).}

@@ -27,9 +27,9 @@ decay_cases = list(
                                    shape_attrition = 2), ins = character(0)),
     linear      = list(args = list(decay_attrition = "linear", halflife_attrition = 120),
                        ins = character(0)),
-    # Time to zero between two days: the export writes L in years with 6
-    # significant digits, which only matters exactly at a whole-day boundary
-    step        = list(args = list(decay_attrition = "step", halflife_attrition = 45.5),
+    # Time to zero on a whole day: the export rounds L towards zero (it was
+    # rounded up with 6 digits, keeping the protection at day 45)
+    step        = list(args = list(decay_attrition = "step", halflife_attrition = 45),
                        ins = character(0)),
     exponential = list(args = list(decay_attrition = "weibull", halflife_attrition = 60,
                                    shape_attrition = 2,
@@ -351,6 +351,30 @@ test_that("combined impact at the smallest and largest overlaps, and just outsid
             expect_error(comb(itn, irs, c1, c2, lo - 0.001), "cov_combination must be")
         expect_error(comb(itn, irs, c1, c2, hi + 0.001),
                      "Coverage of combination must be between")
+    }
+    # Bounds that are not exact in floating point: 0.8 + 0.8 - 1 = 0.6 gives a
+    # group coverage of about -1e-16, which must be accepted
+    at_bound = comb(itn, irs, 0.8, 0.8, 0.6)
+    expect_true(is.finite(at_bound) && at_bound >= 0 && at_bound <= 1)
+    expect_equal(at_bound, comb(itn, irs, 0.8, 0.8, 0.6 + 1e-9), tolerance = 1e-6)
+    expect_equal(comb(irs, itn, 0.8, 0.8, 0.6), at_bound, tolerance = 1e-10)
+    expect_error(comb(itn, irs, 0.8, 0.8, 0.6 - 1e-6), "Coverage of combination must be between")
+})
+
+test_that("an exported step decay ends on the same day as in the package", {
+    # 45 days = 0.12328767... years: rounding L up (0.123288 = 45.0001 days)
+    # would keep the protection at day 45 in OpenMalaria
+    om = suppressMessages(get_OM_ento_snippet(gss))
+    t  = 0:89
+    for (L in c(45, 30, 200 / 3)) {
+        iv  = suppressMessages(build_intervention(
+            c(Deterrency = 0.3, PrePrandial = 0.4, PostPrandial = 0.2),
+            decay_attrition = "step", halflife_attrition = L,
+            duration_years = length(t) / 365, model_p = model_p, insecticide_decay = FALSE))
+        d   = suppressMessages(get_OM_GVI_snippet(iv, om, "ITN"))[[1]]$deterrency$decay
+        expect_lte(as.numeric(d$L), L / 365)                    # never beyond the end
+        curve = decay_function(L = 365 * as.numeric(d$L), datej = t, decay = "step")
+        expect_equal(curve, iv[[1]]$effects$survival, info = paste("L =", L))
     }
 })
 

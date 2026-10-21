@@ -60,7 +60,10 @@ of the effects.
 
 The effects act on the mosquito populations exposed to the intervention
 (see \code{\link{get_OM_ento_snippet}}): in bed for ITNs, resting indoors for
-IRS; other populations get \code{propActive = 0}.
+IRS (or biting indoors, with \code{get_OM_ento_snippet(irs_exposure =
+"indoor_biting")}); other populations get \code{propActive = 0}. Use the
+same choice for the \code{exposure} of \code{calculate_impact()} (see
+\code{\link{calculate_exposure}}).
 
 Dummy-host interventions (\code{HostSeekingKilling}) have no pre-prandial
 killing: their GVI has deterrency and post-prandial killing only, and the

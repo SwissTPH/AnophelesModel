@@ -27,8 +27,9 @@ intervention), which is evaluated internally when not supplied.}
 \item{exposure}{Proportion of human exposure to bites that occurs where
 the intervention protects, in \code{[0, 1]} (default 1). The intervention
 acts on an effective coverage \code{coverage_vec * exposure}. Typically
-\code{calculate_exposure(...)$Exposure_Indoor_whileinbed} for ITNs or
-\code{$Exposure_Indoor_total} for IRS. Reported coverages remain the
+\code{calculate_exposure(...)$Exposure_Indoor_whileinbed} for ITNs, and
+\code{$indoor_resting} or \code{$Exposure_Indoor_total} for IRS (see
+\code{\link{calculate_exposure}}). Reported coverages remain the
 deployment coverages.}
 
 \item{keep_time}{Logical (default \code{FALSE}): also return the

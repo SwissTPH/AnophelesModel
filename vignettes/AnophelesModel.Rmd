@@ -158,8 +158,8 @@ Time-series vectors can also be supplied directly as a named list with elements
 
 `calculate_exposure()` decomposes total human exposure into indoor/outdoor
 components. For example, `Exposure_Indoor_whileinbed` gives the fraction of bites received
-indoors while sleeping — the portion an ITN would protect against
-(`Exposure_Indoor_total` plays the same role for IRS). Unlike in
+indoors while sleeping — the portion an ITN would protect against (for IRS,
+see below). Unlike in
 AnophelesModel, exposure does not modify the intervention efficacies: it
 reduces the **effective coverage** (`coverage × exposure`), passed via the
 `exposure` argument of `calculate_impact()` and `run_interventions()`:
@@ -168,6 +168,26 @@ exposure = calculate_exposure(activity_cycles = activity_gambiae,
                               vec_p           = gambiae_vec_p)
 print(exposure)
 ```
+
+**Which mosquitoes does IRS reach?** Two choices are defensible, and the
+package offers both:
+
+- **mosquitoes resting indoors** (`indoor_resting`, the endophily): spraying
+  reaches the mosquitoes resting on the walls;
+- **mosquitoes biting indoors** (`Exposure_Indoor_total`): the share of bites
+  received indoors, where IRS is deployed.
+
+They agree only when the share of mosquitoes resting indoors equals the
+share of bites indoors. Neither is wrong in itself; the appropriate one
+depends on how the IRS efficacies were estimated. Use the same choice in the
+vectorial capacity calculation and in the OpenMalaria export:
+
+- here, pass `exposure = exposure$indoor_resting` or
+  `exposure = exposure$Exposure_Indoor_total` to `calculate_impact()` /
+  `run_interventions()`;
+- in the OpenMalaria export, `get_OM_ento_snippet(irs_exposure =
+  "indoor_resting")` (default) or `"indoor_biting"` (see "Export to
+  OpenMalaria").
 
 ### Step 4: Build the model object
 
@@ -630,12 +650,16 @@ remotes::install_github("SwissTPH/r-openMalariaUtilities")
 
 **Mosquito populations.** `get_OM_ento_snippet()` gives the parameters of
 each species, from the bionomics database. With activity patterns, each
-species is split into three populations by human exposure: `_indoor1`
-(exposed in bed and resting indoors), `_indoor2` (only one of the two) and
-`_outdoor`. They share all parameters except the human blood index (indoor
-HBI for the indoor populations, outdoor HBI for the outdoor one), and
-interventions reach them differently: ITNs act on the populations exposed in
-bed, IRS on those resting indoors.
+species is split into three populations by the interventions that reach
+them: `_indoor1` (reached by ITNs and IRS), `_indoor2` (by only one of the
+two) and `_outdoor` (by neither). ITNs reach the mosquitoes biting in bed;
+IRS reaches those resting indoors (default) or, with
+`irs_exposure = "indoor_biting"`, those biting indoors. In the latter case
+the split follows directly from the bites: `_indoor1` is the share of bites
+in bed, `_indoor2` the share of bites indoors outside bed; with resting
+indoors, the overlap of the two groups is assumed to be the largest
+possible. The populations share all parameters except the human blood index
+(indoor HBI for the indoor populations, outdoor HBI for the outdoor one).
 
 **Contribution of each population to the EIR.** The `annualEIR` of each
 population is its relative contribution to the EIR: the share of its species
@@ -744,9 +768,15 @@ baseList = deploy_OM_vector_control(baseList, "IG2", schedule)
 Deployments restricted to age groups, and continuous deployment (e.g. EPI),
 are described in [Age-specific deployments](#age-specific-deployments) below.
 
-**Dummy-host nets (work in progress).** Their export has not been
-validated in OpenMalaria yet and gives a warning (the export of standard
-nets is validated). The GVI has deterrency and post-prandial killing only.
+**What has been checked in OpenMalaria.** The export of standard ITNs
+deployed by campaigns was run in OpenMalaria 44 and its entomological
+outputs checked (each effect on its own parameter, in-bed populations only,
+decays, refresh on redeployment, baseline EIR). IRS, age-restricted,
+sub-population, cumulative and continuous deployments, and the dummy host,
+have not been run in OpenMalaria yet.
+
+**Dummy-host nets (work in progress).** Their export has not been run in
+OpenMalaria yet and gives a warning. The GVI has deterrency and post-prandial killing only.
 Host-seeking killing, which the GVI cannot represent, is written as it is in
 the model, a dummy host on which every mosquito that finds it dies: for each
 campaign, an OpenMalaria non-human host (`<name>_dummy_<k>`, added at the

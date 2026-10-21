@@ -96,8 +96,26 @@ rewritten and are **not backward compatible**.
 * The OpenMalaria export of dummy-host interventions (`define_OM_vector_control()`,
   `get_OM_xml()`, `get_OM_GVI_snippet()`) warns that it is work in progress,
   not yet validated in OpenMalaria (silenced with
-  `options(AnophelesModel2.om_dummy_host = TRUE)`); the export of standard
-  interventions is validated (OpenMalaria 44).
+  `options(AnophelesModel2.om_dummy_host = TRUE)`). The export of standard
+  ITNs deployed by campaigns was checked in OpenMalaria 44 (entomological
+  outputs); IRS and the age-restricted, sub-population, cumulative and
+  continuous deployments have not been run in OpenMalaria yet.
+* Misspelled component names in `halflife_insecticide` / `component_decay`
+  (e.g. `Preprandial`), and misspelled decay columns of `run_interventions()`
+  batch tables (e.g. `halflife_pree`), are errors: they were silently
+  ignored, leaving the effect without its decay.
+* `calculate_combined_impact()` accepts overlaps exactly at their bounds
+  (e.g. coverages 0.8 and 0.8 with overlap 0.6), which floating-point
+  arithmetic rejected.
+* The OpenMalaria export writes the `L` of decays ending at `L` (step,
+  linear, smooth-compact) rounded towards zero, with 10 digits: rounding up
+  kept the protection beyond its end (a 45-day step ended after day 45).
+* IRS can reach the mosquitoes resting indoors (endophily, default) or
+  those biting indoors: `get_OM_ento_snippet(irs_exposure =
+  "indoor_resting" | "indoor_biting")` sets the population split of the
+  OpenMalaria export accordingly; in the vectorial capacity calculation,
+  the same choice is the `exposure` passed (`indoor_resting` or
+  `Exposure_Indoor_total`). Documented in the vignette.
 * Activity patterns combined with `c()` (instead of `list()`, one per taxon)
   are an error in `get_OM_ento_snippet()` and `calculate_exposure()`: their
   duplicated entries silently gave every taxon the first pattern.

@@ -49,10 +49,23 @@ For dummy-host interventions, the host-seeking killing is written by
 \code{baseList$anophelesmodel2} (not written to the XML) and says so in a
 message.
 
+\strong{What has been checked in OpenMalaria.} The export of
+\strong{standard ITNs deployed by campaigns} was run in OpenMalaria 44
+through openMalariaUtilities, and its entomological outputs checked: each
+effect (deterrency, pre- and post-prandial killing) changes its own
+parameter, in the in-bed mosquito populations only; Weibull decays
+(exact and fitted); refresh on redeployment; baseline EIR and population
+contributions. \strong{Not yet run in OpenMalaria:} IRS, deployments
+restricted by age, sub-population or cumulative coverage, continuous
+deployment (\code{\link{om_continuous}}), the plain-text route
+(\code{\link{get_OM_xml}}, same lists, compared with the
+openMalariaUtilities route in the package tests) and the dummy host
+(below).
+
 \strong{Host-seeking killing (OpenMalaria schema >= 46), work in
-progress:} this part has not been validated in OpenMalaria yet, and gives
-a warning (silenced with \code{options(AnophelesModel2.om_dummy_host =
-TRUE)}); the export of standard interventions is validated. OpenMalaria's
+progress:} this part has not been run in OpenMalaria yet, and gives a
+warning (silenced with \code{options(AnophelesModel2.om_dummy_host =
+TRUE)}). OpenMalaria's
 GVI has no host-seeking killing. In this package it is a dummy host per
 covered person, of availability \code{HostSeekingKilling} \eqn{\times}
 insecticide decay (relative to the human availability \eqn{\alpha_h}),
