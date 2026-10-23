@@ -18,10 +18,13 @@ object from \code{\link{build_intervention}}).}
 \item{om_ento}{Output of \code{\link{get_OM_ento_snippet}}.}
 
 \item{intervention_type}{\code{"ITN"} (acts in bed) or \code{"IRS"} (acts on
-indoor resting mosquitoes).}
+indoor resting mosquitoes, or indoor biting ones with
+\code{get_OM_ento_snippet(irs_exposure = "indoor_biting")}).}
 
-\item{name}{Name of the intervention (default: the intervention
-description).}
+\item{name}{Name of the intervention (default: the \code{name} of an
+\code{om_vector_control()} specification, else the description of a
+\code{build_intervention()} object unless \code{"custom"}, else
+\code{"GVI"}).}
 }
 \value{
 Named list (one element, \code{name}) with \code{deterrency},

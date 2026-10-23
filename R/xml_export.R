@@ -130,8 +130,11 @@ om_decay_name = function(decay) {
 #'   the EIR: share of its species \eqn{\times} share within the species,
 #'   summing to 1 over all populations. With \code{species_shares}, these are
 #'   numbers; without (default), placeholders
-#'   \code{"@contrib_<population>@"}, whose values for any species
-#'   composition are given by \code{\link{om_ento_values}}. In both cases,
+#'   \code{"@contrib_<population>@"} (the population name with each run of
+#'   characters other than letters and digits replaced by \code{_}, e.g.
+#'   \code{@contrib_Anopheles_gambiae_ss_coluzzii_indoor1@}), whose values
+#'   for any species composition are given by \code{\link{om_ento_values}}.
+#'   In both cases,
 #'   the total EIR is set with the \code{scaledAnnualEIR} attribute of
 #'   \code{<entomology>} (a number or a placeholder, e.g.
 #'   \code{defineEntomology(..., scaledAnnualEIR = "@EIR@")}).
@@ -501,9 +504,12 @@ om_mosq_params = function(vec_p, chi, hosts_p) {
 #'   object from \code{\link{build_intervention}}).
 #' @param om_ento Output of \code{\link{get_OM_ento_snippet}}.
 #' @param intervention_type \code{"ITN"} (acts in bed) or \code{"IRS"} (acts on
-#'   indoor resting mosquitoes).
-#' @param name Name of the intervention (default: the intervention
-#'   description).
+#'   indoor resting mosquitoes, or indoor biting ones with
+#'   \code{get_OM_ento_snippet(irs_exposure = "indoor_biting")}).
+#' @param name Name of the intervention (default: the \code{name} of an
+#'   \code{om_vector_control()} specification, else the description of a
+#'   \code{build_intervention()} object unless \code{"custom"}, else
+#'   \code{"GVI"}).
 #'
 #' @return Named list (one element, \code{name}) with \code{deterrency},
 #' \code{preprandialKillingEffect} (standard model only) and
@@ -631,13 +637,7 @@ om_gvi_objects = function(items, om_ento, intervention_type) {
 # Internal: GVI list of get_OM_GVI_snippet() for one intervention
 om_gvi_list = function(interv, om_ento, intervention_type, name) {
     s = interv$settings
-    attr_none = om_decay_name(s$decay_attrition) == "constant"
-    if (intervention_type == "IRS" && !attr_none)
-        warning("IRS with attrition decay '", s$decay_attrition,
-                "': IRS usually has no attrition (decay_attrition = \"none\").")
-    if (intervention_type == "ITN" && attr_none)
-        warning("ITN without attrition decay (decay_attrition = \"none\").")
-
+    om_check_attrition(s, intervention_type)
     active = om_active(om_ento, intervention_type)
     comps  = om_model_effects(s$mode)
     out = lapply(comps, function(comp) {
@@ -650,6 +650,18 @@ om_gvi_list = function(interv, om_ento, intervention_type, name) {
     })
     names(out) = unname(om_gvi_effects[comps])
     stats::setNames(list(out), name)
+}
+
+# Internal: soft warnings on the attrition of an intervention (settings of a
+# build_intervention() object): IRS usually has none, ITNs usually have one
+om_check_attrition = function(s, intervention_type) {
+    attr_none = om_decay_name(s$decay_attrition) == "constant"
+    if (intervention_type == "IRS" && !attr_none)
+        warning("IRS with attrition decay '", s$decay_attrition,
+                "': IRS usually has no attrition (decay_attrition = \"none\").")
+    if (intervention_type == "ITN" && attr_none)
+        warning("ITN without attrition decay (decay_attrition = \"none\").")
+    invisible()
 }
 
 
@@ -824,7 +836,7 @@ om_weibull_decay = function(interv, comp) {
                            kappa = if (!is.null(d$k)) as.numeric(d$k),
                            datej = days, decay = fn)
     fit = fit_weibull_decay(curve, days)
-    message("om_vector_control: ", comp, " decay '", fn, "' approximated by a ",
+    message("OpenMalaria export: ", comp, " decay '", fn, "' approximated by a ",
             "Weibull (rmse ", signif(fit[["rmse"]], 3), ")")
     c(L = fit[["L"]] / 365, k = fit[["kappa"]])
 }
@@ -862,7 +874,8 @@ om_template_decay = function(fn, lab) {
 
 # Internal: the interventions to export, as list(nets, template): a single
 # intervention (template = FALSE), or a named list of them, all with the same
-# model (template = TRUE, values as placeholders). Each is a specification
+# model (template = TRUE; efficacies are placeholders only when the list has
+# several members, see om_vc_components()). Each is a specification
 # (om_vector_control()) or an intervention object (build_intervention()).
 om_nets = function(interv) {
     one = om_unwrap(interv)
@@ -1525,9 +1538,10 @@ om_baselist_ento = function(baseList) {
 #' relative to an adult human \eqn{c_k \times} \code{HostSeekingKilling}
 #' \eqn{/ \alpha_h} (\eqn{\alpha_h} of the population's model) and biting
 #' probability 0, whose availability decays with the attrition and the
-#' insecticide decay of host-seeking killing (two
+#' insecticide decay of host-seeking killing (up to two
 #' \code{nonHumanHostsModifications} \code{<name>_dummy_<k>_attrition} and
-#' \code{_insecticide}: an availability reduction of 1 with an
+#' \code{_insecticide}, omitted for a constant factor: an availability
+#' reduction of 1 with an
 #' \code{increasing} decay multiplies the availability by the decay). As for
 #' the GVI, whose components are refreshed (not stacked) in people who
 #' receive them again, a campaign \strong{replaces} the nets of its
@@ -1579,10 +1593,16 @@ om_baselist_ento = function(baseList) {
 #'   object from \code{\link{build_intervention}}), or a named list of them
 #'   (template).
 #' @param intervention_type \code{"ITN"} (acts in bed) or \code{"IRS"} (acts on
-#'   indoor resting mosquitoes).
+#'   indoor resting mosquitoes, or indoor biting ones with
+#'   \code{get_OM_ento_snippet(irs_exposure = "indoor_biting")}).
 #' @param name Name of the intervention, used for component ids and
-#'   placeholders (default: the intervention description, or
-#'   \code{intervention_type}).
+#'   placeholders. Default: for a named list, \code{intervention_type}; for one
+#'   intervention, the \code{name} of an \code{om_vector_control()}
+#'   specification, else the description of a \code{build_intervention()}
+#'   object unless \code{"custom"}, else \code{intervention_type}. In
+#'   placeholders, \code{<name>} is the name with each run of characters other
+#'   than letters and digits replaced by \code{_} (e.g. \code{"Interceptor
+#'   G2"} gives \code{"@Interceptor_G2_deterrency@"}).
 #' @param decay \code{"fixed"} (default: decays written from the
 #'   interventions) or \code{"placeholder"} (decay parameters as placeholders,
 #'   e.g. when the attrition varies between scenarios).
@@ -1696,6 +1716,8 @@ om_vc_components = function(interv, om_ento, intervention_type, name,
         components = om_gvi_components(om_gvi_list(nets[[1]], om_ento,
                                                    intervention_type, name))
     } else {
+        # The same attrition warnings as om_gvi_list(), for every net
+        for (net in nets) om_check_attrition(net$settings, intervention_type)
         gvi = lapply(comps, function(comp) {
             lab = paste0(pn, "_", om_ph_label[[comp]])
             eff = nets[[1]]$settings$efficacy
@@ -2311,7 +2333,7 @@ om_scenario_record = function(source, name) {
 #' scenario, without openMalariaUtilities. The vector control snippets are
 #' those that \code{\link{define_OM_vector_control}} and
 #' \code{\link{deploy_OM_vector_control}} write into a \code{baseList}
-#' (same lists, same checks and messages):
+#' (same lists and checks):
 #' \itemize{
 #'   \item \code{entomology}: the \code{<vector>} element, with one
 #'     \code{<anopheles>} per mosquito population of \code{om_ento} and the

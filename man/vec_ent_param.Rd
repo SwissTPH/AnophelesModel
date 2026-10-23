@@ -9,7 +9,8 @@ A \code{data frame} with the following columns:
 \itemize{
 \item \code{species_name:} name of the taxon
 \item \code{level:} \code{"species"}, \code{"complex"} or \code{"genus"}
-\item \code{complex:} parent complex of a species (\code{NA} otherwise)
+\item \code{complex:} parent complex of a species; \code{NA} for complexes,
+the genus, species alone in their complex and species without a complex
 \item \code{imputed_traits:} parameters without data for this taxon,
 separated by \code{";"} (empty if all are estimated from its own data)
 \item \code{M}, \code{M.sd:} parous rate (proportion of host-seeking

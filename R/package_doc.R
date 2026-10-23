@@ -1,21 +1,25 @@
-#' @title The main usages of AnophelesModel
+#' @title The main usages of the package
 #'
-#' @description AnophelesModel is a framework for assessing impact of malaria
-#' vector control interventions by taking into account species- and/or
-#' geographically- specific mosquito bionomics.
+#' @description A framework for assessing the impact of malaria vector
+#' control interventions, taking into account species- and/or
+#' geographically-specific mosquito bionomics. Refactoring of the
+#' AnophelesModel package.
 #'
 #' @section Overview:
-#' The package incorporates an extensive, curated database of vector species
-#' bionomics and intervention effects which is used to parameterize an
-#' entomological model of malaria dynamics. The model is used to calculate, for
-#' a given species of Anopheles mosquitoes,
-#' the reductions on vectorial capacity by various vector control interventions.
-#' The AnophelesModel package can be thus used to compare vector control
-#' intervention impact across different Anopheles mosquito species and thus
-#' help prioritizing interventions according to local entomological
-#' characteristics.
+#' The package combines a database of vector bionomics (from the
+#' AnophelesBionomics package, \code{\link{vec_ent_param}}), host parameters,
+#' activity patterns and ITN efficacies fitted to experimental hut trials
+#' (\code{\link{ITN_parameterisations_Champagne2025}}) to parameterise an
+#' entomological model of the mosquito oviposition cycle. The model computes,
+#' for a given \emph{Anopheles} taxon, the reduction in vectorial capacity
+#' due to vector control interventions (\code{\link{build_intervention}},
+#' \code{\link{calculate_impact}}, \code{\link{run_interventions}},
+#' \code{\link{calculate_combined_impact}}), and can be used to compare
+#' interventions across species and settings. The same parameterisations can
+#' be exported to OpenMalaria scenarios (entomology and vector control; see
+#' \code{\link{get_OM_ento_snippet}} and \code{\link{get_OM_xml}}).
 #'
-#'
+#' @author Clara Champagne, \email{clara.champagne@swisstph.ch}
 #' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
 #' @author Olivier Briët, \email{olivier.briet@swisstph.ch}
 #' @author Nakul Chitnis, \email{nakul.chitnis@swisstph.ch}

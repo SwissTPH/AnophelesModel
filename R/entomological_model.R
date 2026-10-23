@@ -12,15 +12,16 @@
 
 ##############################
 # Internal function calc_hosts_ent_params: calculates for each host type their
-# availability to mosquitoes (alphai) and the mosquito death rate (muvA).
+# availability to mosquitoes (alphai) and the mosquito death rate (muvA), in
+# the absence of interventions.
 #
 # INPUT:
 #       vec_p: list object with the vector parameters
-#       host_p: list object with the host parameters
-#       maxpop: maximum population size
-# OUTPUT: list object with attributes:
-#       muvA: mosquito death rate
-#       alphai: availability to mosquitoes for each host type
+#       h_p: list object with the host parameters (humans, animals)
+# OUTPUT: h_p with the additional attributes:
+#       muvA: mosquito death rate while host seeking (per day)
+#       alphai: per-individual availability to mosquitoes (per day) of a
+#               human and an animal
 #############################
 calc_hosts_ent_params = function(vec_p, h_p) {
     # Unit host populations: one unprotected human, one animal.
@@ -61,7 +62,7 @@ calc_hosts_ent_params = function(vec_p, h_p) {
 
     if(muvA < 0) {
         stop("Simulated mosquito dynamics during the feeding cycle is not reflected by the mosquito bionomics parameters!
-        Consider increasing the values for PBi, PCi, PDi, PEi in the def_host_param() function call.",
+        Consider increasing the values for PBi, PCi, PDi, PEi in the def_host_params() function call.",
              call. = FALSE)
     }
     h_p$muvA = muvA
@@ -70,7 +71,9 @@ calc_hosts_ent_params = function(vec_p, h_p) {
 }
 
 # Calculates the probability that a mosquito survives the extrinsic
-# incubation period (eq. 3c Chitnis et al. 2007). This probability is then used
+# incubation period: the bracketed sums of eq. 6c, 16 and 21 of Chitnis et
+# al. 2008 (from eq. 3c), with the upper indices of eq. 4. Chitnis N, Smith T,
+# Steketee R (2008), J Biol Dyn 2: 259-285. This probability is then used
 # to calculate the sporozoite rate and the vectorial capacity.
 #
 # The formula is defined for a whole number of days per feeding cycle, so the
@@ -86,7 +89,7 @@ calc_psts = function(ts, tau, PA, Pdf) {
              "the resting duration tau (", tau, " days, rounded): check the vector ",
              "parameters", call. = FALSE)
     n_cov = length(PA)
-    # eq. 4 Chitnis et al. 2007
+    # eq. 4 Chitnis et al. 2008
     kplus = floor(ts/tau) - 1
     # An upper index of zero still contributes the term at k=0.
     # Build the index sequence only for non-empty sums.
@@ -104,7 +107,7 @@ calc_psts = function(ts, tau, PA, Pdf) {
     suml = rep(0, n_cov)
     sumlv = matrix(0, nrow = tau-1, ncol = n_cov);
     for(l in seq_len(tau - 1)) {
-        # eq. 4 Chitnis et al. 2007
+        # eq. 4 Chitnis et al. 2008
         klplus = floor((ts + l) / tau) - 2
         if (klplus >= 0) {
             klp_v = seq.int(0L, klplus)
@@ -164,7 +167,7 @@ eval_entomological_model = function(interv, vec_p, host_p, Nv0,
     PAmu = 1 - (PA + rowSums(PAi))
     # finds a host on a given night and survives a complete feeding cycle
     Pdf = rowSums(PAi * PBi_m * PCi_m * PDi_m * PEi_m)
-    # surviving a feeding cycle (eq. 2 Chitnis et al. 2007)
+    # surviving a feeding cycle (eq. 2 Chitnis et al. 2008)
     Pf = Pdf / (1-PA)
     # finds a host on a given day, survives and does not get infected
     Pduf = rowSums(PAi * PBi_m * PCi_m * PDi_m * PEi_m * (1 - Kvi_m))
@@ -175,7 +178,7 @@ eval_entomological_model = function(interv, vec_p, host_p, Nv0,
     # survives a feeding cycle and gets infected
     Pif = Pf - Puf
 
-    # total number of host-seeking mosquitoes (eq. 6a Chitnis et al. 2007)
+    # total number of host-seeking mosquitoes (eq. 6a Chitnis et al. 2008)
     Nv = Nv0 / (1-PA-Pdf)
     # delayed oocyst rate
     or = (Pf-Puf) / (1-Puf)
@@ -186,14 +189,14 @@ eval_entomological_model = function(interv, vec_p, host_p, Nv0,
     sumlv    = res$sumlv
     sr = (Pdif/(1 - PA - Pdf)) * (1 - Pdif / (1 - PA - Pduf)) * psts
 
-    # host biting rate (eq. 15 Chitnis et al 2007); host_frac * N_total = Ni
+    # host biting rate (eq. 15 Chitnis et al. 2008); host_frac * N_total = Ni
     sigmai = PAi * PBi_m * rep_col(Nv, n_host_types) /
              (host_frac * N_total * (host_frac > 0))
 
-    # EIR (eq. 16 Chitnis et al. 2007)
+    # EIR (eq. 16 Chitnis et al. 2008)
     eiri = sigmai * rep_col(sr, n_host_types)
 
-    # vectorial capacity (eq. 21 Chitnis et al 2007);
+    # vectorial capacity (eq. 21 Chitnis et al. 2008);
     # N_total * rowSums(host_frac[,1:2]) = rowSums(Ni[,1:2])
     vc = Nv0 / (N_total * rowSums(host_frac[, 1:2])) *
          1/((1-PA-Pdf)^2) * psts *
@@ -201,7 +204,7 @@ eval_entomological_model = function(interv, vec_p, host_p, Nv0,
          rowSums(PAi[, 1:2] * PBi_m[, 1:2] * PCi_m[, 1:2] *
                               PDi_m[, 1:2] * PEi_m[, 1:2])
 
-    # duration of the feeding cycle (eq. 23 Chitnis et al 2007)
+    # duration of the feeding cycle (eq. 23 Chitnis et al. 2008)
     f = vec_p$tau + PA / (1 - PA)
 
     res = list(Pf_all = Pf, or_all = or, sr_all = sr, sigmai_all = sigmai,

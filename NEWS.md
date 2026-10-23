@@ -6,7 +6,7 @@ entomological model of the mosquito feeding cycle (Chitnis et al.) and the
 host / activity databases, but the intervention framework and API were
 rewritten and are **not backward compatible**.
 
-## Numerical correctness
+## Correctness and input validation
 
 * Explicit per-component insecticide decay shapes always take priority over
   linear half-lives. Constant shapes need no decay parameters; incomplete
@@ -32,6 +32,41 @@ rewritten and are **not backward compatible**.
   of silently reporting zero impact. The message names the time point and the
   parameter sets concerned (and the draw in `run_interventions()`, or the
   intervention in `calculate_impact()`).
+* `get_ITN_params(mode = "dummy_host")`: the insecticide decay of the
+  rescaled host-seeking killing uses the trial's own aging time (new
+  `aged_time` column of `ITN_parameterisations_Champagne2025`: 3 years, 2
+  for Sovegnon); it was always 3 years, so Sovegnon's host-seeking killing
+  decayed 1.5 times too slowly. `get_ITN_params()` also documents `mode` in
+  its result.
+* `calculate_combined_impact()` rebuilds both interventions' daily effects
+  from their parameters (`$param_set`, duration, `insecticide_decay`) with
+  the supplied `model_p`, as `calculate_impact()`: results no longer depend
+  on the model used to build the interventions. It accepts overlaps exactly
+  at their bounds (e.g. coverages 0.8 and 0.8 with overlap 0.6), which
+  floating-point arithmetic rejected.
+* One-day (and shorter) batches with several parameter sets: the attrition
+  matrix keeps one row per parameter set (it was transposed, giving an
+  error).
+* More inputs that were silently accepted are errors (fail loudly):
+  `component_decay` elements without `decay` or with unknown fields;
+  `L_*` / `kappa_*` batch columns without `decay_*`; a missing
+  `decay_attrition` column, and attrition columns are matched exactly (the
+  old `L` / `kappa` / `decay` column names, and `$` partial matching, could
+  pick up another column); vector values of single arguments of
+  `build_intervention()`; an invalid `insecticide_decay`; uncertainty draws
+  mixing the standard and dummy-host models; custom vector tables without
+  the model's columns (`M`, `Chi`, `A0`, `zeta.3`, `td`, `tau`, `ts`; a
+  missing `tau` became 1 day) or out of range; an extrinsic incubation
+  period shorter than the resting duration (was raised to it); unknown
+  activity pattern IDs. Attrition errors name the parameter-set row; the
+  Weibull fit warns when it stops at the iteration limit.
+* Misspelled component names in `halflife_insecticide` / `component_decay`
+  (e.g. `Preprandial`), and misspelled decay columns of `run_interventions()`
+  batch tables (e.g. `halflife_pree`), are errors: they were silently
+  ignored, leaving the effect without its decay.
+* Activity patterns combined with `c()` (instead of `list()`, one per taxon)
+  are an error in `get_OM_ento_snippet()` and `calculate_exposure()`: their
+  duplicated entries silently gave every taxon the first pattern.
 
 ## Vector bionomics from AnophelesBionomics
 
@@ -100,25 +135,6 @@ rewritten and are **not backward compatible**.
   ITNs deployed by campaigns was checked in OpenMalaria 44 (entomological
   outputs); IRS and the age-restricted, sub-population, cumulative and
   continuous deployments have not been run in OpenMalaria yet.
-* `get_ITN_params(mode = "dummy_host")`: the insecticide decay of the
-  rescaled host-seeking killing uses the trial's own aging time (new
-  `aged_time` column of `ITN_parameterisations_Champagne2025`: 3 years, 2
-  for Sovegnon); it was always 3 years, so Sovegnon's host-seeking killing
-  decayed 1.5 times too slowly. `get_ITN_params()` also documents `mode` in
-  its result.
-* More inputs that were silently accepted are errors (fail loudly):
-  `component_decay` elements without `decay` or with unknown fields;
-  `L_*` / `kappa_*` batch columns without `decay_*`; a missing
-  `decay_attrition` column, and attrition columns are matched exactly (the
-  old `L` / `kappa` / `decay` column names, and `$` partial matching, could
-  pick up another column); vector values of single arguments of
-  `build_intervention()`; an invalid `insecticide_decay`; uncertainty draws
-  mixing the standard and dummy-host models; custom vector tables without
-  the model's columns (`M`, `Chi`, `A0`, `zeta.3`, `td`, `tau`, `ts`; a
-  missing `tau` became 1 day) or out of range; an extrinsic incubation
-  period shorter than the resting duration (was raised to it); unknown
-  activity pattern IDs. Attrition errors name the parameter-set row; the
-  Weibull fit warns when it stops at the iteration limit.
 * `om_scenario_values()`: decay columns with fixed decays are an error even
   when nothing else needs filling; attrition columns on a net without
   attrition, and a `kappa` column on a shape-less attrition, are errors
@@ -126,13 +142,10 @@ rewritten and are **not backward compatible**.
   dummy-host intervention is always an error.
 * `get_OM_GVI_snippet()` warns that host-seeking killing of dummy-host
   interventions is not in the GVI (nor written by `add_OM_GVI()`).
-* Misspelled component names in `halflife_insecticide` / `component_decay`
-  (e.g. `Preprandial`), and misspelled decay columns of `run_interventions()`
-  batch tables (e.g. `halflife_pree`), are errors: they were silently
-  ignored, leaving the effect without its decay.
-* `calculate_combined_impact()` accepts overlaps exactly at their bounds
-  (e.g. coverages 0.8 and 0.8 with overlap 0.6), which floating-point
-  arithmetic rejected.
+* The warnings on unusual attrition (IRS with attrition, ITN without) are
+  given on every export route (also `define_OM_vector_control()` /
+  `get_OM_xml()` with placeholder decays or a list of nets), not only for a
+  single net with fixed decays.
 * The OpenMalaria export writes the `L` of decays ending at `L` (step,
   linear, smooth-compact) rounded towards zero, with 10 digits: rounding up
   kept the protection beyond its end (a 45-day step ended after day 45).
@@ -142,9 +155,6 @@ rewritten and are **not backward compatible**.
   OpenMalaria export accordingly; in the vectorial capacity calculation,
   the same choice is the `exposure` passed (`indoor_resting` or
   `Exposure_Indoor_total`). Documented in the vignette.
-* Activity patterns combined with `c()` (instead of `list()`, one per taxon)
-  are an error in `get_OM_ento_snippet()` and `calculate_exposure()`: their
-  duplicated entries silently gave every taxon the first pattern.
 * Dummy hosts in OpenMalaria: each campaign replaces the nets of its
   recipients, as the GVI does (a component redeployed to a person is
   refreshed, not stacked): earlier dummy hosts are reduced by the coverage of
@@ -152,13 +162,6 @@ rewritten and are **not backward compatible**.
   availability reduction = the campaign's coverage or its placeholder).
   Before, cohorts accumulated (two campaigns at 100% gave twice the
   host-seeking killing while the GVI stayed at one net).
-* `calculate_combined_impact()` rebuilds both interventions' daily effects
-  from their parameters (`$param_set`, duration, `insecticide_decay`) with
-  the supplied `model_p`, as `calculate_impact()`: results no longer depend
-  on the model used to build the interventions.
-* One-day (and shorter) batches with several parameter sets: the attrition
-  matrix keeps one row per parameter set (it was transposed, giving an
-  error).
 * `om_scenario_values()`: half-life and shape columns are independent
   overrides (a `kappa` column alone changes the shape and keeps the
   half-life); with `combine = FALSE`, the net's own decay parameters are
@@ -233,7 +236,8 @@ rewritten and are **not backward compatible**.
 * New `add_OM_GVI()`: writes these interventions into an openMalariaUtilities
   `baseList`, as a single component when the three decays are identical and
   one component per effect otherwise (openMalariaUtilities in Suggests).
-* `build_intervention()` keeps its inputs in `$settings`.
+* `build_intervention()` keeps its inputs in `$settings` (used by the
+  export).
 
 ## New
 

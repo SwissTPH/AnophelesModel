@@ -37,11 +37,17 @@ object from \code{\link{build_intervention}}), or a named list of them
 \code{schedule} is needed with \code{interv}.}
 
 \item{intervention_type}{\code{"ITN"} (acts in bed) or \code{"IRS"} (acts on
-indoor resting mosquitoes).}
+indoor resting mosquitoes, or indoor biting ones with
+\code{get_OM_ento_snippet(irs_exposure = "indoor_biting")}).}
 
 \item{name}{Name of the intervention, used for component ids and
-placeholders (default: the intervention description, or
-\code{intervention_type}).}
+placeholders. Default: for a named list, \code{intervention_type}; for one
+intervention, the \code{name} of an \code{om_vector_control()}
+specification, else the description of a \code{build_intervention()}
+object unless \code{"custom"}, else \code{intervention_type}. In
+placeholders, \code{<name>} is the name with each run of characters other
+than letters and digits replaced by \code{_} (e.g. \code{"Interceptor
+G2"} gives \code{"@Interceptor_G2_deterrency@"}).}
 
 \item{subpop}{Optional sub-population id suffix: the deployment is
 restricted to the sub-population \code{"<name>-<subpop>"}
@@ -83,7 +89,7 @@ OpenMalaria scenario (schema 44, or \code{schema}) as XML text, to paste into an
 scenario, without openMalariaUtilities. The vector control snippets are
 those that \code{\link{define_OM_vector_control}} and
 \code{\link{deploy_OM_vector_control}} write into a \code{baseList}
-(same lists, same checks and messages):
+(same lists and checks):
 \itemize{
   \item \code{entomology}: the \code{<vector>} element, with one
     \code{<anopheles>} per mosquito population of \code{om_ento} and the

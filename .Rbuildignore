@@ -7,6 +7,8 @@
 ^_pkgdown\.yml$
 ^data-raw$
 ^CLAUDE\.md$
+^TestGVI$
+^\.claude$
 ^\.RData$
 ^.*\.Rapp\.history$
 ^vignettes/[^/]*\.htm$

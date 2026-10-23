@@ -45,8 +45,8 @@
 #' @param verbose boolean specifying whether any messages should be displayed
 #' during the execution of the function. Default value is TRUE.
 #'
-#' @return list object with the following attributes
-#' (same as \code{vec_ent_param}, plus \code{hbi_source}):
+#' @return list object with the columns of \code{vec_ent_param} (with a
+#' custom \code{vector_table}: its columns only), plus \code{hbi_source}:
 #' \itemize{
 #' \item \code{species_name}, \code{level}, \code{complex}: taxon
 #' \item \code{imputed_traits}: parameters without data for this taxon
@@ -70,7 +70,10 @@
 #' \item \code{endophagy:} proportion of indoor feeding mosquitoes
 #' \item \code{endophagy.sd:} standard deviation of the endophagy
 #' \item \code{hbi_source}: which human blood index is used as \code{Chi}
+#' (absent for a custom \code{vector_table} with \code{hbi = "indoor"}, whose
+#' \code{Chi} is used as supplied)
 #' }
+#' Standard deviations (\code{.sd} columns) are included where available.
 #'
 #' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
 #'
@@ -148,22 +151,23 @@ def_vector_params = function(mosquito_species = "Anopheles gambiae ss/coluzzii",
 #'
 #' @return list object with the following vector attributes:
 #' \itemize{
-#' \item \code{species_name}: name of the mosquito species
-#' \item \code{host}: vector of hosts (should be \code{c("human", "animal")})
+#' \item \code{species_name}: name of the mosquito species of the table row
+#' (if present; the values do not depend on it)
+#' \item \code{host}: \code{c("human", "animal")}
 #' \item \code{PBi}: probability that a mosquito that has encountered host i
 #' bites it (and survives to do so); mosquitoes failing a stage die
 #' \item \code{PCi}: probability that a mosquito finds a resting place after
 #' biting a host of type i
 #' \item \code{PDi}: probability that a mosquito survives the resting phase
 #' after biting a host of type i
+#' \item \code{PEi}: probability that a mosquito lays eggs and returns to host
+#' seeking after resting, having bitten a host of type i
 #' \item \code{Kvi}: proportion of susceptible mosquitoes that become infected
 #' after biting any host of type i
 #' }
-#' Each vector has three elements corresponding to the probability values for:
-#' (1) humans protected by interventions, (2) humans not protected by
-#' interventions, and (3) animals.
-#' In absence of interventions, the first two values of each
-#' vector are identical.
+#' Each vector has two elements: (1) humans (without intervention) and (2)
+#' animals, in this order whatever the row order of \code{host_table}.
+#' Protected humans are added by the intervention functions.
 #'
 #' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
 #' @author Olivier Briët
@@ -309,9 +313,9 @@ def_activity_patterns = function(activity = "default_Anopheles_gambiae") {
 #' @description \code{build_model_obj} This function incorporates defined
 #' vector and host parameters in the entomological model of mosquito
 #' oviposition cycle and builds a comprehensive object containing all model
-#' parameters. Additional parameters are calculated and included in the object.
-#' These include mosquito death and availability rate for three different types
-#' of hosts: humans protected by intervention, unprotected humans and animals.
+#' parameters. Additional parameters are calculated and included in the object:
+#' the mosquito death rate while host seeking and the availability rate of
+#' each host type (humans and animals) in the absence of interventions.
 #' The function should be applied only on list objects created by the
 #' package functions \code{def_vector_params} and \code{def_host_params}.
 #' Functionality using other customized objects is not guaranteed.
@@ -329,11 +333,12 @@ def_activity_patterns = function(activity = "default_Anopheles_gambiae") {
 #' \item \code{vec_params}: object with mosquito-specific entomological
 #' parameters (use function \code{def_vector_params} to generate object)
 #' \item \code{host_params}: object with host-specific entomological parameters
-#' (use function \code{def_hosts_params} to generate object).
+#' (use function \code{def_host_params} to generate object).
 #' In addition to previously-defined parameters, it contains:
 #' \itemize{
-#' \item \code{muvA}: mosquito death rate
+#' \item \code{muvA}: mosquito death rate while host seeking (per day)
 #' \item \code{alphai}: per-individual-host availability to mosquitoes
+#' (per day), for humans and animals
 #' }
 #' }
 #'
@@ -343,7 +348,7 @@ def_activity_patterns = function(activity = "default_Anopheles_gambiae") {
 #'
 #' @examples
 #' # Retrieve the species-specific entomological parameters for An. gambiae
-#' gambiae_vec_p = def_vector_params("Anopheles gambiae")
+#' gambiae_vec_p = def_vector_params("Anopheles gambiae ss/coluzzii")
 #' # Retrieve the host-specific entomological parameters
 #' gambiae_hosts_p = def_host_params()
 #' # Build model object

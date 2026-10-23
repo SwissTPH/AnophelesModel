@@ -65,7 +65,8 @@ test_that("test: check loading non-numeric entomological parameter values", {
                                                    endophagy, endophagy.sd))
 
     expect_error(def_vector_params(mosquito_species = "Anopheles err",
-                                   vector_table = custom_params))
+                                   vector_table = custom_params),
+                 "Must be of type 'numeric'")
 })
 
 # This test checks whether providing negative custom values for the
@@ -96,7 +97,8 @@ test_that("test: check loading negative entomological parameter values", {
                                                    endophagy, endophagy.sd))
 
     expect_error(def_vector_params(mosquito_species = "Anopheles err",
-                                   vector_table = custom_params))
+                                   vector_table = custom_params),
+                 "is not >= 0")
 })
 
 #######################################
@@ -175,7 +177,8 @@ test_that("test: check loading non-numeric host parameter values", {
     custom_params = cbind.data.frame(species_name, host,
                                      PBi, PCi, PDi, PEi, Kvi)
 
-    expect_error(def_host_params(host_table = custom_params))
+    expect_error(def_host_params(host_table = custom_params),
+                 "Must be of type 'numeric'")
 })
 
 # This test checks whether negative custom values cannot be provided
@@ -194,7 +197,7 @@ test_that("test: check loading negative host parameter values", {
     custom_params = cbind.data.frame(species_name, host,
                                      PBi, PCi, PDi, PEi, Kvi)
 
-    expect_error(def_host_params(host_table = custom_params))
+    expect_error(def_host_params(host_table = custom_params), "is not >= 0")
 })
 
 # This test checks whether custom values above 1 cannot be provided
@@ -213,17 +216,18 @@ test_that("test: check loading host parameter values larger than 1", {
     custom_params = cbind.data.frame(species_name, host,
                                      PBi, PCi, PDi, PEi, Kvi)
 
-    expect_error(def_host_params(host_table = custom_params))
+    expect_error(def_host_params(host_table = custom_params), "is not <= 1")
 })
 
 # This test checks whether custom values in a different format cannot be
 # provided for the host entomological parameters.
 test_that("test: check loading different format for host parameter values", {
 
+    # Valid values: only the missing host column makes the table invalid
     species_name = "Anopheles Anonymus"
     PBi = c(0.67, 0.44)
     PCi = c(0.33, 0.434)
-    PDi = c(0.647, -0.344)
+    PDi = c(0.647, 0.344)
     PEi = c(0.672, 0.214)
     Kvi = c(0.52, 0.314)
 
@@ -231,19 +235,21 @@ test_that("test: check loading different format for host parameter values", {
     custom_params = cbind.data.frame(species_name,
                                      PBi, PCi, PDi, PEi, Kvi)
 
-    expect_error(def_host_params(host_table = custom_params))
+    expect_error(def_host_params(host_table = custom_params),
+                 "host_table\\$host.*setequal to \\{'human','animal'\\}")
 })
 
 # This test checks whether custom values cannot be
 # provided for the host entomological parameters without specifying the human
 # and animal values
-test_that("test: check loading non-numeric host parameter values", {
+test_that("test: check loading host parameters for other hosts than human and animal", {
 
+    # Valid values: only the host names make the table invalid
     species_name = "Anopheles Anonymus"
     host = c("horse", "sheep")
     PBi = c(0.67, 0.44)
     PCi = c(0.33, 0.434)
-    PDi = c(0.647, -0.344)
+    PDi = c(0.647, 0.344)
     PEi = c(0.672, 0.214)
     Kvi = c(0.52, 0.314)
 
@@ -251,7 +257,8 @@ test_that("test: check loading non-numeric host parameter values", {
     custom_params = cbind.data.frame(species_name, host,
                                      PBi, PCi, PDi, PEi, Kvi)
 
-    expect_error(def_host_params(host_table = custom_params))
+    expect_error(def_host_params(host_table = custom_params),
+                 "extra elements \\{'horse','sheep'\\}")
 })
 
 
@@ -319,7 +326,7 @@ test_that("test: check loading negative activity patterns with Haiti rythms", {
                        92.983136, 85.264515, 73.021653, 57.079495)/100
     custom_params = as.data.frame(cbind(HBI, HBO,
                                         humans_indoors, humans_in_bed ))
-    expect_error(def_activity_patterns(custom_params))
+    expect_error(def_activity_patterns(custom_params), "is not >= 0")
 })
 
 # This test checks whether incomplete custom values cannot be provided for
@@ -333,7 +340,7 @@ test_that("test: check loading incomplete activity patterns", {
                       83.202297, 92.736838, 96.734455, 96.637604,
                       92.983136, 85.264515, 73.021653, 57.079495)/100
     custom_params = as.data.frame(cbind(HBI, HBO, humans_in_bed ))
-    expect_error(def_activity_patterns(custom_params))
+    expect_error(def_activity_patterns(custom_params), "not 'NULL'")
 })
 
 # This test checks whether custom time series of different lenghts cannot be
@@ -351,7 +358,7 @@ test_that("test: check loading inequal activity patterns", {
                        92.983136, 85.264515, 73.021653, 57.079495)/100
     custom_params = list(HBI = HBI, HBO = HBO, humans_in_bed = humans_in_bed,
                          humans_indoors = humans_indoors)
-    expect_error(def_activity_patterns(custom_params))
+    expect_error(def_activity_patterns(custom_params), "lengths\\(activity_patterns\\)")
 })
 
 #######################################
@@ -387,13 +394,22 @@ test_that("test: check defining intervention effects via build_intervention", {
     expect_true(all(llin$PBi[,  1] <= llin$PBi[,  2] + 1e-10))
     expect_true(all(llin$PCi[,  1] <= llin$PCi[,  2] + 1e-10))
 
-    # Effects should decay over time (col 1 values non-increasing)
-    expect_true(all(diff(llin$alphai[, 1]) >= -1e-10))
-    expect_true(all(diff(irs$PBi[,   1]) >= -1e-10))
-
     # Survival (attrition) should be 1 at t=0 and non-increasing
     expect_equal(llin$survival[1], 1)
     expect_true(all(diff(llin$survival) <= 1e-10))
+
+    # Over a longer period: attrition is the share of people still protected
+    # (survival), not a change of the effects, which stay at their initial
+    # values without insecticide decay (insecticide decay: test_decay.R)
+    irs_long = suppressMessages(build_intervention(
+        efficacy = c(Deterrency = 0.53, PrePrandial = 0.56, PostPrandial = 0.24),
+        halflife_attrition = 0.5 * 365, shape_attrition = 1, duration_years = 1,
+        model_p = model_params, decay_attrition = "weibull"))[[1]]$effects
+    s = decay_function(L = 0.5 * 365, kappa = 1, datej = 0:364, decay = "weibull")
+    expect_equal(irs_long$survival, s, tolerance = 1e-12)
+    expect_equal(irs_long$alphai[, 1], irs_long$alphai[, 2] * (1 - 0.53), tolerance = 1e-12)
+    expect_equal(irs_long$PBi[, 1],    irs_long$PBi[, 2]    * (1 - 0.56), tolerance = 1e-12)
+    expect_equal(irs_long$PCi[, 1],    irs_long$PCi[, 2]    * (1 - 0.24), tolerance = 1e-12)
 })
 
 
@@ -462,7 +478,8 @@ test_that("build_intervention errors on unrecognised efficacy component names", 
             efficacy = c(Typo = 0.5, PostPrandial = 0.3),
             halflife_attrition = 180, shape_attrition = 2, decay_attrition = "weibull",
             duration_years = 1 / 365, model_p = model_p
-        )
+        ),
+        "unrecognised efficacy component\\(s\\): Typo"
     )
 })
 

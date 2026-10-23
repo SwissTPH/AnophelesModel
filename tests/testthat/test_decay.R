@@ -52,6 +52,25 @@ test_that("L is the time to zero for linear, step and smooth-compact", {
     }
 })
 
+test_that("every shape follows its formula, kappa included", {
+    # kappa = 3 (not 2) so that a shape ignoring or misusing kappa is caught
+    t = c(0, 10, 50, 99, 100, 150, 300)
+    x = t / L_test
+    expect_equal(decay_function(L_test, 3, t, "weibull"),     exp(-x^3 * log(2)))
+    expect_equal(decay_function(L_test, NULL, t, "exponential"), exp(-x * log(2)))
+    expect_equal(decay_function(L_test, 3, t, "hill"),        1 / (1 + x^3))
+    expect_equal(decay_function(L_test, NULL, t, "linear"),   pmax(1 - x, 0))
+    expect_equal(decay_function(L_test, NULL, t, "step"),     as.numeric(t < L_test))
+    inside = x < 1
+    sc = numeric(length(t))
+    sc[inside] = exp(3 - 3 / (1 - x[inside]^2))
+    expect_equal(decay_function(L_test, 3, t, "smooth-compact"), sc)
+    # kappa changes the shapes that use it, not the others
+    expect_false(isTRUE(all.equal(decay_function(L_test, 2, t, "hill"),
+                                  decay_function(L_test, 3, t, "hill"))))
+    expect_equal(decay_function(L_test, 2, t, "linear"), decay_function(L_test, 3, t, "linear"))
+})
+
 # ---------------------------------------------------------------------------
 # 3. Names are case-insensitive, aliases map to the canonical shape
 # ---------------------------------------------------------------------------
@@ -142,6 +161,35 @@ test_that("halflife_insecticide is a linear time-to-zero in years, negatives kep
     expect_equal(ratio(e$alphai), 1 - 0.4 * (1 - d / (365 * 4)))
     expect_equal(ratio(e$PBi),    1 - 0.2 * (1 - d / (365 * -6)))  # effect increases
     expect_equal(ratio(e$PCi),    rep(1 - 0.3, length(d)))         # no insecticide decay
+})
+
+test_that("host-seeking killing decays exactly with its insecticide decay", {
+    model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"),
+                              def_host_params())
+    hsk = function(...) suppressMessages(build_intervention(
+        efficacy = c(Deterrency = 0.3, HostSeekingKilling = 0.8, PostPrandial = 0.2),
+        duration_years = 2, model_p = model_p, ...))[[1]]$effects
+    t = 0:(2 * 365 - 1)
+    # Linear time to zero (years), falling and rising
+    e = hsk(decay_attrition = "none", halflife_insecticide = c(HostSeekingKilling = 1.5))
+    expect_equal(e$alphai[, 4], 0.8 * pmax(1 - t / (365 * 1.5), 0), tolerance = 1e-12)
+    e = hsk(decay_attrition = "none", halflife_insecticide = c(HostSeekingKilling = -4))
+    expect_equal(e$alphai[, 4], 0.8 * (1 + t / (365 * 4)), tolerance = 1e-12)
+    # A general shape
+    e = hsk(decay_attrition = "none",
+            component_decay = list(HostSeekingKilling = list(decay = "exponential", L = 200)))
+    expect_equal(e$alphai[, 4], 0.8 * 2^(-t / 200), tolerance = 1e-12)
+    # Attrition is not folded into it (it is the share of people still covered)
+    e = hsk(halflife_attrition = 365, shape_attrition = 2, decay_attrition = "weibull",
+            halflife_insecticide = c(HostSeekingKilling = 1.5))
+    expect_equal(e$alphai[, 4], 0.8 * pmax(1 - t / (365 * 1.5), 0), tolerance = 1e-12)
+    expect_equal(e$survival, decay_function(365, 2, t, "weibull"), tolerance = 1e-12)
+    # The other effects keep their own (here no) decay
+    expect_equal(unique(e$alphai[, 1] / e$alphai[, 2]), 1 - 0.3)
+    # Switched off: constant
+    e = hsk(decay_attrition = "none", halflife_insecticide = c(HostSeekingKilling = 1.5),
+            insecticide_decay = FALSE)
+    expect_equal(unique(e$alphai[, 4]), 0.8)
 })
 
 test_that("insecticide_decay = FALSE keeps initial efficacies throughout", {

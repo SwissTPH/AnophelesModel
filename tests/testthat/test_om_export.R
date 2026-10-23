@@ -2,8 +2,9 @@ library(AnophelesModel2)
 library(testthat)
 
 # The dummy-host export warns that it is work in progress (tested below);
-# acknowledged here so that the other tests do not repeat the warning
-old_opts = options(AnophelesModel2.om_dummy_host = TRUE)
+# acknowledged here so that the other tests do not repeat the warning. Reset
+# by testthat at the end of this file, even if the file stops early.
+withr::local_options(AnophelesModel2.om_dummy_host = TRUE)
 
 # Export to OpenMalaria through openMalariaUtilities (OMU) input lists.
 
@@ -301,8 +302,7 @@ om_rebuild = function(h, k, j, days) {
 }
 
 test_that("the dummy-host export warns that it is work in progress", {
-    options(AnophelesModel2.om_dummy_host = NULL)
-    on.exit(options(AnophelesModel2.om_dummy_host = TRUE))
+    withr::local_options(AnophelesModel2.om_dummy_host = NULL)
     expect_warning(suppressMessages(get_OM_xml(om, dh_net(), sched_num, schema = 49)),
                    "WORK IN PROGRESS")
     # get_OM_GVI_snippet() also warns that host-seeking killing is not in the GVI
@@ -1230,6 +1230,20 @@ test_that("om_scenario_values rejects decay columns that would have no effect", 
     expect_error(om_scenario_values(data.frame(x = 1), b, "D"), "has not been deployed")
 })
 
+test_that("the attrition warnings are given on every export route", {
+    no_attr = om_vector_control(eff, decay_attrition = "none")
+    with_attr = om_vector_control(eff, 730, 2)
+    xml = function(...) suppressMessages(get_OM_xml(om, schedule = sched_num,
+                                                    entomology = FALSE, ...))
+    expect_warning(xml(interv = no_attr), "ITN without attrition")
+    expect_warning(xml(interv = no_attr, decay = "placeholder"), "ITN without attrition")
+    expect_warning(xml(interv = list(a = no_attr, b = with_attr), name = "L",
+                       decay = "placeholder"), "ITN without attrition")
+    expect_warning(xml(interv = with_attr, intervention_type = "IRS",
+                       decay = "placeholder"), "IRS with attrition")
+    expect_no_warning(xml(interv = list(a = with_attr, b = with_attr), name = "L"))
+})
+
 test_that("deploying a member of a list points to the list's name", {
     skip_if_not_installed("openMalariaUtilities")
     nets = list(martin = om_vector_control(eff, 730, 2), assenga = om_vector_control(eff, 365, 2))
@@ -1239,6 +1253,3 @@ test_that("deploying a member of a list points to the list's name", {
                  "one of the interventions of the list defined as 'futITN'.*deploy 'futITN'")
     expect_no_error(suppressMessages(deploy_OM_vector_control(b, "futITN", sched_num)))
 })
-
-# Restore the options changed at the top of this file
-options(old_opts)

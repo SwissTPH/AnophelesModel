@@ -19,11 +19,12 @@ list object containing the following components:
 \item \code{vec_params}: object with mosquito-specific entomological
 parameters (use function \code{def_vector_params} to generate object)
 \item \code{host_params}: object with host-specific entomological parameters
-(use function \code{def_hosts_params} to generate object).
+(use function \code{def_host_params} to generate object).
 In addition to previously-defined parameters, it contains:
 \itemize{
-\item \code{muvA}: mosquito death rate
+\item \code{muvA}: mosquito death rate while host seeking (per day)
 \item \code{alphai}: per-individual-host availability to mosquitoes
+(per day), for humans and animals
 }
 }
 }
@@ -31,9 +32,9 @@ In addition to previously-defined parameters, it contains:
 \code{build_model_obj} This function incorporates defined
 vector and host parameters in the entomological model of mosquito
 oviposition cycle and builds a comprehensive object containing all model
-parameters. Additional parameters are calculated and included in the object.
-These include mosquito death and availability rate for three different types
-of hosts: humans protected by intervention, unprotected humans and animals.
+parameters. Additional parameters are calculated and included in the object:
+the mosquito death rate while host seeking and the availability rate of
+each host type (humans and animals) in the absence of interventions.
 The function should be applied only on list objects created by the
 package functions \code{def_vector_params} and \code{def_host_params}.
 Functionality using other customized objects is not guaranteed.
@@ -43,7 +44,7 @@ Activity patterns are not stored in the model object; pass them directly to
 }
 \examples{
 # Retrieve the species-specific entomological parameters for An. gambiae
-gambiae_vec_p = def_vector_params("Anopheles gambiae")
+gambiae_vec_p = def_vector_params("Anopheles gambiae ss/coluzzii")
 # Retrieve the host-specific entomological parameters
 gambiae_hosts_p = def_host_params()
 # Build model object

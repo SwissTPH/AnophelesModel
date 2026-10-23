@@ -24,7 +24,8 @@
 #' \itemize{
 #' \item \code{species_name:} name of the taxon
 #' \item \code{level:} \code{"species"}, \code{"complex"} or \code{"genus"}
-#' \item \code{complex:} parent complex of a species (\code{NA} otherwise)
+#' \item \code{complex:} parent complex of a species; \code{NA} for complexes,
+#' the genus, species alone in their complex and species without a complex
 #' \item \code{imputed_traits:} parameters without data for this taxon,
 #' separated by \code{";"} (empty if all are estimated from its own data)
 #' \item \code{M}, \code{M.sd:} parous rate (proportion of host-seeking
@@ -110,28 +111,24 @@
 
 #' @title Host-specific estimated parameters for the entomological model of
 #' malaria transmission
-#' @description This data object contains for each of the three host types (humans
-#' protected by interventions, non-protected humans, and animals) estimated
-#' parameters for the entomological model of malaria transmission.
+#' @description This data object contains, for humans (without intervention)
+#' and animals, estimated parameters for the entomological model of malaria
+#' transmission. The values do not depend on the mosquito species;
+#' \code{\link{def_host_params}} uses the first human and animal rows.
 #'
-#' @format A \code{data frame} with 5 columns consisting of:
+#' @format A \code{data frame} with one row per mosquito species and host
+#' type, and the columns:
 #' \itemize{
-#' \item \code{species name:} name of the mosquito species
-#' \item \code{probability:} probabilities that a mosquito completes the next
-#' stage of the oviposition cycle in one night, conditional on having reached
-#' that stage. Can only be one of the following:
-#' PBi(probability that a mosquito that has encountered a host of type i bites
-#' it), PCi(probability that a
-#' mosquito finds a resting place after biting a host of type i), PDi
-#' (probability that a mosquito survives the resting phase after
-#' biting a host of type i), PEi(probability that a mosquito lays eggs and
-#' returns to host-seeking after biting a host of type i), Kvi(proportion of
-#' susceptible mosquitoes that become infected after biting a host of type i)
-#' \item \code{host_type_1:} value of the probability for host type 1 (humans
-#' protected by the intervention)
-#' \item \code{host_type_2:} value of the probability for host type 2 (humans
-#' not protected by any intervention)
-#' \item \code{host_type_3:} value of the probability for host type 3 (animals)
+#' \item \code{species_name:} name of the mosquito species
+#' \item \code{host:} host type, \code{"human"} or \code{"animal"}
+#' \item \code{PBi}, \code{PCi}, \code{PDi}, \code{PEi}: probabilities that a
+#' mosquito completes the next stage of the oviposition cycle, conditional on
+#' having reached that stage: PBi (a mosquito that has encountered a host of
+#' type i bites it), PCi (it finds a resting place after biting), PDi (it
+#' survives the resting phase), PEi (it lays eggs and returns to host
+#' seeking)
+#' \item \code{Kvi:} proportion of susceptible mosquitoes that become infected
+#' after biting a host of type i
 #' }
 #' @author Monica Golumbeanu, \email{monica.golumbeanu@swisstph.ch}
 #' @author Olivier Briët, \email{olivier.briet@swisstph.ch}

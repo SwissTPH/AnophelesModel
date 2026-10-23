@@ -19,22 +19,23 @@ during the execution of the function. Default value is TRUE.}
 \value{
 list object with the following vector attributes:
 \itemize{
-\item \code{species_name}: name of the mosquito species
-\item \code{host}: vector of hosts (should be \code{c("human", "animal")})
+\item \code{species_name}: name of the mosquito species of the table row
+(if present; the values do not depend on it)
+\item \code{host}: \code{c("human", "animal")}
 \item \code{PBi}: probability that a mosquito that has encountered host i
 bites it (and survives to do so); mosquitoes failing a stage die
 \item \code{PCi}: probability that a mosquito finds a resting place after
 biting a host of type i
 \item \code{PDi}: probability that a mosquito survives the resting phase
 after biting a host of type i
+\item \code{PEi}: probability that a mosquito lays eggs and returns to host
+seeking after resting, having bitten a host of type i
 \item \code{Kvi}: proportion of susceptible mosquitoes that become infected
 after biting any host of type i
 }
-Each vector has three elements corresponding to the probability values for:
-(1) humans protected by interventions, (2) humans not protected by
-interventions, and (3) animals.
-In absence of interventions, the first two values of each
-vector are identical.
+Each vector has two elements: (1) humans (without intervention) and (2)
+animals, in this order whatever the row order of \code{host_table}.
+Protected humans are added by the intervention functions.
 }
 \description{
 \code{def_host_params} This function can be used to load

@@ -48,7 +48,7 @@ reference_run = function(param_sets, model_p, coverage_vec, duration_years = 3) 
 # ---------------------------------------------------------------------------
 # 1. Single param set: vectorised output matches loop reference
 # ---------------------------------------------------------------------------
-test_that("run_interventions matches calculate_impact for a single param set", {
+test_that("run_interventions matches the reference loop for a single param set", {
     model_p      = make_model_p()
     coverage_vec = c(0, 0.25, 0.5, 0.75, 1)
     duration_years = 50 / 365
@@ -74,7 +74,7 @@ test_that("run_interventions matches calculate_impact for a single param set", {
 # ---------------------------------------------------------------------------
 # 2. Multiple param sets: each row matches loop reference independently
 # ---------------------------------------------------------------------------
-test_that("run_interventions matches calculate_impact for multiple param sets", {
+test_that("run_interventions matches the reference loop for multiple param sets", {
     model_p      = make_model_p()
     coverage_vec = c(0, 0.5, 1)
     duration_years = 30 / 365
@@ -217,7 +217,7 @@ test_that("run_interventions accepts interv_param_sets as data frame and matches
 # ---------------------------------------------------------------------------
 # 5. Dummy-host (HostSeekingKilling) model: output matches loop reference
 # ---------------------------------------------------------------------------
-test_that("run_interventions dummy-host model matches calculate_impact reference", {
+test_that("run_interventions dummy-host model matches the reference loop", {
     model_p      = make_model_p()
     coverage_vec = c(0, 0.5, 1)
     duration_years = 20 / 365
@@ -277,7 +277,7 @@ test_that("run_interventions completes 500 param sets within 60 seconds", {
     duration_years = 50 / 365
     n              = 500
 
-    set.seed(42)
+    withr::local_seed(42)
     param_sets = data.frame(
         name               = paste0("ps", seq_len(n)),
         deterrency         = runif(n, 0, 0.8),
@@ -300,19 +300,30 @@ test_that("run_interventions completes 500 param sets within 60 seconds", {
 })
 
 # ---------------------------------------------------------------------------
-# 8. Reparameterisation check: eval_entomological_model with (t_avail, host_frac)
-#    gives identical results to manually computing alphai * Ni beforehand.
+# 8. Reparameterisation check: eval_entomological_model with total
+#    availabilities (t_avail = alphai x Ni) and host fractions (host_frac =
+#    Ni / N_total) gives the vectorial capacity of Chitnis et al. 2008
+#    (eq. 21, with alphai and Ni), written out independently here, for any
+#    population size.
 # ---------------------------------------------------------------------------
-test_that("eval_entomological_model reparameterisation is numerically identical", {
+# Vectorial capacity (Nv0 = 1) of eq. 21 for one coverage, from per-host
+# availabilities alphai and host numbers Ni (humans first, m = 2 humans)
+chitnis_vc = function(alphai, Ni, P, vec_p, muvA) {
+    total = sum(alphai * Ni) + muvA
+    PA    = exp(-total * vec_p$td)
+    PAi   = (1 - PA) * alphai * Ni / total
+    cycle = P$PBi * P$PCi * P$PDi * P$PEi
+    Pdf   = sum(PAi * cycle)
+    psts  = AnophelesModel2:::calc_psts(vec_p$ts, vec_p$tau, PA, Pdf)$psts
+    h = 1:2
+    1 / sum(Ni[h]) * sum(PAi[h] * P$PBi[h]) * sum(PAi[h] * cycle[h]) /
+        (1 - PA - Pdf)^2 * psts
+}
+
+test_that("eval_entomological_model reparameterisation gives the vectorial capacity of eq. 21", {
     model_p      = make_model_p()
     coverage_vec = c(0, 0.25, 0.5, 0.75, 1)
     duration_years = 10 / 365
-
-    param_sets = data.frame(
-        name = "reparam_check", deterrency = 0.5, preprandial = 0.4,
-        postprandial = 0.3, halflife_attrition = 180, shape_attrition = 2,
-        decay_attrition = "weibull", stringsAsFactors = FALSE
-    )
 
     # Build intervention object to get alphai / PBi / etc. matrices
     interv_list = build_intervention(
@@ -323,57 +334,34 @@ test_that("eval_entomological_model reparameterisation is numerically identical"
 
     vec_p  = model_p$vec_params
     host_p = model_p$host_params
-    # Nv0 cancels in impact ratios; use same value as calculate_impact internals
-    Nv0     = 1L
-    N_equiv = 2L
-
     npoints = round(365 * duration_years)
-    vc_new = vc_ref = NULL
 
+    vc_new = NULL
     for (ip in seq_len(npoints)) {
-        alphai_ip = interv_obj$alphai[ip, ]
-        interv_slice = list(
-            PBi = interv_obj$PBi[ip, ],
-            PCi = interv_obj$PCi[ip, ],
-            PDi = interv_obj$PDi[ip, ],
-            PEi = interv_obj$PEi[ip, ],
-            Kvi = interv_obj$Kvi
-        )
-
-        # Unit-population host fractions
-        frac1 = coverage_vec * interv_obj$survival[ip]  # protected humans
-        frac2 = 1 - frac1                                # unprotected humans
-        frac3 = rep(1, length(coverage_vec))             # animals
-        frac  = cbind(frac1, frac2, frac3)
-
-        n_cov     = nrow(frac)
-        t_avail   = rep_row(alphai_ip, n_cov) * frac
-        host_frac = frac / N_equiv
-
-        res_new = AnophelesModel2:::eval_entomological_model(
-            interv_slice, vec_p, host_p, Nv0,
-            t_avail, host_frac, N_equiv)
-
-        # Reference: identical call (self-consistency check)
-        res_ref = AnophelesModel2:::eval_entomological_model(
-            interv_slice, vec_p, host_p, Nv0,
-            t_avail, host_frac, N_equiv)
-
-        vc_new = c(vc_new, res_new$vc_all)
-        vc_ref = c(vc_ref, res_ref$vc_all)
+        P = list(PBi = interv_obj$PBi[ip, ], PCi = interv_obj$PCi[ip, ],
+                 PDi = interv_obj$PDi[ip, ], PEi = interv_obj$PEi[ip, ],
+                 Kvi = interv_obj$Kvi)
+        # Unit host populations, as the package: one human (protected share
+        # coverage x survival) and one animal
+        prot  = coverage_vec * interv_obj$survival[ip]
+        Ni    = cbind(prot, 1 - prot, 1)
+        N_tot = 2
+        alpha = matrix(interv_obj$alphai[ip, ], nrow(Ni), 3, byrow = TRUE)
+        res = AnophelesModel2:::eval_entomological_model(
+            P, vec_p, host_p, 1L, t_avail = alpha * Ni,
+            host_frac = Ni / N_tot, N_total = N_tot)
+        expected = vapply(seq_along(coverage_vec), function(k)
+            chitnis_vc(interv_obj$alphai[ip, ], Ni[k, ], P, vec_p, host_p$muvA),
+            numeric(1))
+        expect_equal(res$vc_all, expected, tolerance = 1e-12, info = paste("day", ip))
+        vc_new = c(vc_new, res$vc_all)
     }
 
-    expect_equal(vc_new, vc_ref, tolerance = 1e-15)
-
-    # Cross-check: the reference loop and calculate_impact give the same avg_vc
-    impact = reference_calculate_impact(
-        interv_list, coverage_vec, model_p)
-    expect_equal(calculate_impact(interv_list, coverage_vec, model_p)$avg_vc,
-                 impact$interventions_vec[[1]]$effects$avg_vc, tolerance = 1e-12)
-    avg_vc_loop = impact$interventions_vec[[1]]$effects$avg_vc
-
-    avg_vc_new = tapply(vc_new, rep(seq_along(coverage_vec), npoints), mean)
-    expect_equal(as.numeric(avg_vc_new), avg_vc_loop, tolerance = 1e-8)
+    # Averaged over the days: the reference loop's vectorial capacity
+    impact = reference_calculate_impact(interv_list, coverage_vec, model_p)
+    avg_vc = as.numeric(tapply(vc_new, rep(seq_along(coverage_vec), npoints), mean))
+    expect_equal(avg_vc, unname(impact$interventions_vec[[1]]$effects$avg_vc),
+                 tolerance = 1e-8)
 })
 
 # ---------------------------------------------------------------------------

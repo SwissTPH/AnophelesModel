@@ -214,8 +214,8 @@ host dies, so pre- and post-prandial effects are mortality.
 
 Any subset of the components can be given (omitted ones are 0). `Deterrency`,
 `PrePrandial` and `PostPrandial` are probabilities in [0, 1]. In the
-dummy-host model, `HostSeekingKilling` replaces `PrePrandial` (supplying both
-is an error): mosquitoes are killed while searching for a host, through a
+dummy-host model, `HostSeekingKilling` replaces `PrePrandial` (a non-zero
+`PrePrandial` with it is an error): mosquitoes are killed while searching for a host, through a
 fourth "dummy" host whose availability is `HostSeekingKilling`. It is
 therefore an **absolute rate** (per day, in the units of the host
 availabilities `alphai`), not a probability, and can exceed 1. By a
@@ -252,8 +252,8 @@ ggplot(decay_df, aes(x=day, y=value, colour=shape)) +
 
 **Built-in ITN parameterisations.** `list_ITN_params()` lists the nets and
 experimental hut trials (EHT) of the database [@champagne2025], each
-available for both model structures; `netType` and `EHT` are the arguments of
-`get_ITN_params()`:
+available for both model structures; the net type (`net_type`) and the `EHT`
+are the arguments of `get_ITN_params()`:
 ```{r}
 head(list_ITN_params())
 ```
@@ -395,8 +395,9 @@ object, so both give the same results, in the same format, and
 
 - **Columns of `param_sets`:** the efficacies `deterrency`, `preprandial`,
   `postprandial` (required) and optionally `host_seeking_killing`; the
-  attrition decay `halflife_attrition` (days), `shape_attrition`,
-  `decay_attrition`; optional per-component decay columns (below). Any other
+  attrition decay `decay_attrition` (required), with `halflife_attrition`
+  (days) unless it is `"none"` and `shape_attrition` for Weibull, Hill and
+  smooth-compact; optional per-component decay columns (below). Any other
   column (e.g. `name`) is carried to the output.
 - **Other arguments:** `coverage_vec`, `duration_years`, `exposure` (as in
   `calculate_impact()`), and `insecticide_decay = FALSE` to ignore the

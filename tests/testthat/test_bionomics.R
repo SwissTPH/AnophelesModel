@@ -59,7 +59,7 @@ test_that("gambiae s.s. / coluzzii aliases resolve with a warning", {
 test_that("unknown names and wrong levels give informative errors", {
     expect_error(def_vector_params("Gambiae"), "is a complex")
     expect_error(def_vector_params("Anopheles imaginarius"), "list_all_species")
-    expect_error(def_vector_params(gss, level = "family"))
+    expect_error(def_vector_params(gss, level = "family"), "should be one of")
 })
 
 # ---------------------------------------------------------------------------
@@ -81,7 +81,7 @@ test_that("hbi selects the human blood index used as Chi", {
                      row$HBI_outdoor * (1 - row$endophagy))
     expect_true(w$Chi.sd > 0)
 
-    expect_error(def_vector_params(gss, hbi = "both"))
+    expect_error(def_vector_params(gss, hbi = "both"), "should be one of")
 })
 
 test_that("the HBI choice changes the model", {
@@ -95,7 +95,7 @@ test_that("the HBI choice changes the model", {
 # 4. User-supplied bionomics tables
 # ---------------------------------------------------------------------------
 test_that("a bionomics table can be read, validated and used", {
-    f = tempfile(fileext = ".csv")
+    f = withr::local_tempfile(fileext = ".csv")
     tab = vec_ent_param
     tab$M[tab$species_name == gss] = 0.5
     utils::write.csv(tab, f, row.names = FALSE)

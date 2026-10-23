@@ -50,8 +50,11 @@ infectious mosquitoes, written to \code{seasonalityParameters}.}
   the EIR: share of its species \eqn{\times} share within the species,
   summing to 1 over all populations. With \code{species_shares}, these are
   numbers; without (default), placeholders
-  \code{"@contrib_<population>@"}, whose values for any species
-  composition are given by \code{\link{om_ento_values}}. In both cases,
+  \code{"@contrib_<population>@"} (the population name with each run of
+  characters other than letters and digits replaced by \code{_}, e.g.
+  \code{@contrib_Anopheles_gambiae_ss_coluzzii_indoor1@}), whose values
+  for any species composition are given by \code{\link{om_ento_values}}.
+  In both cases,
   the total EIR is set with the \code{scaledAnnualEIR} attribute of
   \code{<entomology>} (a number or a placeholder, e.g.
   \code{defineEntomology(..., scaledAnnualEIR = "@EIR@")}).}

@@ -29,9 +29,10 @@ Required columns:
     \code{[0,1]}
   \item \code{halflife_attrition}: attrition decay parameter \code{L}
     (days): half-life for Weibull / exponential / Hill, time to zero for
-    linear / step / smooth-compact
+    linear / step / smooth-compact (the column can be omitted when every
+    row has \code{decay_attrition = "none"})
   \item \code{shape_attrition}: attrition decay shape parameter (required
-    for Weibull / Hill / smooth-compact; \code{NA} otherwise)
+    for Weibull / Hill / smooth-compact; \code{NA} or omitted otherwise)
   \item \code{decay_attrition}: decay shape string (see
     \code{decay_function()})
 }

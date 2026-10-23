@@ -22,11 +22,17 @@ object from \code{\link{build_intervention}}), or a named list of them
 (template).}
 
 \item{intervention_type}{\code{"ITN"} (acts in bed) or \code{"IRS"} (acts on
-indoor resting mosquitoes).}
+indoor resting mosquitoes, or indoor biting ones with
+\code{get_OM_ento_snippet(irs_exposure = "indoor_biting")}).}
 
 \item{name}{Name of the intervention, used for component ids and
-placeholders (default: the intervention description, or
-\code{intervention_type}).}
+placeholders. Default: for a named list, \code{intervention_type}; for one
+intervention, the \code{name} of an \code{om_vector_control()}
+specification, else the description of a \code{build_intervention()}
+object unless \code{"custom"}, else \code{intervention_type}. In
+placeholders, \code{<name>} is the name with each run of characters other
+than letters and digits replaced by \code{_} (e.g. \code{"Interceptor
+G2"} gives \code{"@Interceptor_G2_deterrency@"}).}
 
 \item{decay}{\code{"fixed"} (default: decays written from the
 interventions) or \code{"placeholder"} (decay parameters as placeholders,
@@ -76,9 +82,10 @@ coverage \eqn{c_k}), an added non-human host \code{<name>_dummy_<k>}
 relative to an adult human \eqn{c_k \times} \code{HostSeekingKilling}
 \eqn{/ \alpha_h} (\eqn{\alpha_h} of the population's model) and biting
 probability 0, whose availability decays with the attrition and the
-insecticide decay of host-seeking killing (two
+insecticide decay of host-seeking killing (up to two
 \code{nonHumanHostsModifications} \code{<name>_dummy_<k>_attrition} and
-\code{_insecticide}: an availability reduction of 1 with an
+\code{_insecticide}, omitted for a constant factor: an availability
+reduction of 1 with an
 \code{increasing} decay multiplies the availability by the decay). As for
 the GVI, whose components are refreshed (not stacked) in people who
 receive them again, a campaign \strong{replaces} the nets of its

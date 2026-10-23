@@ -113,17 +113,21 @@ test_that("calculate_impact without coverage 0 is relative to no intervention", 
 })
 
 # ---------------------------------------------------------------------------
-# 3. calculate_impact and run_interventions agree
+# 3. A hand-written run_interventions table gives the reference loop's impact
+#    of the same intervention (calculate_impact() is run_interventions() on
+#    the table built by build_intervention(), so comparing the two only
+#    checks that table; the reference loop is independent)
 # ---------------------------------------------------------------------------
-test_that("calculate_impact and run_interventions give the same avg_impact", {
+test_that("a hand-written run_interventions table matches the reference loop", {
     ps = data.frame(name = "x", deterrency = 0.5, preprandial = 0.4,
                     postprandial = 0.3, halflife_attrition = 180,
                     shape_attrition = 2, decay_attrition = "weibull",
                     stringsAsFactors = FALSE)
     res = suppressMessages(run_interventions(ps, model_p, cov,
                                              duration_years = 60 / 365))
-    expect_equal(res$avg_impact, avg_impact(calculate_impact(bi(std), cov, model_p)),
-                 tolerance = 1e-12)
+    ref = reference_calculate_impact(bi(std), cov, model_p)$interventions_vec[[1]]$effects
+    expect_equal(res$avg_impact, unname(ref$avg_impact), tolerance = 1e-10)
+    expect_equal(res$avg_vc, unname(ref$avg_vc), tolerance = 1e-10)
 })
 
 # ---------------------------------------------------------------------------
@@ -245,6 +249,47 @@ test_that("dummy-host combinations run and add host-seeking killing", {
                  combined(intervention1 = itn, intervention2 = dh,
                           cov_intervention1 = 0.6, cov_intervention2 = 0.6),
                  tolerance = 1e-10)
+})
+
+test_that("host-seeking killing of two dummy-host interventions adds up exactly", {
+    # Constant effects, everyone covered by both: the combination is one
+    # dummy-host intervention with the summed host-seeking killing (and the
+    # multiplicative deterrency and post-prandial killing)
+    constant = function(efficacy, days = 30) suppressMessages(build_intervention(
+        efficacy, decay_attrition = "none", duration_years = days / 365,
+        model_p = model_p, insecticide_decay = FALSE))[[1]]
+    a = c(Deterrency = 0,   HostSeekingKilling = 0.6, PostPrandial = 0)
+    b = c(Deterrency = 0,   HostSeekingKilling = 1.5, PostPrandial = 0)
+    expect_equal(combined(intervention1 = constant(a), intervention2 = constant(b),
+                          cov_intervention1 = 1, cov_intervention2 = 1),
+                 avg_impact(calculate_impact(list(constant(a + b)), 1, model_p)),
+                 tolerance = 1e-10)
+    a = c(Deterrency = 0.3, HostSeekingKilling = 0.6, PostPrandial = 0.2)
+    b = c(Deterrency = 0.5, HostSeekingKilling = 1.5, PostPrandial = 0.4)
+    ab = c(Deterrency = 1 - 0.7 * 0.5, HostSeekingKilling = 2.1,
+           PostPrandial = 1 - 0.8 * 0.6)
+    expect_equal(combined(intervention1 = constant(a), intervention2 = constant(b),
+                          cov_intervention1 = 1, cov_intervention2 = 1),
+                 avg_impact(calculate_impact(list(constant(ab)), 1, model_p)),
+                 tolerance = 1e-10)
+})
+
+test_that("calculate_combined_impact evaluates both interventions over the shorter duration", {
+    itn = bi(std, days = 90, halflife_insecticide = c(Deterrency = 1))[[1]]
+    irs = bi(c(Deterrency = 0, PrePrandial = 0.3, PostPrandial = 0.8), days = 40)[[1]]
+    itn_40 = bi(std, days = 40, halflife_insecticide = c(Deterrency = 1))[[1]]
+    for (order in 1:2) {
+        long  = list(itn, irs)[c(order, 3 - order)]
+        short = list(itn_40, irs)[c(order, 3 - order)]
+        expect_equal(combined(intervention1 = long[[1]], intervention2 = long[[2]],
+                              cov_intervention1 = 0.7, cov_intervention2 = 0.5),
+                     combined(intervention1 = short[[1]], intervention2 = short[[2]],
+                              cov_intervention1 = 0.7, cov_intervention2 = 0.5),
+                     tolerance = 1e-12, info = order)
+    }
+    # The truncation matters: the 90-day net alone has a different impact
+    expect_false(isTRUE(all.equal(avg_impact(calculate_impact(list(itn), 0.7, model_p)),
+                                  avg_impact(calculate_impact(list(itn_40), 0.7, model_p)))))
 })
 
 test_that("calculate_combined_impact uses the supplied model, not the one that built the interventions", {

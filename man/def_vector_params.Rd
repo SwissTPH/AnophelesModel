@@ -42,8 +42,8 @@ of the package database to look up \code{mosquito_species}.}
 during the execution of the function. Default value is TRUE.}
 }
 \value{
-list object with the following attributes
-(same as \code{vec_ent_param}, plus \code{hbi_source}):
+list object with the columns of \code{vec_ent_param} (with a
+custom \code{vector_table}: its columns only), plus \code{hbi_source}:
 \itemize{
 \item \code{species_name}, \code{level}, \code{complex}: taxon
 \item \code{imputed_traits}: parameters without data for this taxon
@@ -67,7 +67,10 @@ for sporozoites to develop in mosquitoes)
 \item \code{endophagy:} proportion of indoor feeding mosquitoes
 \item \code{endophagy.sd:} standard deviation of the endophagy
 \item \code{hbi_source}: which human blood index is used as \code{Chi}
+(absent for a custom \code{vector_table} with \code{hbi = "indoor"}, whose
+\code{Chi} is used as supplied)
 }
+Standard deviations (\code{.sd} columns) are included where available.
 }
 \description{
 \code{def_vector_params} This function can be used to load
