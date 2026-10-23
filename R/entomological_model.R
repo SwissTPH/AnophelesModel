@@ -79,12 +79,12 @@ calc_hosts_ent_params = function(vec_p, h_p) {
 # even). The exact tau is used elsewhere (e.g. the feeding cycle duration f).
 calc_psts = function(ts, tau, PA, Pdf) {
     tau = max(1, floor(tau + 0.5))
-    # TO DO: add this in the general checking function
-    if(ts < tau) {
-        ts = tau
-        # TO DO: check why this happens for some data entries
-        #stop("ts is less than tau. Check parameter values.");
-    }
+    # An incubation period shorter than the (whole-day) resting duration was
+    # silently raised to it: fail instead
+    if (ts < tau)
+        stop("The extrinsic incubation period ts (", ts, " days) is shorter than ",
+             "the resting duration tau (", tau, " days, rounded): check the vector ",
+             "parameters", call. = FALSE)
     n_cov = length(PA)
     # eq. 4 Chitnis et al. 2007
     kplus = floor(ts/tau) - 1

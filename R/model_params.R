@@ -112,6 +112,7 @@ def_vector_params = function(mosquito_species = "Anopheles gambiae ss/coluzzii",
         checkmate::assertNumeric(unlist(num_table), lower = 0,
                                  add = assertCol)
         checkmate::reportAssertions(collection = assertCol)
+        check_vector_table(vector_table)
 
         vec_p = as.list(vector_table)
         if (hbi != "indoor") vec_p = apply_hbi(vec_p, hbi)

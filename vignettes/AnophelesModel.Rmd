@@ -262,8 +262,9 @@ head(list_ITN_params())
 Kibondo EHT, with Weibull attrition (half-life 3 years) and
 per-component **linear** insecticide decay, passed via `halflife_insecticide`
 (in years). Despite its name, this is the time at which the effect would
-reach zero, calibrated so that efficacy after 3 years equals the efficacy of
-nets washed 20 times (a negative value, when washed nets perform better, makes
+reach zero, calibrated so that the efficacy at the aging time of the trial's
+washed arm (3 years, 2 for Sovegnon) equals the efficacy of nets washed 20
+times (a negative value, when washed nets perform better, makes
 the effect increase over time):
 ```{r}
 itn_p = get_ITN_params("Interceptor G2", "Kibondo")

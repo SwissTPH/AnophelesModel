@@ -98,3 +98,29 @@ test_that("each net is rescaled by the control of its own fit (Sovegnon)", {
     expect_equal(a0("Interceptor G2"),  c(Unwashed = 0.81, Washed = 0.73))
     expect_equal(a0("Pyrethroid-only"), c(Unwashed = 1.72, Washed = 1.66))
 })
+
+test_that("the rescaled host-seeking killing decays over the trial's own aging time", {
+    db = ITN_parameterisations_Champagne2025
+    expect_false(is.null(db$aged_time))
+    hsk_hl = function(net, eht) get_ITN_params(net, eht, mode = "dummy_host",
+                                               verbose = FALSE)$halflife_insecticide[["HostSeekingKilling"]]
+    # Sovegnon: washed arm = 2 years (1.94 x 0.81 unwashed, 1.32 x 0.73 washed)
+    expect_equal(unique(db$aged_time[db$EHT == "Sovegnon"]), 2)
+    expect_equal(hsk_hl("Interceptor G2", "Sovegnon"),
+                 2 / (1 - (1.32 * 0.73) / (1.94 * 0.81)), tolerance = 1e-10)
+    # Without rescaling, the dataset's own value (also computed with 2 years)
+    stored = db$halflife_insecticide[db$netType == "Interceptor G2" & db$EHT == "Sovegnon" &
+                                     db$parameter == "KillingDuringHostSeeking"]
+    expect_equal(get_ITN_params("Interceptor G2", "Sovegnon", mode = "dummy_host",
+                                rescale_hsk = FALSE, verbose = FALSE)$halflife_insecticide[[
+                                    "HostSeekingKilling"]], stored)
+    expect_equal(stored, 2 / (1 - 1.32 / 1.94), tolerance = 1e-10)
+    # Other trials: 3 years
+    k = db[db$netType == "Interceptor G2" & db$EHT == "Kibondo", ]
+    expect_equal(unique(k$aged_time), 3)
+    a0 = get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host", verbose = FALSE)$alpha_0
+    h  = k[k$parameter == "KillingDuringHostSeeking", ]
+    expect_equal(hsk_hl("Interceptor G2", "Kibondo"),
+                 3 / (1 - (h$Washed * a0[["Washed"]]) / (h$Unwashed * a0[["Unwashed"]])),
+                 tolerance = 1e-10)
+})

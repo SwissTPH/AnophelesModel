@@ -45,6 +45,8 @@ Named list with:
     a \strong{linear} per-component decay (time to zero).
     Pass directly to the \code{halflife_insecticide} argument of
     \code{\link{build_intervention}}.
+  \item \code{mode}: the model structure (\code{"standard"} or
+    \code{"dummy_host"}), for \code{build_intervention(mode = )}.
   \item \code{name}: suggested intervention label
     (\code{"net_type (EHT)"}).
   \item \code{reference}: citation string from the dataset.
@@ -70,7 +72,8 @@ Two model modes are supported:
 The returned \code{halflife_insecticide} vector encodes per-component
 insecticide decay as a \strong{linear} decay (in years). Despite the name,
 it is the time at which the effect reaches zero, calibrated so that
-efficacy after 3 years equals the washed value. Negative values (efficacy
+efficacy at the aging time of the trial's washed arm (\code{aged_time}: 3
+years, 2 for Sovegnon) equals the washed value. Negative values (efficacy
 increased with washing) are returned as fitted. To use the unwashed
 efficacy throughout, pass \code{insecticide_decay = FALSE} to
 \code{\link{build_intervention}}.
@@ -83,7 +86,8 @@ comparable across trials. With \code{rescale_hsk = TRUE}, the returned
 \code{HostSeekingKilling} is the \strong{absolute} value
 \code{KillingDuringHostSeeking * alpha_0}, using the control \code{alpha_0}
 of the same arm (unwashed or washed fit), and its insecticide decay is
-recomputed from the absolute unwashed and washed values.
+recomputed from the absolute unwashed and washed values, with the trial's
+\code{aged_time}.
 }
 \examples{
 # Standard three-host model

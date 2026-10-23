@@ -152,19 +152,31 @@ make_mult_matrices = function(ps, days, insecticide_decay = TRUE) {
     use_dummy = !is.null(ps$host_seeking_killing) &&
                 any(!is.na(ps$host_seeking_killing))
 
-    col_L     = if (!is.null(ps$halflife_attrition)) ps$halflife_attrition else ps$L
-    col_kappa = if (!is.null(ps$shape_attrition))    ps$shape_attrition    else ps$kappa
-    col_decay = if (!is.null(ps$decay_attrition))    ps$decay_attrition    else ps$decay
+    # Attrition columns, matched exactly ([[ ]]: $ partially matches, e.g. a
+    # missing shape_attrition would pick up kappa_det). decay_attrition is
+    # required; halflife_attrition and shape_attrition may be absent (NA) when
+    # the shape does not need them.
+    col_decay = ps[["decay_attrition"]]
+    if (is.null(col_decay))
+        stop("Missing column decay_attrition (attrition decay shape, e.g. ",
+             "\"weibull\" or \"none\")", call. = FALSE)
+    col_L     = if (!is.null(ps[["halflife_attrition"]])) ps[["halflife_attrition"]] else rep(NA_real_, np)
+    col_kappa = if (!is.null(ps[["shape_attrition"]]))    ps[["shape_attrition"]]    else rep(NA_real_, np)
 
     # Attrition survival [np x npoints], built explicitly (t(vapply()) would
     # simplify to a vector, i.e. a 1 x np matrix, when npoints is 1)
     surv_mat = matrix(NA_real_, np, npoints)
     for (p in seq_len(np)) {
         kp = col_kappa[p]
-        surv_mat[p, ] = decay_function(L     = col_L[p],
-                                       kappa = if (is.na(kp)) NULL else kp,
-                                       datej = days,
-                                       decay = as.character(col_decay[p]))
+        surv_mat[p, ] = tryCatch(
+            decay_function(L     = col_L[p],
+                           kappa = if (is.na(kp)) NULL else kp,
+                           datej = days,
+                           decay = as.character(col_decay[p])),
+            error = function(err) stop(
+                "Attrition decay (decay_attrition, halflife_attrition, ",
+                "shape_attrition), parameter set row ", p, ": ",
+                conditionMessage(err), call. = FALSE))
     }
 
     comp_decay_mat = function(decay_col, L_col, kappa_col, hl_yrs, component) {
@@ -173,7 +185,12 @@ make_mult_matrices = function(ps, days, insecticide_decay = TRUE) {
         for (p in seq_len(np)) {
             dc = if (!is.null(decay_col) && !is.na(decay_col[p])) decay_col[p] else NA
             Lc = if (!is.null(L_col)     && !is.na(L_col[p]))     L_col[p]     else NA
+            kc_given = !is.null(kappa_col) && !is.na(kappa_col[p])
             mat[p, ] = tryCatch({
+                # L / kappa without a shape would otherwise be silently ignored
+                if (is.na(dc) && (!is.na(Lc) || kc_given))
+                    stop("L or kappa given without a decay shape (decay_",
+                         "<component> / component_decay$decay)")
                 if (!is.na(dc)) {
                     # An explicit shape always wins. decay_function validates
                     # its parameters and lets constant shapes omit L / kappa.
@@ -216,10 +233,11 @@ make_mult_matrices = function(ps, days, insecticide_decay = TRUE) {
     mult_pre  = pmax(1 - outer(eff_pre,  rep(1, npoints)) * ins_pre,  0)
     mult_post = pmax(1 - outer(eff_post, rep(1, npoints)) * ins_post, 0)
     mult_hsk  = pmax(outer(eff_hsk, rep(1, npoints)) * ins_hsk, 0)
-    mult_det [is.na(mult_det)]  = 1
-    mult_pre [is.na(mult_pre)]  = 1
-    mult_post[is.na(mult_post)] = 1
-    mult_hsk [is.na(mult_hsk)]  = 0
+    # Inputs are validated upstream, so no multiplier can be NA; were one to
+    # appear, fail instead of silently treating it as "no effect"
+    if (anyNA(mult_det) || anyNA(mult_pre) || anyNA(mult_post) || anyNA(mult_hsk))
+        stop("make_mult_matrices: missing efficacy multipliers (check the efficacy ",
+             "and decay columns)", call. = FALSE)
 
     list(surv_mat  = surv_mat,
          mult_det  = mult_det, mult_pre  = mult_pre,
@@ -249,6 +267,13 @@ fit_weibull_decay = function(curve, days, L_start = NULL, kappa_start = 1) {
                        method = "L-BFGS-B",
                        lower = c(1e-6, 1e-6, 0), upper = c(Inf, Inf, 1),
                        control = list(parscale = c(L_start, 1, 1)))
+    # Only the iteration limit (code 1) is reported: L-BFGS-B line-search codes
+    # (51, 52) typically occur at the optimum (e.g. an exact Weibull, rmse 0),
+    # and the rmse is reported by the callers anyway.
+    if (fit$convergence == 1L)
+        warning("fit_weibull_decay: the Weibull fit reached the iteration limit ",
+                "without converging; rmse ", signif(sqrt(fit$value / length(days)), 3),
+                call. = FALSE)
     c(L = fit$par[1], kappa = fit$par[2], a = fit$par[3],
       rmse = sqrt(fit$value / length(days)))
 }
@@ -354,8 +379,9 @@ apply_eff_matrices = function(mm, host_p) {
 #' name, \eqn{hl} is the time at which the effect reaches zero (the effect
 #' halves at \eqn{hl / 2}). This is the convention of the Champagne et al.
 #' (2025) parameterisations returned by \code{get_ITN_params()}, where
-#' \eqn{hl = 3 / (1 - Washed / Unwashed)}, so that efficacy after 3 years
-#' equals the washed (20x) value. Negative values (washed efficacy higher than
+#' \eqn{hl = a / (1 - Washed / Unwashed)}, with \eqn{a} the aging time of the
+#' trial's washed arm (3 years, 2 for Sovegnon), so that efficacy after
+#' \eqn{a} years equals the washed (20x) value. Negative values (washed efficacy higher than
 #' unwashed) make the effect increase linearly over time; \code{Inf} means no
 #' insecticide decay. Zero and \code{NaN} values are invalid; \code{NA} means
 #' unspecified. For other decay shapes, use \code{component_decay}.
@@ -423,6 +449,21 @@ build_intervention = function(efficacy,
         check_efficacy_values(efficacy[comp], paste0("efficacy$", comp),
                              probability = comp %in% prob_components)
     npoints = intervention_npoints(duration_years)
+    # Single values (a vector would silently build several parameter rows, of
+    # which only the first gives $effects)
+    for (arg in c("halflife_attrition", "shape_attrition", "name")) {
+        v = get(arg)
+        if (!is.null(v) && length(v) != 1L) stop(arg, " must be a single value")
+    }
+    if (!is.character(decay_attrition) || length(decay_attrition) != 1L ||
+        is.na(decay_attrition))
+        stop("decay_attrition must be a single decay shape name (e.g. \"weibull\")")
+    if (!is.logical(insecticide_decay) || length(insecticide_decay) != 1L ||
+        is.na(insecticide_decay))
+        stop("insecticide_decay must be TRUE or FALSE")
+    if (!is.null(halflife_insecticide) &&
+        (!is.numeric(halflife_insecticide) || !is.null(dim(halflife_insecticide))))
+        stop("halflife_insecticide must be a named numeric vector (years)")
 
     has_hsk = "HostSeekingKilling" %in% names(efficacy)
     if (!is.null(mode)) {
@@ -480,6 +521,19 @@ build_intervention = function(efficacy,
         for (comp in intersect(names(component_decay), names(sfx))) {
             cd = component_decay[[comp]]
             s  = sfx[[comp]]
+            # Each element: list(decay, L, kappa), decay required (an element
+            # without it, or with a misspelled field, was silently ignored)
+            if (!is.list(cd) || is.null(cd$decay) || length(cd$decay) != 1L ||
+                is.na(cd$decay))
+                stop("component_decay$", comp, " must be a list with a decay shape ",
+                     "(e.g. list(decay = \"weibull\", L = 180, kappa = 2))")
+            unknown = setdiff(names(cd), c("decay", "L", "kappa"))
+            if (length(unknown))
+                stop("component_decay$", comp, ": unknown field(s) ",
+                     paste(unknown, collapse = ", "), " (fields: decay, L, kappa)")
+            for (f in c("L", "kappa"))
+                if (!is.null(cd[[f]]) && length(cd[[f]]) != 1L)
+                    stop("component_decay$", comp, "$", f, " must be a single number")
             ps[[paste0("decay_", s)]] = cd$decay
             ps[[paste0("L_",     s)]] = cd$L
             ps[[paste0("kappa_", s)]] = if (!is.null(cd$kappa)) cd$kappa else NA_real_
@@ -666,6 +720,9 @@ run_interventions = function(param_sets, model_p, coverage_vec,
     npoints = intervention_npoints(duration_years)
     if (!is.logical(keep_time) || length(keep_time) != 1L || is.na(keep_time))
         stop("keep_time must be TRUE or FALSE")
+    if (!is.logical(insecticide_decay) || length(insecticide_decay) != 1L ||
+        is.na(insecticide_decay))
+        stop("insecticide_decay must be TRUE or FALSE")
     if (is.null(coverage_sets)) {
         check_coverage(coverage_vec)
     } else {
@@ -699,6 +756,12 @@ run_interventions = function(param_sets, model_p, coverage_vec,
             "param_sets" else paste0("interv_param_sets[[", d, "]]"))
     is_dummy = function(ps) !is.null(ps$host_seeking_killing) &&
                             any(!is.na(ps$host_seeking_killing))
+    # All draws must use the same model structure
+    dummy_draws = vapply(all_ps, is_dummy, logical(1))
+    if (length(unique(dummy_draws)) > 1L)
+        stop("interv_param_sets mixes the standard and dummy-host models (draws ",
+             paste(which(dummy_draws), collapse = ", "), " have host_seeking_killing): ",
+             "use one model structure for all draws")
     if (is_dummy(all_ps[[1]])) {
         message("run_interventions: using dummy-host (4-host) model ",
                 "(host_seeking_killing column detected).")
@@ -738,10 +801,12 @@ run_interventions = function(param_sets, model_p, coverage_vec,
     # Build draw-specific vector-param model objects
     vec_model_list = if (!is.null(vec_param_sets)) {
         lapply(seq_len(n_draw), function(d) {
-            vec_p   = def_vector_params(
+            vec_p   = tryCatch(def_vector_params(
                 mosquito_species = model_p$host_params$species_name[1],
-                vector_table     = vec_param_sets[d, ],
-                verbose          = FALSE)
+                vector_table     = vec_param_sets[d, , drop = FALSE],
+                verbose          = FALSE),
+                error = function(err) stop("run_interventions, vec_param_sets draw ", d, ": ",
+                                           conditionMessage(err), call. = FALSE))
             hosts_p = calc_hosts_ent_params(vec_p, model_p$host_params)
             list(vec_params = vec_p, host_params = hosts_p)
         })

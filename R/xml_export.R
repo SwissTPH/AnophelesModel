@@ -492,8 +492,10 @@ om_mosq_params = function(vec_p, chi, hosts_p) {
 #'
 #' Dummy-host interventions (\code{HostSeekingKilling}) have no pre-prandial
 #' killing: their GVI has deterrency and post-prandial killing only, and the
-#' host-seeking killing, which has no GVI equivalent, is exported by
-#' \code{\link{define_OM_vector_control}}.
+#' host-seeking killing, which has no GVI equivalent, is not part of this
+#' snippet (nor of \code{\link{add_OM_GVI}}), and a warning says so: it is
+#' written by \code{\link{define_OM_vector_control}} +
+#' \code{\link{deploy_OM_vector_control}}, or \code{\link{get_OM_xml}}.
 #'
 #' @param interv Intervention from \code{\link{om_vector_control}} (or an
 #'   object from \code{\link{build_intervention}}).
@@ -537,9 +539,11 @@ get_OM_GVI_snippet = function(interv, om_ento, intervention_type = c("ITN", "IRS
     interv = om_gvi_objects(list(interv), om_ento, intervention_type)[[1]]
     if (interv$settings$mode == "dummy_host") om_check_dummy_enabled()
     if (interv$settings$mode == "dummy_host")
-        message("get_OM_GVI_snippet: dummy-host intervention, the GVI has ",
-                "deterrency and post-prandial killing only; host-seeking ",
-                "killing is exported by deploy_OM_vector_control().")
+        warning("get_OM_GVI_snippet: dummy-host intervention, the GVI has ",
+                "deterrency and post-prandial killing only. Host-seeking killing is ",
+                "not part of it (nor of add_OM_GVI()): write the intervention with ",
+                "define_OM_vector_control() and deploy_OM_vector_control(), which add ",
+                "it, or with get_OM_xml().", call. = FALSE)
     om_gvi_list(interv, om_ento, intervention_type, name)
 }
 
@@ -1802,7 +1806,7 @@ deploy_OM_vector_control = function(baseList, name, schedule, end_date = NULL,
     if (dummy) om_check_hsk_deploy(subpop, cumulative, minAge, maxAge)
     d = om_build_deployment(name, ids, schedule, end_date, subpop, cumulative,
                             minAge, maxAge, dummy)
-    sch = d$sch
+    sch = d[["sch"]]
     if (dummy) {
         schema = om_baselist_schema(baseList)
         if (schema < om_dummy_min_schema)
@@ -2081,19 +2085,23 @@ om_scenario_values = function(scenarios, source, name = NULL, net = NULL,
     to_days  = if (decay_unit == "years") 365 else 1
 
     # Which placeholders were written
-    sch   = rec$sch
+    # [[ ]]: before a deploy there is no sch, and rec$sch would partially
+    # match rec$schema
+    sch   = rec[["sch"]]
     dummy = rec$mode == "dummy_host"
-    if (dummy && is.null(sch) && (rec$several || rec$decay))
+    # Decay columns with fixed decays: an error (checked before anything else,
+    # so that they are never silently ignored)
+    if (!rec$decay && (!is.null(halflife) || !is.null(kappa)))
+        stop("'", rec$name, "' was defined with fixed decays: decay columns need ",
+             "decay = \"placeholder\" in define_OM_vector_control() / get_OM_xml()")
+    if (dummy && is.null(sch))
         stop("'", rec$name, "' has not been deployed: its dummy hosts (host-seeking ",
              "killing) are written with the schedule (deploy_OM_vector_control())")
-    avail = dummy && (rec$several || (!is.null(sch) && any(sch$placeholder)))
+    avail = dummy && (rec$several || any(sch$placeholder))
     if (!rec$several && !rec$decay && !avail) {
         message("om_scenario_values: '", rec$name, "' has no placeholders to fill")
         return(scenarios)
     }
-    if (!rec$decay && (!is.null(halflife) || !is.null(kappa)))
-        stop("'", rec$name, "' was defined with fixed decays: decay columns need ",
-             "decay = \"placeholder\" in define_OM_vector_control() / get_OM_xml()")
 
     # Net of each row
     idx = rep(1L, n)
@@ -2129,9 +2137,31 @@ om_scenario_values = function(scenarios, source, name = NULL, net = NULL,
         !all(vapply(rec$items, om_is_spec, logical(1))))
         stop("combine = TRUE rebuilds the nets with the attrition of each row: ",
              "specify them with om_vector_control()")
+    # The overrides must act: a net without attrition (e.g. IRS) has no
+    # half-life to replace, a shape-less attrition (linear, step, exponential)
+    # no shape
+    if (combine && (!is.null(halflife) || !is.null(kappa))) {
+        att_fns = vapply(rec$items, function(it) om_decay_name(it$decay_attrition),
+                         character(1))
+        net_names = if (is.null(rec$members)) rec$name else rec$members
+        none = att_fns == "constant"
+        if (any(none))
+            stop("halflife / kappa columns replace the attrition, but ",
+                 paste(net_names[none], collapse = ", "),
+                 " has no attrition (decay_attrition = \"none\")")
+        no_k = !att_fns %in% om_k_fns
+        if (!is.null(kappa) && any(no_k))
+            stop("A kappa column replaces the attrition shape, but the attrition of ",
+                 paste(net_names[no_k], collapse = ", "), " (",
+                 paste(unique(att_fns[no_k]), collapse = ", "),
+                 ") has no shape parameter")
+    }
     hl_cols = if (combine) NULL else per_effect(halflife)
     k_cols  = if (combine) NULL else per_effect(kappa)
-    num = function(col) if (is.null(col)) rep(NA_real_, n) else as.numeric(scenarios[[col]])
+    # Columns as numbers (a factor, e.g. from expand.grid or read.csv, would
+    # otherwise give its level codes)
+    as_num = function(x) as.numeric(if (is.factor(x)) as.character(x) else x)
+    num = function(col) if (is.null(col)) rep(NA_real_, n) else as_num(scenarios[[col]])
     # Decay values, read once: attrition (combine) or final decays per effect
     hl_att = if (combine) num(halflife) else NULL
     k_att  = if (combine) num(kappa) else NULL
@@ -2161,8 +2191,8 @@ om_scenario_values = function(scenarios, source, name = NULL, net = NULL,
             cn = sch$names[k]
             if (is.null(scenarios[[cn]]))
                 stop("No coverage column '", cn, "' (placeholder @", cn, "@ of the schedule)")
-            check_coverage(as.numeric(scenarios[[cn]]), paste0("scenarios$", cn))
-            cov[, k] = as.numeric(scenarios[[cn]])
+            check_coverage(as_num(scenarios[[cn]]), paste0("scenarios$", cn))
+            cov[, k] = as_num(scenarios[[cn]])
         }
     }
 
@@ -2385,7 +2415,7 @@ get_OM_xml = function(om_ento, interv = NULL, schedule = NULL, end_date = NULL,
     ids = vapply(b$components, `[[`, character(1), "id")
     d   = om_build_deployment(b$name, ids, schedule, end_date, subpop, cumulative,
                               minAge, maxAge, dummy)
-    sch = d$sch
+    sch = d[["sch"]]
     out$define = to_text("component", b$components)
     out$deploy = to_text("deployment", list(d$deployment))
     if (dummy) {

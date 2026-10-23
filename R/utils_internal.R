@@ -56,6 +56,32 @@ check_component_names = function(x, label, valid) {
     invisible()
 }
 
+# Shared validation of a custom vector table (def_vector_params(vector_table =
+# ), the draws of run_interventions(vec_param_sets = )): the parameters the
+# model needs must be present and in range. A missing tau silently became a
+# 1-day resting duration (calc_psts rounds max(1, numeric(0))), other missing
+# columns gave cryptic errors.
+.VECTOR_MODEL_COLUMNS = c("M", "Chi", "A0", "zeta.3", "td", "tau", "ts")
+check_vector_table = function(vt, label = "vector_table") {
+    missing_cols = setdiff(.VECTOR_MODEL_COLUMNS, names(vt))
+    if (length(missing_cols))
+        stop(label, ": missing column(s) ", paste(missing_cols, collapse = ", "),
+             " (needed by the model: ", paste(.VECTOR_MODEL_COLUMNS, collapse = ", "), ")")
+    for (nm in .VECTOR_MODEL_COLUMNS)
+        if (!is.numeric(vt[[nm]]) || anyNA(vt[[nm]]))
+            stop(label, "$", nm, " must be numeric without missing values")
+    rows = function(bad) paste(utils::head(which(bad), 10), collapse = ", ")
+    for (nm in c("M", "Chi"))
+        if (any(vt[[nm]] < 0 | vt[[nm]] > 1))
+            stop(label, "$", nm, " must be in [0, 1] (rows ", rows(vt[[nm]] < 0 | vt[[nm]] > 1), ")")
+    if (any(vt$A0 <= 0 | vt$A0 >= 1))
+        stop(label, "$A0 must be in (0, 1), strictly (rows ", rows(vt$A0 <= 0 | vt$A0 >= 1), ")")
+    for (nm in c("td", "tau", "ts"))
+        if (any(vt[[nm]] <= 0))
+            stop(label, "$", nm, " must be > 0 (rows ", rows(vt[[nm]] <= 0), ")")
+    invisible(vt)
+}
+
 # Decay columns of batch tables (run_interventions): a misspelled column
 # (e.g. halflife_pree) would otherwise be carried to the output unused
 .DECAY_COLUMNS = c("halflife_attrition", "decay_attrition",
@@ -110,6 +136,11 @@ define_activity = function(input_pattern) {
     if (length(input_pattern) == 1) {
         activity_pattern = activity_patterns[which(activity_patterns$id ==
                                                        input_pattern), "value"]
+        # An unknown ID would otherwise give an empty pattern (and NaN
+        # exposures later)
+        if (!length(activity_pattern))
+            stop("Unknown activity pattern ID ", input_pattern,
+                 " (see list_activity() for the IDs of activity_patterns)")
     } else {
         assertVector(input_pattern)
         assertNumeric(input_pattern, lower = 0, upper = 1, any.missing = FALSE)

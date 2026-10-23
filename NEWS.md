@@ -100,6 +100,32 @@ rewritten and are **not backward compatible**.
   ITNs deployed by campaigns was checked in OpenMalaria 44 (entomological
   outputs); IRS and the age-restricted, sub-population, cumulative and
   continuous deployments have not been run in OpenMalaria yet.
+* `get_ITN_params(mode = "dummy_host")`: the insecticide decay of the
+  rescaled host-seeking killing uses the trial's own aging time (new
+  `aged_time` column of `ITN_parameterisations_Champagne2025`: 3 years, 2
+  for Sovegnon); it was always 3 years, so Sovegnon's host-seeking killing
+  decayed 1.5 times too slowly. `get_ITN_params()` also documents `mode` in
+  its result.
+* More inputs that were silently accepted are errors (fail loudly):
+  `component_decay` elements without `decay` or with unknown fields;
+  `L_*` / `kappa_*` batch columns without `decay_*`; a missing
+  `decay_attrition` column, and attrition columns are matched exactly (the
+  old `L` / `kappa` / `decay` column names, and `$` partial matching, could
+  pick up another column); vector values of single arguments of
+  `build_intervention()`; an invalid `insecticide_decay`; uncertainty draws
+  mixing the standard and dummy-host models; custom vector tables without
+  the model's columns (`M`, `Chi`, `A0`, `zeta.3`, `td`, `tau`, `ts`; a
+  missing `tau` became 1 day) or out of range; an extrinsic incubation
+  period shorter than the resting duration (was raised to it); unknown
+  activity pattern IDs. Attrition errors name the parameter-set row; the
+  Weibull fit warns when it stops at the iteration limit.
+* `om_scenario_values()`: decay columns with fixed decays are an error even
+  when nothing else needs filling; attrition columns on a net without
+  attrition, and a `kappa` column on a shape-less attrition, are errors
+  (they had no effect); factor columns are read as values; an undeployed
+  dummy-host intervention is always an error.
+* `get_OM_GVI_snippet()` warns that host-seeking killing of dummy-host
+  interventions is not in the GVI (nor written by `add_OM_GVI()`).
 * Misspelled component names in `halflife_insecticide` / `component_decay`
   (e.g. `Preprandial`), and misspelled decay columns of `run_interventions()`
   batch tables (e.g. `halflife_pree`), are errors: they were silently
@@ -233,8 +259,9 @@ rewritten and are **not backward compatible**.
   hut-night is treated as a day (no conversion by the host-seeking duration
   `td`), pending an improved experimental hut fitting model.
 * **Insecticide decay**: per-component linear decay (`halflife_insecticide`,
-  years, a time-to-zero calibrated so that efficacy after 3 years equals the
-  20x-washed value) or any decay shape (`component_decay`). The
+  years, a time-to-zero calibrated so that efficacy at the washed arm's
+  aging time, 3 years or 2 for Sovegnon, equals the 20x-washed value) or any
+  decay shape (`component_decay`). The
   `insecticide_decay = FALSE` switch keeps unwashed efficacies throughout.
   With `TRUE`, `build_intervention()` also returns `fitted_decay`, one Weibull
   per component approximating attrition × insecticide decay.

@@ -245,7 +245,10 @@ test_that("dummy-host GVI has no pre-prandial killing", {
         efficacy = c(Deterrency = 0.3, HostSeekingKilling = 0.6, PostPrandial = 0.4),
         halflife_attrition = 365, shape_attrition = 2, duration_years = 1,
         model_p = model_p))
-    expect_message(gvi <- get_OM_GVI_snippet(dh, om, "ITN"), "deploy_OM_vector_control")
+    # Host-seeking killing is not in the GVI: a warning points to the routes
+    # that write it
+    expect_warning(gvi <- get_OM_GVI_snippet(dh, om, "ITN"),
+                   "Host-seeking killing is not part of it.*define_OM_vector_control")
     expect_named(gvi[[1]], c("deterrency", "postprandialKillingEffect"))
     expect_equal(gvi[[1]]$postprandialKillingEffect$anophelesParams[[1]]$value, "0.4")
 })
@@ -302,8 +305,15 @@ test_that("the dummy-host export warns that it is work in progress", {
     on.exit(options(AnophelesModel2.om_dummy_host = TRUE))
     expect_warning(suppressMessages(get_OM_xml(om, dh_net(), sched_num, schema = 49)),
                    "WORK IN PROGRESS")
-    expect_warning(suppressMessages(get_OM_GVI_snippet(dh_net(), om, "ITN")),
-                   "WORK IN PROGRESS")
+    # get_OM_GVI_snippet() also warns that host-seeking killing is not in the GVI
+    w = character(0)
+    withCallingHandlers(suppressMessages(get_OM_GVI_snippet(dh_net(), om, "ITN")),
+                        warning = function(x) {
+                            w <<- c(w, conditionMessage(x))
+                            invokeRestart("muffleWarning")
+                        })
+    expect_true(any(grepl("WORK IN PROGRESS", w)))
+    expect_true(any(grepl("Host-seeking killing is not part of it", w)))
     # Standard interventions: no warning
     expect_no_warning(get_OM_xml(om, bi(halflife_attrition = 730, shape_attrition = 2),
                                  sched_num, entomology = FALSE))
@@ -1183,6 +1193,41 @@ test_that("om_scenario_values: final decays replace only the supplied parameters
     expect_error(suppressMessages(om_scenario_values(
         data.frame(h = NA), xml, combine = FALSE, halflife = c(PostPrandial = "h"))),
         "rows 1, PostPrandial: the half-life")
+})
+
+test_that("om_scenario_values rejects decay columns that would have no effect", {
+    # Fixed decays, nothing else to fill: still an error (was a message)
+    one = suppressMessages(get_OM_xml(om, om_vector_control(eff, 730, 2), sched_num,
+                                      name = "N", entomology = FALSE))
+    expect_error(om_scenario_values(data.frame(h = 2), one, halflife = "h"), "fixed decays")
+    # Attrition columns on a net without attrition, kappa on a shape-less one
+    irs = om_vector_control(eff, decay_attrition = "none",
+                            halflife_insecticide = c(Deterrency = 1))
+    x_irs = suppressWarnings(suppressMessages(get_OM_xml(
+        om, irs, sched_num, name = "I", intervention_type = "IRS",
+        decay = "placeholder", entomology = FALSE)))
+    expect_error(om_scenario_values(data.frame(h = 2), x_irs, halflife = "h"),
+                 "has no attrition")
+    step = om_vector_control(eff, halflife_attrition = 365, decay_attrition = "step")
+    x_step = suppressMessages(get_OM_xml(om, step, sched_num, name = "S",
+                                         decay = "placeholder", entomology = FALSE))
+    expect_error(om_scenario_values(data.frame(k = 2), x_step, kappa = "k"),
+                 "has no shape parameter")
+    expect_no_error(suppressMessages(om_scenario_values(data.frame(h = 2), x_step,
+                                                        halflife = "h")))
+    # Factor columns are read as their values, not their level codes
+    spec = om_vector_control(eff, halflife_attrition = 730, shape_attrition = 2)
+    x = suppressMessages(get_OM_xml(om, spec, sched_num, name = "F", decay = "placeholder",
+                                    entomology = FALSE))
+    as_factor = suppressMessages(om_scenario_values(data.frame(h = factor(c("3", "1"))), x,
+                                                    halflife = "h"))
+    as_number = suppressMessages(om_scenario_values(data.frame(h = c(3, 1)), x,
+                                                    halflife = "h"))
+    expect_equal(as_factor$F_deterrency_L, as_number$F_deterrency_L)
+    # An undeployed dummy-host intervention is an error, also with fixed decays
+    skip_if_not_installed("openMalariaUtilities")
+    b = suppressMessages(define_OM_vector_control(om_base_ento(49L), dh_net(name = "D")))
+    expect_error(om_scenario_values(data.frame(x = 1), b, "D"), "has not been deployed")
 })
 
 test_that("deploying a member of a list points to the list's name", {

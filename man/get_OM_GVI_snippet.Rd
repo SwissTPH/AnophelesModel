@@ -67,8 +67,10 @@ same choice for the \code{exposure} of \code{calculate_impact()} (see
 
 Dummy-host interventions (\code{HostSeekingKilling}) have no pre-prandial
 killing: their GVI has deterrency and post-prandial killing only, and the
-host-seeking killing, which has no GVI equivalent, is exported by
-\code{\link{define_OM_vector_control}}.
+host-seeking killing, which has no GVI equivalent, is not part of this
+snippet (nor of \code{\link{add_OM_GVI}}), and a warning says so: it is
+written by \code{\link{define_OM_vector_control}} +
+\code{\link{deploy_OM_vector_control}}, or \code{\link{get_OM_xml}}.
 }
 \examples{
 itn = om_vector_control(

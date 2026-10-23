@@ -63,7 +63,8 @@ list_ITN_params = function() {
 #' The returned \code{halflife_insecticide} vector encodes per-component
 #' insecticide decay as a \strong{linear} decay (in years). Despite the name,
 #' it is the time at which the effect reaches zero, calibrated so that
-#' efficacy after 3 years equals the washed value. Negative values (efficacy
+#' efficacy at the aging time of the trial's washed arm (\code{aged_time}: 3
+#' years, 2 for Sovegnon) equals the washed value. Negative values (efficacy
 #' increased with washing) are returned as fitted. To use the unwashed
 #' efficacy throughout, pass \code{insecticide_decay = FALSE} to
 #' \code{\link{build_intervention}}.
@@ -76,7 +77,8 @@ list_ITN_params = function() {
 #' \code{HostSeekingKilling} is the \strong{absolute} value
 #' \code{KillingDuringHostSeeking * alpha_0}, using the control \code{alpha_0}
 #' of the same arm (unwashed or washed fit), and its insecticide decay is
-#' recomputed from the absolute unwashed and washed values.
+#' recomputed from the absolute unwashed and washed values, with the trial's
+#' \code{aged_time}.
 #'
 #' @param net_type Character string; net type label as in the \code{netType}
 #'   column of \code{ITN_parameterisations_Champagne2025}.
@@ -103,6 +105,8 @@ list_ITN_params = function() {
 #'     a \strong{linear} per-component decay (time to zero).
 #'     Pass directly to the \code{halflife_insecticide} argument of
 #'     \code{\link{build_intervention}}.
+#'   \item \code{mode}: the model structure (\code{"standard"} or
+#'     \code{"dummy_host"}), for \code{build_intervention(mode = )}.
 #'   \item \code{name}: suggested intervention label
 #'     (\code{"net_type (EHT)"}).
 #'   \item \code{reference}: citation string from the dataset.
@@ -154,8 +158,9 @@ get_ITN_params = function(net_type, EHT, mode = "standard",
     val_col  = if (washed) "Washed" else "Unwashed"
     efficacy = setNames(rows[[val_col]], param_map[rows$parameter])
 
-    # Linear time-to-zero in years (3 / (1 - Washed/Unwashed)); negative values
-    # (efficacy increased with washing) are kept as fitted.
+    # Linear time-to-zero in years (aged_time / (1 - Washed/Unwashed), with
+    # aged_time the years of the washed arm: 3, or 2 for Sovegnon); negative
+    # values (efficacy increased with washing) are kept as fitted.
     hl_years  = rows$halflife_insecticide
     halflife_insecticide = setNames(hl_years, param_map[rows$parameter])
 
@@ -176,7 +181,12 @@ get_ITN_params = function(net_type, EHT, mode = "standard",
         hsk      = rows[rows$parameter == "KillingDuringHostSeeking", ]
         hsk_abs  = c(Unwashed = hsk$Unwashed * alpha_0[["Unwashed"]],
                      Washed   = hsk$Washed   * alpha_0[["Washed"]])
-        aged_time = 3   # years of the washed (20x) arm, as in the dataset
+        # Years of the washed (20x) arm: 3 for most trials, 2 for Sovegnon
+        aged_time = hsk$aged_time
+        if (is.null(aged_time) || length(aged_time) != 1L || !is.finite(aged_time))
+            stop("ITN_parameterisations_Champagne2025 has no aged_time for '", net_type,
+                 "' (", EHT, "): regenerate it with ",
+                 "data-raw/ITN_parameterisations_Champagne2025.R")
         efficacy[["HostSeekingKilling"]] = hsk_abs[[val_col]]
         halflife_insecticide[["HostSeekingKilling"]] =
             aged_time / (1 - hsk_abs[["Washed"]] / hsk_abs[["Unwashed"]])

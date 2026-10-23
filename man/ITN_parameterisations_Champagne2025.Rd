@@ -20,11 +20,13 @@ A data frame with columns:
     \code{\link{get_ITN_params}} rescales it to an absolute value.
   \item \code{Unwashed}: fitted efficacy for a new (unwashed) net.
   \item \code{Washed}: fitted efficacy after washing / ageing.
+  \item \code{aged_time}: years represented by the washed arm (3, or 2
+    for Sovegnon).
   \item \code{halflife_insecticide}: per-component linear insecticide
-    decay (years), computed as \code{3 / (1 - Washed / Unwashed)}. Despite
-    the name, it is the time at which the effect reaches zero under linear
-    decay, calibrated so that efficacy after 3 years (20 washes) equals
-    \code{Washed}. Negative values indicate the component efficacy
+    decay (years), computed as \code{aged_time / (1 - Washed / Unwashed)}.
+    Despite the name, it is the time at which the effect reaches zero under
+    linear decay, calibrated so that efficacy after \code{aged_time} years
+    equals \code{Washed}. Negative values indicate the component efficacy
     increased with washing; they are kept as fitted (the effect then
     increases linearly over time).
   \item \code{fit}: fit of the trial the row belongs to (1, or 1 and 2

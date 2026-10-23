@@ -86,8 +86,9 @@ of a component is multiplied by \eqn{1 - t / (365 \cdot hl)}. Despite its
 name, \eqn{hl} is the time at which the effect reaches zero (the effect
 halves at \eqn{hl / 2}). This is the convention of the Champagne et al.
 (2025) parameterisations returned by \code{get_ITN_params()}, where
-\eqn{hl = 3 / (1 - Washed / Unwashed)}, so that efficacy after 3 years
-equals the washed (20x) value. Negative values (washed efficacy higher than
+\eqn{hl = a / (1 - Washed / Unwashed)}, with \eqn{a} the aging time of the
+trial's washed arm (3 years, 2 for Sovegnon), so that efficacy after
+\eqn{a} years equals the washed (20x) value. Negative values (washed efficacy higher than
 unwashed) make the effect increase linearly over time; \code{Inf} means no
 insecticide decay. Zero and \code{NaN} values are invalid; \code{NA} means
 unspecified. For other decay shapes, use \code{component_decay}.}

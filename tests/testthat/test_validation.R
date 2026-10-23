@@ -177,3 +177,106 @@ test_that("duration is finite, positive and scalar with consistent subday handli
         calculate_impact(interv, c(0, 1), validation_model)$avg_impact)
     expect_error(validation_run(exposure_sets = numeric(0)), "exposure")
 })
+
+test_that("incomplete or misspelled decay specifications are errors", {
+    # component_decay without a shape, or with an unknown field
+    expect_error(validation_build(c(PostPrandial = 0.4),
+                                  component_decay = list(PostPrandial = list(L = 100))),
+                 "component_decay\\$PostPrandial must be a list with a decay shape")
+    expect_error(validation_build(c(PostPrandial = 0.4), component_decay = list(
+        PostPrandial = list(decay = "weibull", L = 100, shape = 2))),
+        "unknown field\\(s\\) shape")
+    # Batch tables: L / kappa without a shape, missing attrition shape column
+    ps = validation_ps
+    ps$L_det = 100
+    expect_error(suppressMessages(run_interventions(ps, validation_model, c(0, 1),
+                                                    duration_years = 2 / 365)),
+                 "Deterrency.*row 1.*without a decay shape")
+    ps = validation_ps
+    ps$decay_attrition = NULL
+    expect_error(validation_run(ps), "Missing column decay_attrition")
+    # Attrition errors name the row
+    ps = validation_ps[c(1, 1), ]
+    ps$decay_attrition = c("none", "weibull")
+    expect_error(validation_run(ps), "Attrition decay.*row 2.*requires L")
+    # A missing shape_attrition is not taken from another column ($ partial
+    # matching picked up kappa_det): a Weibull attrition then lacks its shape
+    ps = validation_ps
+    ps$shape_attrition = NULL
+    ps$decay_attrition = "weibull"
+    ps$halflife_attrition = 30
+    ps$decay_det = "weibull"
+    ps$L_det = 1000
+    ps$kappa_det = 5
+    expect_error(validation_run(ps), "Attrition decay.*row 1.*requires kappa")
+    # Shapes without a shape parameter do not need the column
+    ps$decay_attrition = "exponential"
+    expect_equal(nrow(validation_run(ps)), 2)
+})
+
+test_that("arguments that must be single values or flags are checked", {
+    for (args in list(list(halflife_attrition = c(30, 60), decay_attrition = "weibull",
+                           shape_attrition = 2),
+                      list(decay_attrition = c("none", "none")),
+                      list(name = c("a", "b")))) {
+        expect_error(suppressMessages(do.call(build_intervention, c(list(
+            efficacy = c(Deterrency = 0.4), duration_years = 2 / 365,
+            model_p = validation_model), args))), "single", info = names(args)[1])
+    }
+    expect_error(suppressMessages(build_intervention(
+        c(Deterrency = 0.4), decay_attrition = "none", duration_years = 2 / 365,
+        model_p = validation_model, insecticide_decay = NA)), "insecticide_decay must be")
+    expect_error(suppressMessages(run_interventions(validation_ps, validation_model, c(0, 1),
+                                                    duration_years = 2 / 365,
+                                                    insecticide_decay = "yes")),
+                 "insecticide_decay must be")
+})
+
+test_that("uncertainty draws cannot mix the standard and dummy-host models", {
+    std = validation_ps
+    dh  = validation_ps
+    dh$preprandial = 0
+    std$host_seeking_killing = NA
+    dh$host_seeking_killing  = 0.5
+    expect_error(suppressMessages(run_interventions(std, validation_model, c(0, 1),
+        interv_param_sets = rbind(std, dh), duration_years = 2 / 365)),
+        "mixes the standard and dummy-host models")
+})
+
+test_that("custom vector tables need the model's columns, in range", {
+    vec = vec_ent_param[vec_ent_param$species_name == "Anopheles gambiae ss/coluzzii" &
+                            vec_ent_param$level == "species", ]
+    expect_no_error(def_vector_params(vector_table = vec, verbose = FALSE))
+    no_tau = vec[setdiff(names(vec), "tau")]
+    expect_error(def_vector_params(vector_table = no_tau, verbose = FALSE),
+                 "missing column\\(s\\) tau")
+    for (case in list(list(col = "tau", v = 0, msg = "tau must be > 0"),
+                      list(col = "A0", v = 0, msg = "A0 must be in \\(0, 1\\)"),
+                      list(col = "A0", v = 1, msg = "A0 must be in \\(0, 1\\)"),
+                      list(col = "M", v = 1.2, msg = "M must be in \\[0, 1\\]"))) {
+        bad = vec
+        bad[[case$col]] = case$v
+        expect_error(def_vector_params(vector_table = bad, verbose = FALSE), case$msg,
+                     info = case$col)
+    }
+    # Draws of run_interventions(): the error names the draw
+    bad = vec
+    bad$tau = 0
+    expect_error(validation_run(vec_param_sets = rbind(vec, bad)),
+                 "vec_param_sets draw 2.*tau must be > 0")
+    # An incubation period shorter than the resting duration
+    short = vec
+    short$ts = 0.5
+    mp = build_model_obj(def_vector_params(vector_table = short, verbose = FALSE),
+                         def_host_params(verbose = FALSE))
+    expect_error(suppressMessages(run_interventions(validation_ps, mp, c(0, 1),
+                                                    duration_years = 2 / 365,
+                                                    insecticide_decay = FALSE)),
+                 "incubation period ts.*shorter than the resting duration")
+})
+
+test_that("an unknown activity pattern ID is an error", {
+    expect_error(def_activity_patterns(list(HBI = 99999, HBO = 166, humans_indoors = 4,
+                                            humans_in_bed = 24)),
+                 "Unknown activity pattern ID 99999")
+})
