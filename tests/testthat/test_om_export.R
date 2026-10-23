@@ -189,6 +189,37 @@ test_that("several taxa can be exported together", {
                  c("Anopheles funestus" = 1, "Anopheles gambiae ss/coluzzii" = 1))
 })
 
+test_that("populations with a share of 0 are not written", {
+    taxa = c("Anopheles funestus", gss)
+    sp = c("Anopheles funestus" = 1, "Anopheles gambiae ss/coluzzii" = 0)
+    expect_message(om0 <- get_OM_ento_snippet(taxa, activity = activity, species_shares = sp),
+                   "share of 0 not written.*gambiae")
+    expect_equal(unique(om0$shares$taxon), "Anopheles funestus")
+    for (part in c("mosquitoParameters", "seasonalityParameters", "model_params"))
+        expect_named(om0[[part]], om0$shares$mosquito, info = part)
+    expect_true(all(as.numeric(sapply(om0$seasonalityParameters, `[[`, "annualEIR")) > 0))
+    expect_false(any(grepl("gambiae", get_OM_xml(om0)$entomology)))
+    expect_error(suppressMessages(get_OM_ento_snippet(
+        "Anopheles funestus", species_shares = c("Anopheles funestus" = 0))), "sum to 1")
+    # With placeholders the population stays: om_ento_values() warns about a 0
+    om_ph = suppressMessages(get_OM_ento_snippet(taxa, activity = activity))
+    expect_warning(v <- om_ento_values(om_ph, sp), "gambiae.*share of 0")
+    expect_equal(v[[AnophelesModel2:::om_contrib_placeholder(
+        paste0(gss, "_indoor1"))]], 0)
+    expect_no_warning(om_ento_values(om_ph, c("Anopheles funestus" = 0.5,
+                                              "Anopheles gambiae ss/coluzzii" = 0.5)))
+})
+
+test_that("two populations cannot share a placeholder name", {
+    row = vec_ent_param[vec_ent_param$species_name == gss & vec_ent_param$level == "species", ]
+    a = row; a$species_name = "Anopheles foo bar"
+    b = row; b$species_name = "Anopheles foo/bar"
+    tab = rbind(vec_ent_param, a, b)
+    expect_error(suppressMessages(get_OM_ento_snippet(c("Anopheles foo bar", "Anopheles foo/bar"),
+                                                      bionomics_table = tab)),
+                 "same placeholder name \\(contrib_Anopheles_foo_bar\\)")
+})
+
 # ---------------------------------------------------------------------------
 # 2. Vector control (GVI)
 # ---------------------------------------------------------------------------
@@ -1228,6 +1259,48 @@ test_that("om_scenario_values rejects decay columns that would have no effect", 
     skip_if_not_installed("openMalariaUtilities")
     b = suppressMessages(define_OM_vector_control(om_base_ento(49L), dh_net(name = "D")))
     expect_error(om_scenario_values(data.frame(x = 1), b, "D"), "has not been deployed")
+})
+
+test_that("an entomology without the indoor/outdoor split warns that all bites are reached", {
+    unsplit = suppressMessages(get_OM_ento_snippet(gss))
+    net = om_vector_control(eff, 730, 2)
+    expect_warning(suppressMessages(get_OM_GVI_snippet(net, unsplit, "ITN")),
+                   "no indoor/outdoor split.*ITN acts on all the bites")
+    expect_warning(suppressMessages(get_OM_xml(unsplit, net, sched_num)),
+                   "no indoor/outdoor split")
+    expect_warning(suppressMessages(get_OM_xml(unsplit, net, sched_num, decay = "placeholder")),
+                   "no indoor/outdoor split")
+    expect_no_warning(suppressMessages(get_OM_GVI_snippet(net, om, "ITN")))
+    expect_no_warning(suppressMessages(get_OM_xml(om, net, sched_num)))
+    # The entomology alone does not warn
+    expect_no_warning(suppressMessages(get_OM_xml(unsplit)))
+})
+
+test_that("schedule dates must be YYYY-MM-DD everywhere", {
+    expect_error(om_campaigns(dates = c("2021/01/01", "2022-01-01"), coverage = 1),
+                 "dates must be dates \"YYYY-MM-DD\".*2021/01/01")
+    expect_error(om_campaigns("2021-01-01x", "2023-01-01", coverage = 1), "from must be dates")
+    expect_error(om_campaigns("2021-01-01", "2023-01-01", coverage = 1, end_date = "1/1/2030"),
+                 "end_date must be dates")
+    expect_error(AnophelesModel2:::om_schedule(data.frame(date = "2021-13-01", coverage = 1)),
+                 "schedule\\$date must be dates")
+    expect_error(om_continuous(age = 0.25, coverage = 0.8, begin = "2021/01/01"),
+                 "begin must be dates")
+    # Date objects are accepted
+    s = om_campaigns(dates = as.Date(c("2021-01-01", "2024-01-01")), coverage = 0.5,
+                     end_date = as.Date("2027-01-01"))
+    expect_equal(s$date, c("2021-01-01", "2024-01-01"))
+    expect_equal(attr(s, "end_date"), "2027-01-01")
+    expect_no_error(om_continuous(age = 0.25, coverage = 0.8, begin = as.Date("2021-01-01")))
+})
+
+test_that("two intervention names cannot give the same placeholders in a baseList", {
+    skip_if_not_installed("openMalariaUtilities")
+    net = om_vector_control(eff, 730, 2)
+    b = suppressMessages(define_OM_vector_control(om_base_ento(), net, name = "IG 2"))
+    expect_error(suppressMessages(define_OM_vector_control(b, net, name = "IG_2")),
+                 "'IG_2' and 'IG 2' give the same placeholder names \\(@IG_2_...@\\)")
+    expect_no_error(suppressMessages(define_OM_vector_control(b, net, name = "IG3")))
 })
 
 test_that("the attrition warnings are given on every export route", {

@@ -20,7 +20,9 @@ sum to 1 (see \code{\link{eir_shares}}). Row names, if any, are kept in a
 \value{
 Data frame with \code{composition} (with row names), the species
 shares (one column per taxon) and one column per placeholder, named without
-the \code{@} (\code{contrib_<population>}).
+the \code{@} (\code{contrib_<population>}). A taxon with a share of 0 in a
+composition gives its populations a contribution of 0 there (a warning:
+a placeholder cannot remove a population).
 }
 \description{
 Fills the \code{annualEIR} placeholders

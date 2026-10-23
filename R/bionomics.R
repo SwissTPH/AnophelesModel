@@ -68,6 +68,7 @@ check_bionomics_table = function(tab) {
              paste(props[vapply(tab[props], function(x) any(x > 1, na.rm = TRUE),
                                 logical(1))], collapse = ", "))
     if (any(tab$tau <= 0)) stop("Bionomics table: tau must be positive")
+    check_whole_ts(tab$ts, "Bionomics table")
     tab
 }
 

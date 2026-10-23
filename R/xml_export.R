@@ -91,6 +91,9 @@ om_decay_name = function(decay) {
 #' through its \code{exposure} argument (see \code{\link{calculate_exposure}}).
 #' The populations share all parameters except the human blood index: indoor
 #' populations use the indoor HBI, the outdoor population the outdoor HBI.
+#' Populations with a share of 0 (e.g. \code{indoor2} when the two shares are
+#' equal, or a species with a \code{species_shares} of 0) are not written,
+#' with a message.
 #' Without \code{activity}, each taxon is a single population whose human blood
 #' index is chosen with \code{hbi}.
 #'
@@ -265,6 +268,13 @@ get_OM_ento_snippet = function(taxa, level = "species", activity = NULL,
     shares = do.call(rbind, shares)
     rownames(shares) = NULL
     if (anyDuplicated(shares$mosquito)) stop("Duplicated taxa in 'taxa'")
+    # Placeholders use the cleaned population names: two populations must not
+    # give the same one
+    ph_names = om_contrib_placeholder(shares$mosquito)
+    if (anyDuplicated(ph_names))
+        stop("Populations ", paste(shares$mosquito[ph_names %in% ph_names[duplicated(ph_names)]],
+                                   collapse = ", "),
+             " give the same placeholder name (", ph_names[duplicated(ph_names)][1], ")")
 
     # annualEIR = relative contribution of each population to the EIR
     # (species share x share within the species): numbers with
@@ -274,6 +284,22 @@ get_OM_ento_snippet = function(taxa, level = "species", activity = NULL,
         sp = om_species_shares(species_shares, unique(shares$taxon), taxa)
         shares$species_share = unname(sp[shares$taxon])
         shares$eir_share     = shares$species_share * shares$share
+    }
+    # Populations without bites (a share of 0: e.g. indoor2 when the in-bed
+    # and IRS shares are equal, or a species with no share of the EIR) are not
+    # written: their annualEIR would be 0
+    keep = shares$share > 0
+    if (!is.null(shares$eir_share)) keep = keep & shares$eir_share > 0
+    if (!any(keep)) stop("No mosquito population contributes to the EIR")
+    if (!all(keep)) {
+        message("get_OM_ento_snippet: population(s) with a share of 0 not written: ",
+                paste(shares$mosquito[!keep], collapse = ", "))
+        mosquitoParameters = mosquitoParameters[shares$mosquito[keep]]
+        model_params       = model_params[shares$mosquito[keep]]
+        shares = shares[keep, , drop = FALSE]
+        rownames(shares) = NULL
+    }
+    if (!is.null(species_shares)) {
         eir = om_num(shares$eir_share)
         what = "the relative contribution of each population"
     } else {
@@ -390,7 +416,9 @@ eir_shares = function(abundance, sporozoite_rate) {
 #'
 #' @return Data frame with \code{composition} (with row names), the species
 #' shares (one column per taxon) and one column per placeholder, named without
-#' the \code{@} (\code{contrib_<population>}).
+#' the \code{@} (\code{contrib_<population>}). A taxon with a share of 0 in a
+#' composition gives its populations a contribution of 0 there (a warning:
+#' a placeholder cannot remove a population).
 #'
 #' @examples
 #' om = get_OM_ento_snippet(c("Anopheles funestus", "Anopheles gambiae ss/coluzzii"),
@@ -430,6 +458,15 @@ om_ento_values = function(om_ento, species_shares) {
     for (j in seq_len(nrow(sh)))
         out[[om_contrib_placeholder(sh$mosquito[j])]] = out[[sh$taxon[j]]] * sh$share[j]
     rownames(out) = NULL
+    # A placeholder cannot remove a population: a taxon with a share of 0
+    # writes annualEIR 0 for its populations in that composition
+    zero = vapply(taxa, function(tx) any(out[[tx]] == 0), logical(1))
+    if (any(zero))
+        warning("om_ento_values: ", paste(taxa[zero], collapse = ", "), " has a share of 0 ",
+                "in some composition(s): its populations get annualEIR 0 there. To ",
+                "leave a species out, build the entomology without it (or with ",
+                "get_OM_ento_snippet(species_shares = ), which drops populations of 0).",
+                call. = FALSE)
     out
 }
 
@@ -491,7 +528,11 @@ om_mosq_params = function(vec_p, chi, hosts_p) {
 #' IRS (or biting indoors, with \code{get_OM_ento_snippet(irs_exposure =
 #' "indoor_biting")}); other populations get \code{propActive = 0}. Use the
 #' same choice for the \code{exposure} of \code{calculate_impact()} (see
-#' \code{\link{calculate_exposure}}).
+#' \code{\link{calculate_exposure}}). Without the split
+#' (\code{get_OM_ento_snippet()} without \code{activity}), the intervention
+#' acts on all the bites of every population, outdoor bites included, with a
+#' warning (here, in \code{\link{define_OM_vector_control}} and in
+#' \code{\link{get_OM_xml}}).
 #'
 #' Dummy-host interventions (\code{HostSeekingKilling}) have no pre-prandial
 #' killing: their GVI has deterrency and post-prandial killing only, and the
@@ -542,6 +583,7 @@ get_OM_GVI_snippet = function(interv, om_ento, intervention_type = c("ITN", "IRS
         stop("interv must be an intervention from om_vector_control() or ",
              "build_intervention()")
     if (is.null(name)) name = om_default_name(interv, "GVI")
+    om_check_split(om_ento, intervention_type)
     interv = om_gvi_objects(list(interv), om_ento, intervention_type)[[1]]
     if (interv$settings$mode == "dummy_host") om_check_dummy_enabled()
     if (interv$settings$mode == "dummy_host")
@@ -568,6 +610,19 @@ om_ph_label = c(Deterrency = "deterrency", PrePrandial = "preprandial",
                 PostPrandial = "postprandial")
 # Placeholder-safe version of a name
 om_ph_name = function(name) gsub("[^A-Za-z0-9]+", "_", name)
+
+# Internal: without the indoor/outdoor split (get_OM_ento_snippet() without
+# activity), each population is reached entirely by ITNs and IRS, outdoor
+# bites included: a warning (the vectorial capacity route has exposure)
+om_check_split = function(om_ento, intervention_type) {
+    if (!is.null(om_ento$shares$type) && all(om_ento$shares$type == "all"))
+        warning("The entomology has no indoor/outdoor split (get_OM_ento_snippet() ",
+                "without activity): the ", intervention_type, " acts on all the bites ",
+                "of every mosquito population, outdoor bites included. Give activity ",
+                "to get_OM_ento_snippet() to restrict it to the bites it reaches.",
+                call. = FALSE)
+    invisible()
+}
 
 # Internal: mosquito populations reached by the intervention
 om_active = function(om_ento, intervention_type) {
@@ -904,6 +959,21 @@ om_name = function(x, name, intervention_type) {
     else om_default_name(x$nets[[1]], intervention_type)
 }
 
+# Internal: dates "YYYY-MM-DD" (or Date objects) -> Date; NA kept when
+# allow_na, anything else an error. Strict, the same for every schedule input
+# (as.Date() alone also reads "2021/01/01" and ignores trailing text).
+om_dates = function(x, what, allow_na = FALSE) {
+    if (inherits(x, "Date")) x = format(x)
+    x  = as.character(x)
+    ok = !is.na(x) & grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", x)
+    d  = as.Date(ifelse(ok, x, NA_character_), format = "%Y-%m-%d")
+    bad = (!is.na(x) & is.na(d)) | (!allow_na & is.na(x))
+    if (!length(x) || any(bad))
+        stop(what, " must be dates \"YYYY-MM-DD\"",
+             if (any(bad)) paste0(" (not: ", paste(utils::head(x[bad], 3), collapse = ", "), ")"))
+    d
+}
+
 # Internal: validated deployment schedule. Coverages are numbers in [0, 1] or
 # placeholders "@...@".
 om_schedule = function(schedule, end_date = NULL) {
@@ -911,8 +981,7 @@ om_schedule = function(schedule, end_date = NULL) {
         !all(c("date", "coverage") %in% names(schedule)))
         stop("schedule must be a data frame with columns date and coverage, ",
              "one row per campaign")
-    dates = tryCatch(as.Date(as.character(schedule$date)), error = function(e) NA)
-    if (anyNA(dates)) stop("schedule$date must be dates (\"YYYY-MM-DD\")")
+    dates = om_dates(schedule$date, "schedule$date")
     if (any(diff(dates) <= 0)) stop("schedule$date must be strictly increasing")
     cov  = as.character(schedule$coverage)
     ph   = !is.na(cov) & grepl("^@[^@]+@$", cov)
@@ -926,14 +995,13 @@ om_schedule = function(schedule, end_date = NULL) {
     # given as an argument (both: they must agree)
     in_schedule = attr(schedule, "end_date")
     if (!is.null(in_schedule) && !is.null(end_date) &&
-        !identical(as.Date(as.character(end_date)), as.Date(in_schedule)))
+        !identical(om_dates(end_date, "end_date"), om_dates(in_schedule, "end_date")))
         stop("end_date (", end_date, ") differs from the end_date of the schedule (",
              in_schedule, ")")
     if (is.null(end_date)) end_date = in_schedule
     if (!is.null(end_date)) {
-        end = tryCatch(as.Date(as.character(end_date)), error = function(e) NA)
-        if (length(end) != 1L || is.na(end))
-            stop("end_date must be a single date (\"YYYY-MM-DD\")")
+        if (length(end_date) != 1L) stop("end_date must be a single date (\"YYYY-MM-DD\")")
+        end = om_dates(end_date, "end_date")
         if (end <= max(dates)) stop("end_date must be after the last campaign")
         out$end = end
     }
@@ -1285,12 +1353,15 @@ om_campaigns = function(from = NULL, to = NULL, every = "1 year", coverage,
     if (is.null(dates)) {
         if (is.null(from) || is.null(to))
             stop("Give from and to (with every), or dates")
-        dates = tryCatch(seq(as.Date(from), as.Date(to), by = every),
+        if (length(from) != 1L || length(to) != 1L)
+            stop("from and to must be single dates (\"YYYY-MM-DD\")")
+        from = om_dates(from, "from")
+        to   = om_dates(to, "to")
+        dates = tryCatch(seq(from, to, by = every),
                          error = function(e) stop("Invalid from / to / every: ",
                                                   conditionMessage(e), call. = FALSE))
     } else {
-        dates = tryCatch(as.Date(as.character(dates)), error = function(e) NA)
-        if (anyNA(dates)) stop("dates must be dates (\"YYYY-MM-DD\")")
+        dates = om_dates(dates, "dates")
     }
     if (!length(dates)) stop("No campaign between from and to")
     if (!length(coverage) %in% c(1L, length(dates)))
@@ -1307,7 +1378,7 @@ om_campaigns = function(from = NULL, to = NULL, every = "1 year", coverage,
     out = data.frame(date = format(dates), coverage = rep(coverage, length.out = length(dates)),
                      stringsAsFactors = FALSE)
     om_schedule(out, end_date)   # validates dates, coverages and end_date
-    if (!is.null(end_date)) attr(out, "end_date") = format(as.Date(as.character(end_date)))
+    if (!is.null(end_date)) attr(out, "end_date") = format(om_dates(end_date, "end_date"))
     out
 }
 
@@ -1654,6 +1725,12 @@ define_OM_vector_control = function(baseList, interv,
     if (any(ids %in% vapply(human[names(human) == "component"],
                             function(cm) as.character(cm$id), character(1))))
         stop("baseList already has components of '", b$name, "'")
+    # Placeholders use the cleaned name (non-alphanumeric runs -> _): two
+    # names giving the same one (e.g. "IG 2" and "IG_2") would share them
+    for (other in setdiff(names(baseList$anophelesmodel2$vc), b$name))
+        if (om_ph_name(other) == om_ph_name(b$name))
+            stop("'", b$name, "' and '", other, "' give the same placeholder names (@",
+                 om_ph_name(b$name), "_...@): choose another name")
 
     baseList = om_add_components(baseList, b$components)
     # Record of the intervention (nets, placeholders, populations), for
@@ -1690,6 +1767,7 @@ om_vc_components = function(interv, om_ento, intervention_type, name,
              "non-human hosts with increasing decays, which need OpenMalaria schema >= ",
              om_dummy_min_schema, " (developed for 49): use schema = 49 in get_OM_xml(), ",
              "or OMVersion = 49L in the baseList (schema ", schema, " here)")
+    om_check_split(om_ento, intervention_type)
     nets  = om_gvi_objects(items, om_ento, intervention_type)
     pn    = om_ph_name(name)
     mosq   = om_ento$shares$mosquito
@@ -1934,14 +2012,8 @@ om_check_continuous = function(x) {
                  what, "@\"")
         ifelse(ph, v, om_num(num))
     }
-    date_of = function(v, what) {
-        v = as.character(v)
-        d = as.Date(v, format = "%Y-%m-%d")
-        if (any(!is.na(v) & is.na(d))) stop(what, " must be dates (\"YYYY-MM-DD\") or NA")
-        d
-    }
-    begin = date_of(x$begin, "begin")
-    end   = date_of(x$end, "end")
+    begin = om_dates(x$begin, "begin", allow_na = TRUE)
+    end   = om_dates(x$end, "end", allow_na = TRUE)
     if (any(!is.na(begin) & !is.na(end) & end <= begin)) stop("end must be after begin")
     list(targetAgeYrs = num_or_ph(x$targetAgeYrs, "age", 100),
          coverage     = num_or_ph(x$coverage, "coverage", 1),

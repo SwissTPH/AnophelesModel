@@ -57,7 +57,9 @@ rewritten and are **not backward compatible**.
   mixing the standard and dummy-host models; custom vector tables without
   the model's columns (`M`, `Chi`, `A0`, `zeta.3`, `td`, `tau`, `ts`; a
   missing `tau` became 1 day) or out of range; an extrinsic incubation
-  period shorter than the resting duration (was raised to it); unknown
+  period shorter than the resting duration (was raised to it), or not a
+  whole number of days (the survival sums need whole days, and the
+  OpenMalaria export rounded it); unknown
   activity pattern IDs. Attrition errors name the parameter-set row; the
   Weibull fit warns when it stops at the iteration limit.
 * Misspelled component names in `halflife_insecticide` / `component_decay`
@@ -142,6 +144,20 @@ rewritten and are **not backward compatible**.
   dummy-host intervention is always an error.
 * `get_OM_GVI_snippet()` warns that host-seeking killing of dummy-host
   interventions is not in the GVI (nor written by `add_OM_GVI()`).
+* Without the indoor/outdoor split (`get_OM_ento_snippet()` without
+  `activity`), the GVI export warns that the intervention acts on all the
+  bites, outdoor ones included (`get_OM_GVI_snippet()`,
+  `define_OM_vector_control()`, `get_OM_xml()`).
+* Populations with a share of 0 (e.g. `indoor2` when the in-bed and IRS
+  shares are equal, or a species with a `species_shares` of 0) are not
+  written (their `annualEIR` would be 0); `om_ento_values()` warns when a
+  composition gives a species a share of 0.
+* Placeholder names that would collide are errors: two populations, or two
+  interventions of a `baseList`, whose names give the same cleaned
+  placeholder (e.g. `"IG 2"` and `"IG_2"`).
+* All schedule dates (`om_campaigns()`, schedules, `end_date`,
+  `om_continuous()`) must be `"YYYY-MM-DD"` (or `Date` objects); formats such
+  as `"2021/01/01"` were accepted by campaigns only.
 * The warnings on unusual attrition (IRS with attrition, ITN without) are
   given on every export route (also `define_OM_vector_control()` /
   `get_OM_xml()` with placeholder decays or a list of nets), not only for a

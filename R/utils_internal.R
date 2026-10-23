@@ -79,7 +79,20 @@ check_vector_table = function(vt, label = "vector_table") {
     for (nm in c("td", "tau", "ts"))
         if (any(vt[[nm]] <= 0))
             stop(label, "$", nm, " must be > 0 (rows ", rows(vt[[nm]] <= 0), ")")
+    check_whole_ts(vt$ts, label)
     invisible(vt)
+}
+
+# The extrinsic incubation period is a whole number of days: the survival
+# sums (calc_psts, Chitnis et al. 2008 eq. 3c / 4) are defined for whole days
+# only, and OpenMalaria's extrinsicIncubationPeriod is in days (a non-integer
+# ts ran in the model but was rounded in the export)
+check_whole_ts = function(ts, label) {
+    bad = !is.na(ts) & abs(ts - round(ts)) > 1e-8
+    if (any(bad))
+        stop(label, "$ts (extrinsic incubation period) must be a whole number of ",
+             "days (rows ", paste(utils::head(which(bad), 10), collapse = ", "), ")")
+    invisible()
 }
 
 # Decay columns of batch tables (run_interventions): a misspelled column

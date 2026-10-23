@@ -104,9 +104,10 @@ reinstalling the package:
 `def_vector_params(..., bionomics_table = read_bionomics_table("file.csv"))`.
 
 Or supply a custom data frame with (a subset of) the column names of
-`vec_ent_param` (key columns: `M` = parous rate, `Chi` = Human Blood Index
-(HBI), `A0` = sac rate, `tau` = resting duration in days). `Chi` is used as
-supplied:
+`vec_ent_param`. The model needs `M` (parous rate), `Chi` (human blood
+index, HBI), `A0` (sac rate), `zeta.3`, `td`, `tau` (resting duration, days)
+and `ts` (extrinsic incubation period, a whole number of days); a missing or
+out-of-range value is an error. `Chi` is used as supplied:
 ```{r, eval=FALSE}
 custom_vec_table = data.frame(
     species_name  = "My species",
@@ -546,8 +547,9 @@ plot_impact(uncertainty_results, title = "200 draws of M and A0")
 
 **Across taxa.** The same argument evaluates one intervention for many taxa:
 each row of `vec_ent_param` is then a "draw", identified in the output by
-`species_name` and `level`. Filter on `level` (a species alone in its complex
-also appears as a complex). A taxon whose bionomics are inconsistent with the
+`species_name` and `level`. Filter on `level` (complexes and the genus have
+their own rows; a species alone in its complex is listed once, as a
+species). A taxon whose bionomics are inconsistent with the
 host parameters stops the run with an error:
 ```{r, eval=FALSE}
 all_species = vec_ent_param[vec_ent_param$level == "species", ]
@@ -661,7 +663,11 @@ the split follows directly from the bites: `_indoor1` is the share of bites
 in bed, `_indoor2` the share of bites indoors outside bed; with resting
 indoors, the overlap of the two groups is assumed to be the largest
 possible. The populations share all parameters except the human blood index
-(indoor HBI for the indoor populations, outdoor HBI for the outdoor one).
+(indoor HBI for the indoor populations, outdoor HBI for the outdoor one). A
+population with a share of 0 (e.g. `_indoor2` when the two groups are the
+same size) is not written. Without activity patterns, each species is a
+single population that ITNs and IRS reach entirely, outdoor bites included;
+the vector control export then gives a warning.
 
 **Contribution of each population to the EIR.** The `annualEIR` of each
 population is its relative contribution to the EIR: the share of its species
@@ -763,7 +769,8 @@ baseList = deploy_OM_vector_control(baseList, "IG2", schedule)
   ITNs and 1 year for IRS (`fit_years` in `om_vector_control()`). When all
   decays are identical, the effects are written as a single component.
 - **Exposure.** The effects act on the mosquito populations exposed in bed
-  (ITN) or resting indoors (IRS), see `shares` above.
+  (ITN) or resting indoors (IRS), see `shares` above (all bites without
+  activity patterns, with a warning).
 - **Same people.** The deployment holds all the components of the
   intervention, so that all effects reach the same people.
 
@@ -784,8 +791,9 @@ the model, a dummy host on which every mosquito that finds it dies: for each
 campaign, an OpenMalaria non-human host (`<name>_dummy_<k>`, added at the
 campaign date), whose availability relative to an adult human is the
 coverage × `HostSeekingKilling` / human availability, and decays with the
-attrition and the insecticide decay of host-seeking killing (two
-modifications with increasing decays). As for the GVI, whose effects are
+attrition and the insecticide decay of host-seeking killing (up to two
+modifications with increasing decays, none for a factor that does not
+decay). As for the GVI, whose effects are
 refreshed (not stacked) in people who receive a net again, each campaign
 replaces the nets of its recipients: earlier dummy hosts are reduced by the
 coverage of every later campaign. Increasing decays

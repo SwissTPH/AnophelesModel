@@ -197,7 +197,7 @@ test_that("any two cases combine symmetrically, within [0, 1], with coverage 0 =
 # 5. OpenMalaria export reproduces the package's decays (standard model)
 # ---------------------------------------------------------------------------
 test_that("exported GVI decays reproduce the package's curves where exact", {
-    om = suppressMessages(get_OM_ento_snippet(gss))
+    om = suppressMessages(get_OM_ento_snippet(gss, activity = def_activity_patterns()))
     t  = seq_len(days) - 1
     for (dc in names(decay_cases)) {
         iv  = build_case("standard", dc)
@@ -275,7 +275,7 @@ test_that("exponential attrition x exponential insecticide decay = 20-day half-l
     protection = e$survival * (1 - e$PBi[, 1] / e$PBi[, 2])
     expect_equal(protection, expected, tolerance = 1e-12)
     # The export: a single Weibull (fitted to the product), ~ exponential, L = 20 days
-    om  = suppressMessages(get_OM_ento_snippet(gss))
+    om  = suppressMessages(get_OM_ento_snippet(gss, activity = def_activity_patterns()))
     gvi = suppressMessages(get_OM_GVI_snippet(list(iv), om, "ITN"))[[1]]
     pre = gvi$preprandialKillingEffect
     d   = pre$decay
@@ -302,7 +302,7 @@ test_that("a product that is not a Weibull is exported as a close fitted Weibull
     e = iv$effects
     expect_equal(e$survival * (1 - e$PBi[, 1] / e$PBi[, 2]), exact, tolerance = 1e-12)
 
-    om  = suppressMessages(get_OM_ento_snippet(gss))
+    om  = suppressMessages(get_OM_ento_snippet(gss, activity = def_activity_patterns()))
     gvi = suppressMessages(get_OM_GVI_snippet(list(iv), om, "ITN"))[[1]]
     d   = gvi$preprandialKillingEffect$decay
     fd  = iv$fitted_decay[iv$fitted_decay$component == "PrePrandial", ]
@@ -364,7 +364,7 @@ test_that("combined impact at the smallest and largest overlaps, and just outsid
 test_that("an exported step decay ends on the same day as in the package", {
     # 45 days = 0.12328767... years: rounding L up (0.123288 = 45.0001 days)
     # would keep the protection at day 45 in OpenMalaria
-    om = suppressMessages(get_OM_ento_snippet(gss))
+    om = suppressMessages(get_OM_ento_snippet(gss, activity = def_activity_patterns()))
     t  = 0:89
     for (L in c(45, 30, 200 / 3)) {
         iv  = suppressMessages(build_intervention(

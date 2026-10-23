@@ -124,6 +124,9 @@ bites outside bed. The vectorial capacity calculation has the same choice
 through its \code{exposure} argument (see \code{\link{calculate_exposure}}).
 The populations share all parameters except the human blood index: indoor
 populations use the indoor HBI, the outdoor population the outdoor HBI.
+Populations with a share of 0 (e.g. \code{indoor2} when the two shares are
+equal, or a species with a \code{species_shares} of 0) are not written,
+with a message.
 Without \code{activity}, each taxon is a single population whose human blood
 index is chosen with \code{hbi}.
 

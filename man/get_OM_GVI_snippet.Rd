@@ -66,7 +66,11 @@ The effects act on the mosquito populations exposed to the intervention
 IRS (or biting indoors, with \code{get_OM_ento_snippet(irs_exposure =
 "indoor_biting")}); other populations get \code{propActive = 0}. Use the
 same choice for the \code{exposure} of \code{calculate_impact()} (see
-\code{\link{calculate_exposure}}).
+\code{\link{calculate_exposure}}). Without the split
+(\code{get_OM_ento_snippet()} without \code{activity}), the intervention
+acts on all the bites of every population, outdoor bites included, with a
+warning (here, in \code{\link{define_OM_vector_control}} and in
+\code{\link{get_OM_xml}}).
 
 Dummy-host interventions (\code{HostSeekingKilling}) have no pre-prandial
 killing: their GVI has deterrency and post-prandial killing only, and the

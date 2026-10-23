@@ -264,9 +264,21 @@ test_that("custom vector tables need the model's columns, in range", {
     bad$tau = 0
     expect_error(validation_run(vec_param_sets = rbind(vec, bad)),
                  "vec_param_sets draw 2.*tau must be > 0")
+    # A non-integer incubation period (whole days in the model and in OpenMalaria)
+    frac = vec
+    frac$ts = 10.5
+    expect_error(def_vector_params(vector_table = frac, verbose = FALSE),
+                 "ts \\(extrinsic incubation period\\) must be a whole number")
+    expect_error(validation_run(vec_param_sets = rbind(vec, frac)),
+                 "vec_param_sets draw 2.*whole number")
+    tab = vec_ent_param
+    tab$ts[1] = 10.5
+    expect_error(AnophelesModel2:::check_bionomics_table(tab),
+                 "Bionomics table\\$ts.*whole number")
     # An incubation period shorter than the resting duration
     short = vec
-    short$ts = 0.5
+    short$tau = 3
+    short$ts = 2
     mp = build_model_obj(def_vector_params(vector_table = short, verbose = FALSE),
                          def_host_params(verbose = FALSE))
     expect_error(suppressMessages(run_interventions(validation_ps, mp, c(0, 1),
