@@ -75,17 +75,17 @@ TRUE)}). OpenMalaria's
 GVI has no host-seeking killing. In this package it is a dummy host per
 covered person, of availability \code{HostSeekingKilling} \eqn{\times}
 insecticide decay (relative to the human availability \eqn{\alpha_h}),
-on which every mosquito that finds it dies. It is written exactly as
+on which every mosquito that finds it dies. It is written as
 OpenMalaria non-human hosts: for each campaign \eqn{k} (date \eqn{t_k},
 coverage \eqn{c_k}), an added non-human host \code{<name>_dummy_<k>}
 (\code{addNonHumanHosts}, deployed at \eqn{t_k}), of availability
 relative to an adult human \eqn{c_k \times} \code{HostSeekingKilling}
 \eqn{/ \alpha_h} (\eqn{\alpha_h} of the population's model) and biting
-probability 0, whose availability decays with the attrition and the
-insecticide decay of host-seeking killing (up to two
-\code{nonHumanHostsModifications} \code{<name>_dummy_<k>_attrition} and
-\code{_insecticide}, omitted for a constant factor: an availability
-reduction of 1 with an
+probability 0, whose availability decays as the GVI effects do: attrition
+\eqn{\times} insecticide decay of host-seeking killing, exact when it is a
+single OpenMalaria decay, otherwise the Weibull fitted to their product
+(one \code{nonHumanHostsModifications} \code{<name>_dummy_<k>_decay},
+omitted for a constant decay: an availability reduction of 1 with an
 \code{increasing} decay multiplies the availability by the decay). As for
 the GVI, whose components are refreshed (not stacked) in people who
 receive them again, a campaign \strong{replaces} the nets of its
@@ -95,10 +95,10 @@ of every later campaign \eqn{k}
 \eqn{c_k}, the same number or placeholder as the schedule), which gives
 the expected effect of campaigns reaching random, independent shares of
 the population. Increasing decays need OpenMalaria schema 46 or later (developed for
-49): the \code{OMVersion} of the \code{baseList}. A rising insecticide
-decay (negative \code{halflife_insecticide}) is written with a negative
-availability reduction, exactly. Host-seeking killing acts on the same
-populations as the GVI (in bed for ITNs).
+49): the \code{OMVersion} of the \code{baseList}. As for the GVI effects,
+a rising insecticide decay (negative \code{halflife_insecticide}) is only
+exported through the fitted Weibull (with attrition). Host-seeking killing
+acts on the same populations as the GVI (in bed for ITNs).
 
 \strong{Placeholders, only where something varies.}
 \itemize{
@@ -119,11 +119,8 @@ populations as the GVI (in bed for ITNs).
     and numeric coverages fix them; otherwise
     \code{"@<name>_dummy_<k>_pop<j>@"} (campaign \eqn{k}, mosquito
     population \eqn{j}: row of \code{om_ento$shares}, printed by the
-    message). Their decays follow \code{decay}: with
-    \code{"placeholder"}, \code{"@<name>_attrition_L@"} (and \code{_k}) and
-    \code{"@<name>_hsk_L@"} (and \code{_k}, or \code{_initial} for a
-    linear decay, negative when rising); the decay functions must be the
-    same for all the interventions.
+    message). Their decay follows \code{decay} as an effect of its own:
+    with \code{"placeholder"}, \code{"@<name>_hsk_L@"} (and \code{_k}).
 }
 All interventions of a list must use the same model structure. Fill the
 placeholders of a scenario table with \code{\link{om_scenario_values}}.

@@ -60,9 +60,9 @@ values of the placeholders of a vector control intervention, row by row:
     campaign \eqn{k} \eqn{\times} \code{HostSeekingKilling} / human
     availability of population \eqn{j}, the coverages taken from the
     columns named like the coverage placeholders of the schedule (e.g.
-    \code{cov2021}); and the decays of the dummy hosts
-    (\code{<name>_attrition_L}, \code{<name>_hsk_L}, ...) with
-    \code{decay = "placeholder"}.
+    \code{cov2021}); the decay of the dummy hosts is that of host-seeking
+    killing (\code{<name>_hsk_L}, \code{<name>_hsk_k}), filled as the other
+    decays.
 }
 Only the placeholders written by \code{\link{define_OM_vector_control}} /
 \code{\link{deploy_OM_vector_control}} (or \code{\link{get_OM_xml}}) are
@@ -77,15 +77,13 @@ the attrition is common to all effects. With \code{combine = TRUE}
 column} each (e.g. a usage-adjusted attrition): each effect's decay is this
 attrition combined with the effect's own insecticide decay (fitted by a
 Weibull when needed, over \code{fit_years} of \code{\link{om_vector_control}}),
-and the dummy hosts get this attrition as it is (their attrition and
-insecticide decays are separate). With
+host-seeking killing (the dummy hosts) included. With
 \code{combine = FALSE}, the columns are \strong{final} decays, written as
 they are: one column per effect (named vector, e.g.
 \code{c(Deterrency = "hl_det", PrePrandial = "hl_pre", PostPrandial =
 "hl_post", HostSeekingKilling = "hl_hsk")}) or one column for all
-effects; the final decay of host-seeking killing is written as the dummy
-hosts' attrition (in its decay function), their insecticide decay then
-being neutral. Without columns, each net's own decay is used. Decay
+effects (host-seeking killing: the decay of the dummy hosts). Without
+columns, each net's own decay is used. Decay
 columns need an intervention defined with \code{decay = "placeholder"}.
 
 Half-life and shape are replaced \strong{independently}: a \code{kappa}

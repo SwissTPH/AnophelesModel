@@ -350,30 +350,50 @@ test_that("the dummy-host export warns that it is work in progress", {
                                  sched_num, entomology = FALSE))
 })
 
-test_that("dummy hosts reproduce the package's dummy host exactly", {
+test_that("dummy hosts follow the decay of host-seeking killing, as the GVI effects", {
     days = 0:729
     sch  = AnophelesModel2:::om_schedule(sched_num, end_date)
     j    = which(om$shares$in_bed)[1]
-    cases = list(
+    # A single OpenMalaria decay: exact
+    exact = list(
         attrition   = list(),
-        linear      = list(halflife_insecticide = c(HostSeekingKilling = 1.5)),
-        rising      = list(halflife_insecticide = c(HostSeekingKilling = -2)),
-        exponential = list(component_decay = list(
-                          HostSeekingKilling = list(decay = "exponential", L = 200))),
-        step        = list(decay_attrition = "step", halflife_attrition = 400,
-                           halflife_insecticide = c(HostSeekingKilling = 3)))
-    for (case in names(cases)) {
-        net = do.call(dh_net, cases[[case]])[[1]]
-        h   = AnophelesModel2:::om_dummy_hosts(dummy_rec(net), sch)
+        exponential = list(decay_attrition = "none", component_decay = list(
+                          HostSeekingKilling = list(decay = "exponential", L = 200))))
+    # Attrition x insecticide decay: the Weibull fitted to their product
+    fitted = list(
+        linear = list(halflife_insecticide = c(HostSeekingKilling = 1.5)),
+        rising = list(halflife_insecticide = c(HostSeekingKilling = -2)),
+        step   = list(decay_attrition = "step", halflife_attrition = 400,
+                      halflife_insecticide = c(HostSeekingKilling = 3)))
+    for (case in c(names(exact), names(fitted))) {
+        net = suppressWarnings(do.call(dh_net, c(exact, fitted)[[case]]))[[1]]
+        h   = AnophelesModel2:::om_dummy_hosts(suppressWarnings(dummy_rec(net)), sch)
+        # One decay modification per host
+        expect_equal(sum(grepl("_decay$", sapply(h$modify, `[[`, "name"))), 2, info = case)
         # The package: HostSeekingKilling x insecticide decay x attrition, per
         # covered person, relative to the human availability
-        g = net$effects$alphai[, 4] * net$effects$survival / alpha_h(j)
+        exact_g = net$effects$alphai[, 4] * net$effects$survival / alpha_h(j)
+        g = if (case %in% names(exact)) exact_g else {
+            fd = net$fitted_decay[net$fitted_decay$component == "HostSeekingKilling", ]
+            0.6 * decay_function(fd$L, fd$kappa, days, "weibull") / alpha_h(j)
+        }
         # Campaign 1 (coverage 0.8), its nets replaced from campaign 2 (365
         # days later, coverage 0.5) in a random half of the population
         expect_equal(om_rebuild(h, 1, j, days), 0.8 * g * ifelse(days >= 365, 0.5, 1),
                      tolerance = 1e-5, info = case)
         expect_equal(om_rebuild(h, 2, j, days), 0.5 * g, tolerance = 1e-5, info = case)
+        # A smooth product is close to the exact curve: on average within 5%
+        # of the initial value (2.6% here: a steep product, 1-year attrition
+        # x 1.5-year insecticide decay, and the fitted amplitude is dropped,
+        # as for the GVI), at most 10% on any day (largest near the start)
+        if (case == "linear") {
+            expect_lt(sqrt(mean((g - exact_g)^2)), 0.05 * exact_g[1])
+            expect_lt(max(abs(g - exact_g)), 0.1 * exact_g[1])
+        }
     }
+    # A rising insecticide decay without attrition has no OpenMalaria shape
+    expect_error(suppressWarnings(dummy_rec(dh_net(decay_attrition = "none",
+        halflife_insecticide = c(HostSeekingKilling = -2))[[1]])), "Negative halflife_insecticide")
 })
 
 test_that("campaigns replace nets: the expected GVI effect, not stacked cohorts", {
@@ -401,10 +421,10 @@ test_that("campaigns replace nets: the expected GVI effect, not stacked cohorts"
     expect_equal(rep_mods[[2]]$timed$deploy$time, "2023-01-01")
 })
 
-test_that("dummy hosts: one host per campaign with its decays, in-bed populations", {
+test_that("dummy hosts: one host per campaign with its decay, in-bed populations", {
     sch = AnophelesModel2:::om_schedule(sched_num, end_date)
-    h = AnophelesModel2:::om_dummy_hosts(
-        dummy_rec(dh_net(halflife_insecticide = c(HostSeekingKilling = 1.5))), sch)
+    net = dh_net(halflife_insecticide = c(HostSeekingKilling = 1.5))
+    h = AnophelesModel2:::om_dummy_hosts(dummy_rec(net), sch)
     expect_equal(unname(sapply(h$add, `[[`, "name")), c("N_dummy_1", "N_dummy_2"))
     expect_equal(h$add[[1]]$timed$deploy, list(time = "2021-01-01", lifespan = "730d"))
     expect_equal(h$add[[2]]$timed$deploy, list(time = "2022-01-01", lifespan = "365d"))
@@ -414,22 +434,31 @@ test_that("dummy hosts: one host per campaign with its decays, in-bed population
     expect_equal(an[[1]]$mosqProbBiting$value, "0")             # mosquitoes die
     expect_equal(an[[1]]$hostFecundityFactor$value, "1")
     expect_equal(unname(sapply(h$modify, `[[`, "name")),
-                 c("N_dummy_1_attrition", "N_dummy_1_insecticide",
-                   "N_dummy_2_attrition", "N_dummy_2_insecticide", "N_dummy_1_replaced_2"))
-    expect_equal(h$modify[[3]]$nonHumanHostsName, "N_dummy_2")
-    expect_equal(h$modify[[3]]$timed$deploy$time, "2022-01-01")
+                 c("N_dummy_1_decay", "N_dummy_2_decay", "N_dummy_1_replaced_2"))
+    expect_equal(h$modify[[2]]$nonHumanHostsName, "N_dummy_2")
+    expect_equal(h$modify[[2]]$timed$deploy$time, "2022-01-01")
+    # Attrition x linear insecticide decay: the fitted Weibull of the net, as
+    # the GVI effects (the same function writes both)
+    fd = net[[1]]$fitted_decay[net[[1]]$fitted_decay$component == "HostSeekingKilling", ]
     expect_equal(h$modify[[1]]$decay,
-                 list("function" = "weibull", L = "1", k = "2", increasing = "true"))
-    expect_equal(h$modify[[2]]$decay,
-                 list("function" = "linear", L = "1.5", increasing = "true"))
-    expect_equal(by_name(h$modify[[2]]$description, "anopheles")[[1]]$availabilityReduction,
+                 list("function" = "weibull", L = as.character(signif(fd$L / 365, 6)),
+                      k = as.character(signif(fd$kappa, 6)), increasing = "true"))
+    expect_equal(by_name(h$modify[[1]]$description, "anopheles")[[1]]$availabilityReduction,
                  list(initial = "1"))
-    # Without end_date: long-lived hosts; without insecticide decay: attrition only
+    # Without end_date: long-lived hosts; without insecticide decay: the
+    # attrition, exactly
     h2 = AnophelesModel2:::om_dummy_hosts(dummy_rec(dh_net()),
                                           AnophelesModel2:::om_schedule(sched_num))
     expect_equal(h2$add[[1]]$timed$deploy$lifespan, "100y")
     expect_equal(unname(sapply(h2$modify, `[[`, "name")),
-                 c("N_dummy_1_attrition", "N_dummy_2_attrition", "N_dummy_1_replaced_2"))
+                 c("N_dummy_1_decay", "N_dummy_2_decay", "N_dummy_1_replaced_2"))
+    expect_equal(h2$modify[[1]]$decay,
+                 list("function" = "weibull", L = "1", k = "2", increasing = "true"))
+    # No decay at all: no decay modification
+    h3 = AnophelesModel2:::om_dummy_hosts(suppressWarnings(dummy_rec(
+        dh_net(decay_attrition = "none", insecticide_decay = FALSE)[[1]])),
+        AnophelesModel2:::om_schedule(sched_num))
+    expect_equal(unname(sapply(h3$modify, `[[`, "name")), "N_dummy_1_replaced_2")
 })
 
 test_that("schedules are validated", {
@@ -488,29 +517,38 @@ test_that("scenario values: per net and row, in-bed populations only", {
     expect_error(suppressMessages(get_OM_xml(om, nets$A, sched_ph)), "schema >= 46")
 })
 
-test_that("dummy-host decays as placeholders: attrition and insecticide decay", {
+test_that("dummy-host decay as placeholders, like the other effects", {
     nets = list(A = dh_net(0.6, halflife_insecticide = c(HostSeekingKilling = 2)),
                 B = dh_net(1.2, halflife_attrition = 730,
                            halflife_insecticide = c(HostSeekingKilling = -3)))
     xml = suppressMessages(get_OM_xml(om, nets, sched_ph, name = "ITN", decay = "placeholder",
                                       entomology = FALSE, schema = 49))
     expect_match(xml$modify_hosts,
-                 '<decay function="weibull" L="@ITN_attrition_L@" k="@ITN_attrition_k@" increasing="true"/>',
+                 '<decay function="weibull" L="@ITN_hsk_L@" k="@ITN_hsk_k@" increasing="true"/>',
                  fixed = TRUE)
-    expect_match(xml$modify_hosts,
-                 '<decay function="linear" L="@ITN_hsk_L@" increasing="true"/>', fixed = TRUE)
-    expect_match(xml$modify_hosts, '<availabilityReduction initial="@ITN_hsk_initial@"/>',
-                 fixed = TRUE)
+    expect_false(grepl("_initial@|attrition_L|_insecticide", xml$modify_hosts))
     v = om_scenario_values(data.frame(net = c("A", "B"), cov2021 = 0.8, cov2022 = 0.5),
                            xml, net = "net")
-    expect_equal(v$ITN_attrition_L, c(1, 2))
-    expect_equal(v$ITN_attrition_k, c(2, 2))
-    expect_equal(v$ITN_hsk_L, c(2, 100))                 # rising: over 100 years
-    expect_equal(v$ITN_hsk_initial, c(1, -100 / 3))      # 1 + t / 3 years
-    # The decay functions must be shared
-    expect_error(suppressMessages(get_OM_xml(om, list(A = nets$A, S = dh_net(
-        decay_attrition = "step", halflife_attrition = 400)), sched_ph, name = "ITN",
-        decay = "placeholder", schema = 49)), "different attrition decay functions")
+    # Each net's fitted Weibull (attrition x insecticide decay), in years
+    for (i in 1:2) {
+        fd = nets[[i]][[1]]$fitted_decay
+        fd = fd[fd$component == "HostSeekingKilling", ]
+        expect_equal(v$ITN_hsk_L[i], fd$L / 365, tolerance = 1e-5, info = i)
+        expect_equal(v$ITN_hsk_k[i], fd$kappa, tolerance = 1e-5, info = i)
+    }
+    # Different decay functions: a Weibull for all (the step fitted), as the GVI
+    mixed = list(A = dh_net(0.6), S = dh_net(0.6, decay_attrition = "step",
+                                             halflife_attrition = 400))
+    xm = suppressMessages(get_OM_xml(om, mixed, sched_ph, name = "ITN",
+                                     decay = "placeholder", entomology = FALSE, schema = 49))
+    expect_match(xm$modify_hosts, 'L="@ITN_hsk_L@" k="@ITN_hsk_k@"', fixed = TRUE)
+    # Shared step: kept as a step, without shape
+    steps = list(A = dh_net(0.6, decay_attrition = "step", halflife_attrition = 400),
+                 B = dh_net(1.2, decay_attrition = "step", halflife_attrition = 300))
+    xs = suppressMessages(get_OM_xml(om, steps, sched_ph, name = "ITN",
+                                     decay = "placeholder", entomology = FALSE, schema = 49))
+    expect_match(xs$modify_hosts, '<decay function="step" L="@ITN_hsk_L@" increasing="true"/>',
+                 fixed = TRUE)
 })
 
 # ---------------------------------------------------------------------------
@@ -598,7 +636,7 @@ test_that("define / deploy a dummy-host net with numeric coverages", {
     expect_equal(an[[3]]$mosqRelativeAvailabilityHuman$value, "0")          # outdoor
     expect_equal(as.numeric(an[[1]]$mosqRelativeAvailabilityHuman$value),
                  0.8 * 0.6 / alpha_h(1), tolerance = 1e-5)
-    # Their attrition (no insecticide decay here)
+    # Their decay (attrition only here: exact)
     mods = by_name(b$interventions$nonHumanHostsModifications, "intervention")
     expect_equal(unname(sapply(mods, `[[`, "nonHumanHostsName")),
                  c("IG2_dummy_1", "IG2_dummy_2", "IG2_dummy_1"))     # last: replaced by campaign 2
@@ -729,7 +767,7 @@ test_that("dummy-host intervention: no pre-prandial killing, dummy-host snippets
                  fixed = TRUE)
     expect_match(xml$add_hosts, '<deploy time="2022-01-01" lifespan="365d"/>', fixed = TRUE)
     expect_match(xml$modify_hosts,
-                 '<intervention name="IG2_dummy_1_attrition" nonHumanHostsName="IG2_dummy_1">',
+                 '<intervention name="IG2_dummy_1_decay" nonHumanHostsName="IG2_dummy_1">',
                  fixed = TRUE)
     expect_match(xml$modify_hosts,
                  '<decay function="weibull" L="1" k="2" increasing="true"/>', fixed = TRUE)
@@ -912,10 +950,11 @@ test_that("dummy hosts of a specification and of an intervention object agree", 
     cov  = data.frame(c1 = c(0.8, 0.5), c2 = 0.6)
     xml_of = function(x) suppressMessages(get_OM_xml(om, x, long, "2030-01-01", name = "N",
                                                      entomology = FALSE, schema = 49))
-    # Any duration: the dummy hosts do not depend on it
+    # Same fitting window (3 years for ITNs): the decay of host-seeking
+    # killing is fitted over it, as for the GVI effects
     legacy = suppressMessages(build_intervention(spec$efficacy, halflife_attrition = 365,
         shape_attrition = 2, halflife_insecticide = c(HostSeekingKilling = 2),
-        duration_years = 1, model_p = model_p))
+        duration_years = 3, model_p = model_p))
     expect_equal(xml_of(spec)$add_hosts, xml_of(legacy)$add_hosts)
     expect_equal(xml_of(spec)$modify_hosts, xml_of(legacy)$modify_hosts)
     expect_equal(om_scenario_values(cov, xml_of(spec)), om_scenario_values(cov, xml_of(legacy)))
@@ -949,7 +988,8 @@ test_that("define_OM_entomology keeps the entomology used by the interventions",
     b = suppressMessages(define_OM_vector_control(om_base_ento(49L), ig2, name = "IG2"))
     b = suppressMessages(deploy_OM_vector_control(b, "IG2", sched_num, "2027-01-01"))
     expect_length(by_name(b$interventions$addNonHumanHosts, "nonHumanHosts"), 2)
-    expect_length(by_name(b$interventions$nonHumanHostsModifications, "intervention"), 5)
+    # One decay per host, one replacement
+    expect_length(by_name(b$interventions$nonHumanHostsModifications, "intervention"), 3)
 })
 
 # ---------------------------------------------------------------------------
@@ -1147,27 +1187,38 @@ test_that("om_scenario_values: final decays per effect, written as given", {
     expect_error(om_scenario_values(scens, xml, combine = FALSE,
                                     halflife = c(Typo = "hl_det")), "Unknown effect")
 
-    # Host-seeking killing with a final decay: written as the dummy hosts'
-    # attrition, their insecticide decay neutral
-    dh = om_vector_control(c(Deterrency = 0.3, HostSeekingKilling = 0.6, PostPrandial = 0.4),
-                           halflife_attrition = 365, shape_attrition = 2,
-                           halflife_insecticide = c(HostSeekingKilling = 2))
-    xml_dh = suppressMessages(get_OM_xml(om, dh, sched_ph, end_date, name = "D",
+    # Host-seeking killing: an effect like the others (the dummy hosts' decay)
+    dh = function(days = 365, k = 2)
+        om_vector_control(c(Deterrency = 0.3, HostSeekingKilling = 0.6, PostPrandial = 0.4),
+                          halflife_attrition = days, shape_attrition = k,
+                          halflife_insecticide = c(HostSeekingKilling = 2))
+    xml_dh = suppressMessages(get_OM_xml(om, dh(), sched_ph, end_date, name = "D",
                                          decay = "placeholder", entomology = FALSE,
                                          schema = 49))
     s = data.frame(cov2021 = 0.8, cov2022 = 0.5, hl = 1.5, k = 3)
     v_final = om_scenario_values(s, xml_dh, combine = FALSE, halflife = "hl", kappa = "k")
-    expect_equal(c(v_final$D_attrition_L, v_final$D_attrition_k), c(1.5, 3))
-    expect_equal(c(v_final$D_hsk_L, v_final$D_hsk_initial), c(1e6, 1))
+    expect_equal(c(v_final$D_hsk_L, v_final$D_hsk_k), c(1.5, 3))
+    expect_equal(c(v_final$D_deterrency_L, v_final$D_deterrency_k), c(1.5, 3))
     expect_equal(v_final$D_dummy_1_pop1, 0.8 * 0.6 / alpha_h(1))
-    # Half-life only: the shape of the net's attrition is kept
+    # Per effect: host-seeking killing alone
+    v_hsk = om_scenario_values(s, xml_dh, combine = FALSE,
+                               halflife = c(HostSeekingKilling = "hl"))
+    expect_equal(v_hsk$D_hsk_L, 1.5)
+    expect_false(isTRUE(all.equal(v_hsk$D_deterrency_L, 1.5)))
+    # Half-life only: the shape of the net's exported (fitted) decay is kept
+    built = function(days, k) AnophelesModel2:::om_build_spec(dh(days, k), model_p, 3)
+    w_net = suppressMessages(AnophelesModel2:::om_template_decay_values(
+        built(365, 2), "HostSeekingKilling", "weibull"))
     v_hl = suppressMessages(om_scenario_values(s, xml_dh, combine = FALSE, halflife = "hl"))
-    expect_equal(c(v_hl$D_attrition_L, v_hl$D_attrition_k), c(1.5, 2))
-    # combine = TRUE: the attrition column goes as it is into the dummy hosts'
-    # attrition, the insecticide decay is the net's
+    expect_equal(c(v_hl$D_hsk_L, v_hl$D_hsk_k), c(1.5, unname(w_net["k"])))
+    # combine = TRUE: the row's attrition x the insecticide decay of
+    # host-seeking killing, fitted, as for the GVI effects
     v_comb = suppressMessages(om_scenario_values(s, xml_dh, halflife = "hl", kappa = "k"))
-    expect_equal(c(v_comb$D_attrition_L, v_comb$D_attrition_k), c(1.5, 3))
-    expect_equal(c(v_comb$D_hsk_L, v_comb$D_hsk_initial), c(2, 1))
+    w = suppressMessages(AnophelesModel2:::om_template_decay_values(
+        built(1.5 * 365, 3), "HostSeekingKilling", "weibull"))
+    expect_equal(c(v_comb$D_hsk_L, v_comb$D_hsk_k), unname(w[c("L", "k")]))
+    expect_lt(v_comb$D_hsk_L, 1.5)                    # faster than the attrition alone
+    expect_equal(c(v_comb$D_deterrency_L, v_comb$D_deterrency_k), c(1.5, 3))
     expect_equal(v_comb$D_dummy_2_pop1, v_final$D_dummy_2_pop1)
 })
 

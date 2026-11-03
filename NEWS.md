@@ -118,12 +118,15 @@ rewritten and are **not backward compatible**.
   per campaign of a `schedule` (dates, numeric or placeholder coverages).
   The define writes the components, the deploy the deployment (the schedule
   is given only there). Host-seeking killing of dummy-host nets is exported
-  exactly as the model's dummy host: per campaign, an OpenMalaria added
-  non-human host (`addNonHumanHosts`, availability relative to an adult human
-  = coverage × `HostSeekingKilling` / human availability, biting probability
-  0) whose availability decays with the attrition and the insecticide decay
-  of host-seeking killing (`nonHumanHostsModifications` with increasing
-  decays; a rising insecticide decay as a negative reduction). Written by the
+  as the model's dummy host: per campaign, an OpenMalaria added non-human
+  host (`addNonHumanHosts`, availability relative to an adult human =
+  coverage × `HostSeekingKilling` / human availability, biting probability
+  0) whose availability decays as the GVI effects do: attrition ×
+  insecticide decay of host-seeking killing, exact when it is a single
+  OpenMalaria decay, otherwise the Weibull fitted to the product (one
+  `nonHumanHostsModifications` per host, `<name>_dummy_<k>_decay`, with an
+  increasing decay; placeholders `@<name>_hsk_L@` / `_k@` like the other
+  effects). Written by the
   deploy (once, with the whole schedule); it needs OpenMalaria schema >= 46
   (developed for 49), from the `baseList`'s `OMVersion`. A named list of
   interventions defines one intervention whose values are chosen per

@@ -790,10 +790,10 @@ Host-seeking killing, which the GVI cannot represent, is written as it is in
 the model, a dummy host on which every mosquito that finds it dies: for each
 campaign, an OpenMalaria non-human host (`<name>_dummy_<k>`, added at the
 campaign date), whose availability relative to an adult human is the
-coverage × `HostSeekingKilling` / human availability, and decays with the
-attrition and the insecticide decay of host-seeking killing (up to two
-modifications with increasing decays, none for a factor that does not
-decay). As for the GVI, whose effects are
+coverage × `HostSeekingKilling` / human availability, and decays as the GVI
+effects do: attrition × insecticide decay of host-seeking killing, exact
+when it is a single OpenMalaria decay, otherwise the fitted Weibull (one
+modification with an increasing decay, none if it does not decay). As for the GVI, whose effects are
 refreshed (not stacked) in people who receive a net again, each campaign
 replaces the nets of its recipients: earlier dummy hosts are reduced by the
 coverage of every later campaign. Increasing decays
@@ -838,8 +838,8 @@ the scenarios cannot differ, and placeholders elsewhere:
   when all the nets share it (e.g. a `step` for historical nets that last one
   year), and is otherwise a Weibull;
 - **dummy hosts** (dummy-host nets): availabilities as placeholders unless
-  the net and the coverages are fixed; their decays (attrition, insecticide
-  decay of host-seeking killing) as the other decays.
+  the net and the coverages are fixed; their decay (that of host-seeking
+  killing, `@<name>_hsk_L@` / `_k@`) as the other decays.
 
 Here the built-in and the custom net as alternatives, with placeholder
 coverages and decays:

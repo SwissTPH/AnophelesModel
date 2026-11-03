@@ -607,6 +607,7 @@ om_model_effects = function(mode) {
 }
 # Placeholder labels of the effects
 om_ph_label = c(Deterrency = "deterrency", PrePrandial = "preprandial",
+                HostSeekingKilling = "hsk",
                 PostPrandial = "postprandial")
 # Placeholder-safe version of a name
 om_ph_name = function(name) gsub("[^A-Za-z0-9]+", "_", name)
@@ -1017,15 +1018,17 @@ om_schedule = function(schedule, end_date = NULL) {
 # removes covered people (survival). In OpenMalaria (schema >= 46), each
 # campaign k is one added non-human host <name>_dummy_<k> (addNonHumanHosts),
 # whose availability relative to an adult human is c_k x HostSeekingKilling /
-# alpha_h (alpha_h of the population's model), with biting probability 0. Two
-# nonHumanHostsModifications multiply its availability by the attrition and
-# by the insecticide decay: availabilityReduction 1 with an increasing decay
-# 1 - f gives 1 - (1 - f) = f. Campaigns replace nets, as the GVI does (a
+# alpha_h (alpha_h of the population's model), with biting probability 0. One
+# nonHumanHostsModification multiplies its availability by the decay of
+# host-seeking killing, obtained as for the GVI effects (om_gvi_decay()):
+# attrition x insecticide decay, exact when it is a single OpenMalaria
+# decay, otherwise the Weibull fitted to their product. availabilityReduction
+# 1 with an increasing decay 1 - f gives 1 - (1 - f) = f. Campaigns replace nets, as the GVI does (a
 # component redeployed to a person is refreshed, not stacked; campaigns
 # reach random, independent shares of the population): host j is thinned by
 # (1 - c_k) at each later campaign k (constant availabilityReduction c_k), so
 # the total is sum_j c_j g(t - t_j) prod_{k > j, t_k <= t} (1 - c_k), the
-# expected GVI effect, exactly.
+# expected GVI effect (g: the per-net decay above).
 # ---------------------------------------------------------------------------
 
 # Internal: settings of a specification or an intervention object
@@ -1040,88 +1043,15 @@ om_hsk_value = function(item) {
 # Decay functions with a shape parameter k
 om_k_fns = c("weibull", "hill", "smooth-compact")
 
-# A rising linear insecticide decay (negative halflife_insecticide, effect
-# 1 + t / |hl| in the model) is written as availabilityReduction
-# initial = R / hl (< 0) with an increasing linear decay over R years:
-# 1 - (R / hl) t / R = 1 + t / |hl| for t < R, exact over the life of the
-# hosts (at most R years)
-om_rise_years = 100
-
-# Internal: the two decaying factors of the dummy host's availability of an
-# intervention, attrition (att) and insecticide decay of host-seeking killing
-# (ins), as list(fn, L (years), k, initial), NULL when constant. Same
-# priorities as the model (make_mult_matrices()).
-om_dummy_factors = function(item) {
-    s = om_settings(item)
-    one = function(decay, L_days, k) {
-        fn = om_decay_name(decay)
-        if (fn == "constant") return(NULL)
-        list(fn = fn, L = L_days / 365,
-             k = if (fn %in% om_k_fns && !is.null(k)) k else NA_real_, initial = 1)
-    }
-    att = one(s$decay_attrition, s$halflife_attrition, s$shape_attrition)
-    ins = NULL
-    if (isTRUE(s$insecticide_decay)) {
-        cd = s$component_decay$HostSeekingKilling
-        hl = s$halflife_insecticide
-        hl = if (!is.null(hl) && "HostSeekingKilling" %in% names(hl))
-                 unname(hl[["HostSeekingKilling"]]) else NA_real_
-        if (!is.null(cd$decay) && !is.na(cd$decay)) {
-            ins = one(cd$decay, cd$L, cd$kappa)
-        } else if (!is.na(hl) && is.finite(hl)) {
-            ins = if (hl > 0) list(fn = "linear", L = hl, k = NA_real_, initial = 1)
-                  else list(fn = "linear", L = om_rise_years, k = NA_real_,
-                            initial = om_rise_years / hl)
-        }
-    }
-    list(att = att, ins = ins)
-}
-
-# Internal: decay function of a factor for a list of interventions: the one
-# they share (constant when none has the factor). Different functions are an
-# error: host-seeking killing is written exactly.
-om_dummy_fn = function(factors, which) {
-    fns = unique(unlist(lapply(factors, function(f) f[[which]]$fn)))
-    if (!length(fns)) return("constant")
-    if (length(fns) > 1L)
-        stop("The interventions have different ", om_dummy_what[[which]],
-             " decay functions (", paste(fns, collapse = ", "), "): the dummy ",
-             "host of host-seeking killing has one decay function per factor; ",
-             "define these interventions separately")
-    fns
-}
-om_dummy_what  = c(att = "attrition", ins = "host-seeking killing insecticide")
-# Placeholder labels (after the name) and modification names of the factors
-om_dummy_label = c(att = "attrition", ins = "hsk")
-om_dummy_mod   = c(att = "attrition", ins = "insecticide")
-
-# Internal: values (L in years, k, initial) of a factor; a factor the
-# intervention does not have is neutral (very slow decay)
-om_dummy_values = function(f) {
-    if (is.null(f)) return(c(L = 1e6, k = 1, initial = 1))
-    c(L = f$L, k = f$k, initial = f$initial)
-}
-
-# Internal: OpenMalaria <decay> of a factor, increasing (1 - f): numbers v, or
-# placeholders @<lab>_L@ / @<lab>_k@
-om_dummy_decay = function(fn, v = NULL, lab = NULL) {
-    out = list("function" = fn,
-               L = if (is.null(lab)) om_num_L(v[["L"]], fn) else paste0("@", lab, "_L@"))
-    if (fn %in% om_k_fns)
-        out$k = if (is.null(lab)) om_num(v[["k"]]) else paste0("@", lab, "_k@")
-    out$increasing = "true"
-    out
-}
+# Lifespan of the dummy hosts without an end date
+om_host_years = 100
 
 # Internal: record of the dummy host of a dummy-host intervention (in the
-# record of om_vc_components()): factors per net, shared functions,
-# host-seeking killing per net, human availability per population
-om_dummy_record = function(items, om_ento, active, several, ph_decay, name) {
-    factors = lapply(items, om_dummy_factors)
-    if (several && !ph_decay &&
-        !all(vapply(factors[-1], identical, logical(1), factors[[1]])))
-        stop("The interventions of '", name, "' have different host-seeking ",
-             "killing decays (attrition or insecticide decay): use decay = \"placeholder\"")
+# record of om_vc_components()): host-seeking killing per net, human
+# availability per population, and the OpenMalaria decay of host-seeking
+# killing (as for the GVI effects: the nets' decay, or placeholders with
+# decay = "placeholder", function fns[["HostSeekingKilling"]])
+om_dummy_record = function(nets, om_ento, active, ph_decay, fns, pn) {
     mosq = om_ento$shares$mosquito
     alpha_h = vapply(seq_along(mosq), function(j) {
         if (!active[j]) return(NA_real_)
@@ -1132,10 +1062,21 @@ om_dummy_record = function(items, om_ento, active, several, ph_decay, name) {
                  "give no valid model)")
         a
     }, numeric(1))
-    list(factors = factors,
-         fns     = c(att = om_dummy_fn(factors, "att"), ins = om_dummy_fn(factors, "ins")),
-         hsk     = vapply(items, om_hsk_value, numeric(1), USE.NAMES = FALSE),
-         alpha_h = alpha_h)
+    comp = "HostSeekingKilling"
+    list(hsk     = vapply(nets, om_hsk_value, numeric(1), USE.NAMES = FALSE),
+         alpha_h = alpha_h,
+         decay   = if (ph_decay) om_template_decay(fns[[comp]], paste0(pn, "_", om_ph_label[[comp]]))
+                   else suppressMessages(om_gvi_decay(nets[[1]], comp)))
+}
+
+# Internal: the decay of host-seeking killing as an increasing decay of the
+# dummy hosts' availability (1 - f), NULL when constant
+om_dummy_decay = function(decay) {
+    if (decay[["function"]] == "constant") return(NULL)
+    out = list("function" = decay[["function"]], L = decay$L)
+    if (!is.null(decay$k)) out$k = decay$k
+    out$increasing = "true"
+    out
 }
 
 # Internal: the dummy hosts of a dummy-host intervention (record rec of
@@ -1148,27 +1089,12 @@ om_dummy_record = function(items, om_ento, active, several, ph_decay, name) {
 om_dummy_hosts = function(rec, sch) {
     d = rec$dummy; mosq = rec$mosq; active = rec$active; pn = rec$pn
     n_camp = length(sch$dates)
-    if (!is.null(sch$end) && as.numeric(sch$end - sch$dates[1]) > 365 * om_rise_years)
-        stop("end_date is more than ", om_rise_years, " years after the first campaign")
-    lifespan = function(k) if (is.null(sch$end)) paste0(om_rise_years, "y")
+    lifespan = function(k) if (is.null(sch$end)) paste0(om_host_years, "y")
                            else paste0(as.numeric(sch$end - sch$dates[k]), "d")
     fixed_avail = !rec$several && !any(sch$placeholder)
 
-    # Decay modifications (no modification for a constant factor)
-    mods = list()
-    for (w in c("att", "ins")) {
-        fn = d$fns[[w]]
-        if (fn == "constant") next
-        lab = paste0(pn, "_", om_dummy_label[[w]])
-        mods[[w]] = if (rec$decay) {
-            list(decay   = om_dummy_decay(fn, lab = lab),
-                 initial = if (w == "ins" && fn == "linear") paste0("@", lab, "_initial@")
-                           else "1")
-        } else {
-            v = om_dummy_values(d$factors[[1]][[w]])
-            list(decay = om_dummy_decay(fn, v), initial = om_num(v[["initial"]]))
-        }
-    }
+    # Decay modification (none for a constant decay)
+    decay = om_dummy_decay(d$decay)
 
     add = list(); modify = list()
     for (k in seq_len(n_camp)) {
@@ -1194,10 +1120,10 @@ om_dummy_hosts = function(rec, sch) {
             names(red) = rep("anopheles", length(red))
             red
         }
-        for (w in names(mods))
+        if (!is.null(decay))
             modify = c(modify, list(intervention = list(
-                name = paste0(host, "_", om_dummy_mod[[w]]), nonHumanHostsName = host,
-                decay = mods[[w]]$decay, description = reduction(mods[[w]]$initial),
+                name = paste0(host, "_decay"), nonHumanHostsName = host,
+                decay = decay, description = reduction("1"),
                 timed = list(deploy = list(time = time)))))
         # Replacement: campaign k gives new nets to a random share c_k of the
         # population, whose earlier nets are replaced (as a GVI component
@@ -1213,7 +1139,7 @@ om_dummy_hosts = function(rec, sch) {
                 timed = list(deploy = list(time = time)))))
     }
     list(name = rec$name, add = add, modify = modify, n = n_camp,
-         factors = unname(om_dummy_mod[names(mods)]),
+         decays = !is.null(decay),
          placeholders = if (!fixed_avail) paste0("pop", which(active), " = ", mosq[active]))
 }
 
@@ -1222,9 +1148,9 @@ om_dummy_hosts = function(rec, sch) {
 om_dummy_messages = function(h, caller) {
     message(caller, ": host-seeking killing as added non-human hosts ", h$name,
             "_dummy_1..", h$n, " (one per campaign, deployed at its date)",
-            if (length(h$factors))
-                paste0(", their availability decaying with modifications ",
-                       paste0("<host>_", h$factors, collapse = ", ")),
+            if (h$decays)
+                paste0(", their availability decaying with the modification <host>_decay ",
+                       "(attrition x insecticide decay of host-seeking killing)"),
             if (h$n > 1L)
                 paste0("; each campaign replaces the nets of its recipients ",
                        "(earlier hosts reduced by its coverage: <host>_replaced_<k>)"),
@@ -1602,17 +1528,17 @@ om_baselist_ento = function(baseList) {
 #' GVI has no host-seeking killing. In this package it is a dummy host per
 #' covered person, of availability \code{HostSeekingKilling} \eqn{\times}
 #' insecticide decay (relative to the human availability \eqn{\alpha_h}),
-#' on which every mosquito that finds it dies. It is written exactly as
+#' on which every mosquito that finds it dies. It is written as
 #' OpenMalaria non-human hosts: for each campaign \eqn{k} (date \eqn{t_k},
 #' coverage \eqn{c_k}), an added non-human host \code{<name>_dummy_<k>}
 #' (\code{addNonHumanHosts}, deployed at \eqn{t_k}), of availability
 #' relative to an adult human \eqn{c_k \times} \code{HostSeekingKilling}
 #' \eqn{/ \alpha_h} (\eqn{\alpha_h} of the population's model) and biting
-#' probability 0, whose availability decays with the attrition and the
-#' insecticide decay of host-seeking killing (up to two
-#' \code{nonHumanHostsModifications} \code{<name>_dummy_<k>_attrition} and
-#' \code{_insecticide}, omitted for a constant factor: an availability
-#' reduction of 1 with an
+#' probability 0, whose availability decays as the GVI effects do: attrition
+#' \eqn{\times} insecticide decay of host-seeking killing, exact when it is a
+#' single OpenMalaria decay, otherwise the Weibull fitted to their product
+#' (one \code{nonHumanHostsModifications} \code{<name>_dummy_<k>_decay},
+#' omitted for a constant decay: an availability reduction of 1 with an
 #' \code{increasing} decay multiplies the availability by the decay). As for
 #' the GVI, whose components are refreshed (not stacked) in people who
 #' receive them again, a campaign \strong{replaces} the nets of its
@@ -1622,10 +1548,10 @@ om_baselist_ento = function(baseList) {
 #' \eqn{c_k}, the same number or placeholder as the schedule), which gives
 #' the expected effect of campaigns reaching random, independent shares of
 #' the population. Increasing decays need OpenMalaria schema 46 or later (developed for
-#' 49): the \code{OMVersion} of the \code{baseList}. A rising insecticide
-#' decay (negative \code{halflife_insecticide}) is written with a negative
-#' availability reduction, exactly. Host-seeking killing acts on the same
-#' populations as the GVI (in bed for ITNs).
+#' 49): the \code{OMVersion} of the \code{baseList}. As for the GVI effects,
+#' a rising insecticide decay (negative \code{halflife_insecticide}) is only
+#' exported through the fitted Weibull (with attrition). Host-seeking killing
+#' acts on the same populations as the GVI (in bed for ITNs).
 #'
 #' \strong{Placeholders, only where something varies.}
 #' \itemize{
@@ -1646,11 +1572,8 @@ om_baselist_ento = function(baseList) {
 #'     and numeric coverages fix them; otherwise
 #'     \code{"@<name>_dummy_<k>_pop<j>@"} (campaign \eqn{k}, mosquito
 #'     population \eqn{j}: row of \code{om_ento$shares}, printed by the
-#'     message). Their decays follow \code{decay}: with
-#'     \code{"placeholder"}, \code{"@<name>_attrition_L@"} (and \code{_k}) and
-#'     \code{"@<name>_hsk_L@"} (and \code{_k}, or \code{_initial} for a
-#'     linear decay, negative when rising); the decay functions must be the
-#'     same for all the interventions.
+#'     message). Their decay follows \code{decay} as an effect of its own:
+#'     with \code{"placeholder"}, \code{"@<name>_hsk_L@"} (and \code{_k}).
 #' }
 #' All interventions of a list must use the same model structure. Fill the
 #' placeholders of a scenario table with \code{\link{om_scenario_values}}.
@@ -1775,8 +1698,11 @@ om_vc_components = function(interv, om_ento, intervention_type, name,
     comps  = om_model_effects(mode)
     several  = length(nets) > 1L
     ph_decay = decay == "placeholder"
+    # Decayed effects: the GVI effects, and host-seeking killing (the decay of
+    # the dummy hosts), all treated alike
+    dcomps = c(comps, if (mode == "dummy_host") "HostSeekingKilling")
 
-    if (several && !ph_decay) for (comp in comps) {
+    if (several && !ph_decay) for (comp in dcomps) {
         d = lapply(nets, function(n) suppressMessages(om_gvi_decay(n, comp)))
         if (!all(vapply(d[-1], identical, logical(1), d[[1]])))
             stop("The interventions of '", name, "' have different ", comp,
@@ -1787,7 +1713,11 @@ om_vc_components = function(interv, om_ento, intervention_type, name,
     }
     # Decay function of each effect with placeholders: the one shared by the
     # nets, otherwise a Weibull
-    fns = stats::setNames(lapply(comps, function(comp) om_template_fn(nets, comp)), comps)
+    fns = stats::setNames(lapply(dcomps, function(comp) om_template_fn(nets, comp)), dcomps)
+    # Decay parameters as placeholders: checked for every net (e.g. a rising
+    # insecticide decay without attrition has no OpenMalaria shape)
+    if (ph_decay) for (comp in dcomps) for (net in nets)
+        om_template_decay_values(net, comp, fns[[comp]])
 
     if (!several && !ph_decay) {
         # Everything fixed: values written, merged component when possible
@@ -1805,10 +1735,8 @@ om_vc_components = function(interv, om_ento, intervention_type, name,
                 list(propActive = if (active[j]) 1 else 0,
                      value      = if (active[j]) value else "0"))
             names(params) = mosq
-            dec = if (ph_decay) {
-                for (net in nets) om_template_decay_values(net, comp, fns[[comp]])  # checks
-                om_template_decay(fns[[comp]], lab)
-            } else suppressMessages(om_gvi_decay(nets[[1]], comp))
+            dec = if (ph_decay) om_template_decay(fns[[comp]], lab)
+                  else suppressMessages(om_gvi_decay(nets[[1]], comp))
             list(decay = dec, anophelesParams = params)
         })
         names(gvi) = unname(om_gvi_effects[comps])
@@ -1821,7 +1749,7 @@ om_vc_components = function(interv, om_ento, intervention_type, name,
         intervention_type = intervention_type, mosq = mosq, active = active,
         model_p = om_model_for(om_ento), schema = schema,
         dummy = if (mode == "dummy_host")
-                    om_dummy_record(items, om_ento, active, several, ph_decay, name))
+                    om_dummy_record(nets, om_ento, active, ph_decay, fns, pn))
     list(name = name, mode = mode, components = components, rec = rec)
 }
 
@@ -2079,9 +2007,9 @@ om_deployment = function(name, ids, sch, subpop = NULL, cumulative = FALSE,
 #'     campaign \eqn{k} \eqn{\times} \code{HostSeekingKilling} / human
 #'     availability of population \eqn{j}, the coverages taken from the
 #'     columns named like the coverage placeholders of the schedule (e.g.
-#'     \code{cov2021}); and the decays of the dummy hosts
-#'     (\code{<name>_attrition_L}, \code{<name>_hsk_L}, ...) with
-#'     \code{decay = "placeholder"}.
+#'     \code{cov2021}); the decay of the dummy hosts is that of host-seeking
+#'     killing (\code{<name>_hsk_L}, \code{<name>_hsk_k}), filled as the other
+#'     decays.
 #' }
 #' Only the placeholders written by \code{\link{define_OM_vector_control}} /
 #' \code{\link{deploy_OM_vector_control}} (or \code{\link{get_OM_xml}}) are
@@ -2096,15 +2024,13 @@ om_deployment = function(name, ids, sch, subpop = NULL, cumulative = FALSE,
 #' column} each (e.g. a usage-adjusted attrition): each effect's decay is this
 #' attrition combined with the effect's own insecticide decay (fitted by a
 #' Weibull when needed, over \code{fit_years} of \code{\link{om_vector_control}}),
-#' and the dummy hosts get this attrition as it is (their attrition and
-#' insecticide decays are separate). With
+#' host-seeking killing (the dummy hosts) included. With
 #' \code{combine = FALSE}, the columns are \strong{final} decays, written as
 #' they are: one column per effect (named vector, e.g.
 #' \code{c(Deterrency = "hl_det", PrePrandial = "hl_pre", PostPrandial =
 #' "hl_post", HostSeekingKilling = "hl_hsk")}) or one column for all
-#' effects; the final decay of host-seeking killing is written as the dummy
-#' hosts' attrition (in its decay function), their insecticide decay then
-#' being neutral. Without columns, each net's own decay is used. Decay
+#' effects (host-seeking killing: the decay of the dummy hosts). Without
+#' columns, each net's own decay is used. Decay
 #' columns need an intervention defined with \code{decay = "placeholder"}.
 #'
 #' Half-life and shape are replaced \strong{independently}: a \code{kappa}
@@ -2331,44 +2257,16 @@ om_scenario_values = function(scenarios, source, name = NULL, net = NULL,
             for (comp in rec$comps)
                 put(lab(comp), rows, if (comp %in% names(eff)) unname(eff[[comp]]) else 0)
         }
-        # Decay parameters
-        if (rec$decay) for (comp in rec$comps) {
+        # Decay parameters: the GVI effects and, for dummy-host nets,
+        # host-seeking killing (the decay of the dummy hosts), alike
+        if (rec$decay) for (comp in names(rec$fns)) {
             ph = om_template_decay(rec$fns[[comp]], lab(comp))
             w  = om_template_decay_values(gvi_net, comp, rec$fns[[comp]])
             if (!combine) w = final_decay(w, comp, rec$fns[[comp]], r1, rows)
             if (!is.null(ph$L)) put(paste0(lab(comp), "_L"), rows, unname(w["L"]))
             if (!is.null(ph$k)) put(paste0(lab(comp), "_k"), rows, unname(w["k"]))
         }
-        # Dummy hosts: decays (attrition and insecticide decay of host-seeking
-        # killing, separate and exact) and availabilities
-        if (dummy && rec$decay) {
-            f = om_dummy_factors(item)              # with the row's attrition
-            vals = list(att = om_dummy_values(f$att), ins = om_dummy_values(f$ins))
-            if (!combine && (!is.null(hl_cols$HostSeekingKilling) ||
-                             !is.null(k_cols$HostSeekingKilling))) {
-                # Final decay: written as the attrition (or as the insecticide
-                # decay without attrition), starting from the net's parameters
-                # of that factor, the other factor neutral
-                w = if (rec$dummy$fns[["att"]] != "constant") "att"
-                    else if (rec$dummy$fns[["ins"]] != "constant") "ins"
-                    else stop("'", rec$name, "' has no host-seeking killing decay ",
-                              "to write the final decay into")
-                fin = final_decay(vals[[w]][c("L", "k")], "HostSeekingKilling",
-                                  rec$dummy$fns[[w]], r1, rows)
-                neutral = om_dummy_values(NULL)
-                vals = list(att = neutral, ins = neutral)
-                vals[[w]] = c(fin, initial = 1)
-            }
-            for (w in c("att", "ins")) {
-                fn = rec$dummy$fns[[w]]
-                if (fn == "constant") next
-                l = paste0(rec$pn, "_", om_dummy_label[[w]])
-                put(paste0(l, "_L"), rows, unname(vals[[w]]["L"]))
-                if (fn %in% om_k_fns) put(paste0(l, "_k"), rows, unname(vals[[w]]["k"]))
-                if (w == "ins" && fn == "linear")
-                    put(paste0(l, "_initial"), rows, unname(vals[[w]]["initial"]))
-            }
-        }
+        # Dummy hosts: availabilities
         if (avail) {
             hsk = om_hsk_value(item)
             for (k in seq_along(sch$dates)) for (j in which(rec$active))
