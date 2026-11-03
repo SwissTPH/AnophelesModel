@@ -248,25 +248,28 @@ make_mult_matrices = function(ps, days, insecticide_decay = TRUE) {
 }
 
 
-# Internal: fit a Weibull a * exp(-(t/L)^kappa * log(2)) to a decay curve by
-# least squares (as in ITNcascades, RCT_validation/helpfunction_omu_gvi.R).
-# Used to express attrition x insecticide decay as a single Weibull per
-# efficacy component, e.g. for an OpenMalaria GVI export.
+# Internal: fit a Weibull exp(-(t/L)^kappa * log(2)) to a decay curve by
+# least squares. Used to express attrition x insecticide decay as a single
+# Weibull per efficacy component, e.g. for an OpenMalaria GVI export. The
+# Weibull starts at 1, as the decays it replaces and as OpenMalaria's decay
+# functions: the fitted curve is the one written (ITNcascades,
+# RCT_validation/helpfunction_omu_gvi.R, also fitted an amplitude, which the
+# export then ignored).
 #
-# Returns c(L, kappa, a, rmse); L in days.
+# Returns c(L, kappa, rmse); L in days.
 fit_weibull_decay = function(curve, days, L_start = NULL, kappa_start = 1) {
     if (all(abs(curve - 1) < 1e-12))
-        return(c(L = Inf, kappa = NA_real_, a = 1, rmse = 0))
+        return(c(L = Inf, kappa = NA_real_, rmse = 0))
     if (is.null(L_start) || !is.finite(L_start) || L_start <= 0) {
         below   = which(curve <= 0.5 * curve[1])
         L_start = if (length(below)) max(days[below[1]], 1) else 2 * max(days)
     }
     sse = function(par)
-        sum((par[3] * exp(-(days / par[1])^par[2] * log(2)) - curve)^2)
-    fit = optim(c(L_start, kappa_start, min(curve[1], 1)), sse,
+        sum((exp(-(days / par[1])^par[2] * log(2)) - curve)^2)
+    fit = optim(c(L_start, kappa_start), sse,
                        method = "L-BFGS-B",
-                       lower = c(1e-6, 1e-6, 0), upper = c(Inf, Inf, 1),
-                       control = list(parscale = c(L_start, 1, 1)))
+                       lower = c(1e-6, 1e-6), upper = c(Inf, Inf),
+                       control = list(parscale = c(L_start, 1)))
     # Only the iteration limit (code 1) is reported: L-BFGS-B line-search codes
     # (51, 52) typically occur at the optimum (e.g. an exact Weibull, rmse 0),
     # and the rmse is reported by the callers anyway.
@@ -274,8 +277,7 @@ fit_weibull_decay = function(curve, days, L_start = NULL, kappa_start = 1) {
         warning("fit_weibull_decay: the Weibull fit reached the iteration limit ",
                 "without converging; rmse ", signif(sqrt(fit$value / length(days)), 3),
                 call. = FALSE)
-    c(L = fit$par[1], kappa = fit$par[2], a = fit$par[3],
-      rmse = sqrt(fit$value / length(days)))
+    c(L = fit$par[1], kappa = fit$par[2], rmse = sqrt(fit$value / length(days)))
 }
 
 
@@ -407,9 +409,9 @@ apply_eff_matrices = function(mm, host_p) {
 #' matrices. Dummy-host model: 4-column effects matrices.
 #' When \code{insecticide_decay = TRUE}, the element \code{fitted_decay} is a
 #' data frame with one row per efficacy component and columns
-#' \code{component}, \code{L} (Weibull half-life, days), \code{kappa},
-#' \code{a} (amplitude) and \code{rmse}: the single Weibull per component
-#' that best approximates attrition \eqn{\times} insecticide decay over the
+#' \code{component}, \code{L} (Weibull half-life, days), \code{kappa} and
+#' \code{rmse}: the single Weibull per component (starting at 1) that best
+#' approximates attrition \eqn{\times} insecticide decay over the
 #' intervention duration (as used for OpenMalaria GVI parameterisations).
 #' The model itself always uses the exact (unfitted) decay.
 #' The element \code{settings} keeps the inputs (efficacy, mode, attrition and

@@ -513,8 +513,8 @@ om_mosq_params = function(vec_p, chi, hosts_p) {
 #'     effect's insecticide decay (\code{component_decay}, or linear from
 #'     \code{halflife_insecticide});
 #'   \item both (e.g. nets with insecticide decay): the Weibull fitted to their
-#'     product (\code{fitted_decay} of \code{\link{build_intervention}}; its
-#'     amplitude is ignored, as in ITNcascades).
+#'     product (\code{fitted_decay} of \code{\link{build_intervention}},
+#'     starting at 1 as OpenMalaria's decays).
 #' }
 #' A negative \code{halflife_insecticide} (efficacy increasing with washing)
 #' has no OpenMalaria shape: it is only exported through the fitted Weibull

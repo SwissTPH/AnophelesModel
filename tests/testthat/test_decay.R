@@ -325,7 +325,20 @@ test_that("fitted_decay recovers the attrition Weibull when there is no insectic
     post = fd[fd$component == "PostPrandial", ]
     expect_equal(post$L,     180, tolerance = 1e-3)
     expect_equal(post$kappa, 2,   tolerance = 1e-3)
-    expect_equal(post$a,     1,   tolerance = 1e-3)
+    expect_named(fd, c("component", "L", "kappa", "rmse"))   # no amplitude
+})
+
+test_that("the Weibull fit starts at 1, as the curve written to OpenMalaria", {
+    # The written Weibull (no amplitude) is the least-squares one: a nearby
+    # (L, kappa) does not do better
+    days  = 0:(3 * 365 - 1)
+    curve = decay_function(365, 2, days, "weibull") * pmax(1 - days / (365 * 1.5), 0)
+    fit   = AnophelesModel2:::fit_weibull_decay(curve, days, L_start = 365, kappa_start = 2)
+    sse   = function(L, k) sum((decay_function(L, k, days, "weibull") - curve)^2)
+    best  = sse(fit[["L"]], fit[["kappa"]])
+    expect_equal(fit[["rmse"]], sqrt(best / length(days)))
+    for (d in list(c(1.02, 1), c(0.98, 1), c(1, 1.02), c(1, 0.98)))
+        expect_lte(best, sse(fit[["L"]] * d[1], fit[["kappa"]] * d[2]))
 })
 
 test_that("fitted_decay accounts for the extra insecticide decay", {

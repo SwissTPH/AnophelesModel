@@ -382,12 +382,10 @@ test_that("dummy hosts follow the decay of host-seeking killing, as the GVI effe
         expect_equal(om_rebuild(h, 1, j, days), 0.8 * g * ifelse(days >= 365, 0.5, 1),
                      tolerance = 1e-5, info = case)
         expect_equal(om_rebuild(h, 2, j, days), 0.5 * g, tolerance = 1e-5, info = case)
-        # A smooth product is close to the exact curve: on average within 5%
-        # of the initial value (2.6% here: a steep product, 1-year attrition
-        # x 1.5-year insecticide decay, and the fitted amplitude is dropped,
-        # as for the GVI), at most 10% on any day (largest near the start)
+        # A smooth product is close to the exact curve: on average within 2%
+        # of the initial value, at most 10% on any day (largest near the start)
         if (case == "linear") {
-            expect_lt(sqrt(mean((g - exact_g)^2)), 0.05 * exact_g[1])
+            expect_lt(sqrt(mean((g - exact_g)^2)), 0.02 * exact_g[1])
             expect_lt(max(abs(g - exact_g)), 0.1 * exact_g[1])
         }
     }

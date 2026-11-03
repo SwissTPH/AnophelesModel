@@ -117,9 +117,9 @@ to pass to \code{calculate_impact()}. Standard model: 3-column effects
 matrices. Dummy-host model: 4-column effects matrices.
 When \code{insecticide_decay = TRUE}, the element \code{fitted_decay} is a
 data frame with one row per efficacy component and columns
-\code{component}, \code{L} (Weibull half-life, days), \code{kappa},
-\code{a} (amplitude) and \code{rmse}: the single Weibull per component
-that best approximates attrition \eqn{\times} insecticide decay over the
+\code{component}, \code{L} (Weibull half-life, days), \code{kappa} and
+\code{rmse}: the single Weibull per component (starting at 1) that best
+approximates attrition \eqn{\times} insecticide decay over the
 intervention duration (as used for OpenMalaria GVI parameterisations).
 The model itself always uses the exact (unfitted) decay.
 The element \code{settings} keeps the inputs (efficacy, mode, attrition and

@@ -161,6 +161,11 @@ rewritten and are **not backward compatible**.
 * All schedule dates (`om_campaigns()`, schedules, `end_date`,
   `om_continuous()`) must be `"YYYY-MM-DD"` (or `Date` objects); formats such
   as `"2021/01/01"` were accepted by campaigns only.
+* The Weibull fitted to attrition × insecticide decay (`fitted_decay`, used
+  by the OpenMalaria export) no longer has an amplitude: it starts at 1, as
+  the curve written to OpenMalaria, so the fit is the curve that is used
+  (an amplitude was fitted, then ignored). `fitted_decay` has columns
+  `component`, `L`, `kappa`, `rmse`.
 * The warnings on unusual attrition (IRS with attrition, ITN without) are
   given on every export route (also `define_OM_vector_control()` /
   `get_OM_xml()` with placeholder decays or a list of nets), not only for a
