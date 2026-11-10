@@ -57,8 +57,8 @@ values of the placeholders of a vector control intervention, row by row:
     with \code{decay = "placeholder"};
   \item \strong{dummy-host availabilities} (\code{<name>_dummy_<k>_pop<j>})
     of dummy-host nets, when the net or the coverages vary: coverage of
-    campaign \eqn{k} \eqn{\times} \code{HostSeekingKilling} / human
-    availability of population \eqn{j}, the coverages taken from the
+    campaign \eqn{k} \eqn{\times} \code{KillingDuringHostSeekingAbsolute} /
+    human availability of population \eqn{j}, the coverages taken from the
     columns named like the coverage placeholders of the schedule (e.g.
     \code{cov2021}); the decay of the dummy hosts is that of host-seeking
     killing (\code{<name>_hsk_L}, \code{<name>_hsk_k}), filled as the other
@@ -81,8 +81,8 @@ host-seeking killing (the dummy hosts) included. With
 \code{combine = FALSE}, the columns are \strong{final} decays, written as
 they are: one column per effect (named vector, e.g.
 \code{c(Deterrency = "hl_det", PrePrandial = "hl_pre", PostPrandial =
-"hl_post", HostSeekingKilling = "hl_hsk")}) or one column for all
-effects (host-seeking killing: the decay of the dummy hosts). Without
+"hl_post", KillingDuringHostSeekingAbsolute = "hl_hsk")}) or one column
+for all effects (host-seeking killing: the decay of the dummy hosts). Without
 columns, each net's own decay is used. Decay
 columns need an intervention defined with \code{decay = "placeholder"}.
 

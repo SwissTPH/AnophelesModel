@@ -274,7 +274,7 @@ test_that("attrition x insecticide decay is exported as the fitted Weibull", {
 
 test_that("dummy-host GVI has no pre-prandial killing", {
     dh = suppressMessages(build_intervention(
-        efficacy = c(Deterrency = 0.3, HostSeekingKilling = 0.6, PostPrandial = 0.4),
+        efficacy = c(Deterrency = 0.3, KillingDuringHostSeekingAbsolute = 0.6, PostPrandial = 0.4),
         halflife_attrition = 365, shape_attrition = 2, duration_years = 1,
         model_p = model_p))
     # Host-seeking killing is not in the GVI: a warning points to the routes
@@ -298,7 +298,7 @@ test_that("unsupported cases give clear errors or warnings", {
 # ---------------------------------------------------------------------------
 dh_net = function(hsk = 0.6, halflife_attrition = 365, shape_attrition = 2, ...)
     suppressMessages(build_intervention(
-        efficacy = c(Deterrency = 0.3, HostSeekingKilling = hsk, PostPrandial = 0.4),
+        efficacy = c(Deterrency = 0.3, KillingDuringHostSeekingAbsolute = hsk, PostPrandial = 0.4),
         halflife_attrition = halflife_attrition, shape_attrition = shape_attrition,
         duration_years = 2, model_p = model_p, ...))
 sched_num = data.frame(date = c("2021-01-01", "2022-01-01"), coverage = c(0.8, 0.5))
@@ -358,23 +358,23 @@ test_that("dummy hosts follow the decay of host-seeking killing, as the GVI effe
     exact = list(
         attrition   = list(),
         exponential = list(decay_attrition = "none", component_decay = list(
-                          HostSeekingKilling = list(decay = "exponential", L = 200))))
+                          KillingDuringHostSeekingAbsolute = list(decay = "exponential", L = 200))))
     # Attrition x insecticide decay: the Weibull fitted to their product
     fitted = list(
-        linear = list(halflife_insecticide = c(HostSeekingKilling = 1.5)),
-        rising = list(halflife_insecticide = c(HostSeekingKilling = -2)),
+        linear = list(halflife_insecticide = c(KillingDuringHostSeekingAbsolute = 1.5)),
+        rising = list(halflife_insecticide = c(KillingDuringHostSeekingAbsolute = -2)),
         step   = list(decay_attrition = "step", halflife_attrition = 400,
-                      halflife_insecticide = c(HostSeekingKilling = 3)))
+                      halflife_insecticide = c(KillingDuringHostSeekingAbsolute = 3)))
     for (case in c(names(exact), names(fitted))) {
         net = suppressWarnings(do.call(dh_net, c(exact, fitted)[[case]]))[[1]]
         h   = AnophelesModel2:::om_dummy_hosts(suppressWarnings(dummy_rec(net)), sch)
         # One decay modification per host
         expect_equal(sum(grepl("_decay$", sapply(h$modify, `[[`, "name"))), 2, info = case)
-        # The package: HostSeekingKilling x insecticide decay x attrition, per
+        # The package: KillingDuringHostSeekingAbsolute x insecticide decay x attrition, per
         # covered person, relative to the human availability
         exact_g = net$effects$alphai[, 4] * net$effects$survival / alpha_h(j)
         g = if (case %in% names(exact)) exact_g else {
-            fd = net$fitted_decay[net$fitted_decay$component == "HostSeekingKilling", ]
+            fd = net$fitted_decay[net$fitted_decay$component == "KillingDuringHostSeekingAbsolute", ]
             0.6 * decay_function(fd$L, fd$kappa, days, "weibull") / alpha_h(j)
         }
         # Campaign 1 (coverage 0.8), its nets replaced from campaign 2 (365
@@ -391,7 +391,7 @@ test_that("dummy hosts follow the decay of host-seeking killing, as the GVI effe
     }
     # A rising insecticide decay without attrition has no OpenMalaria shape
     expect_error(suppressWarnings(dummy_rec(dh_net(decay_attrition = "none",
-        halflife_insecticide = c(HostSeekingKilling = -2))[[1]])), "Negative halflife_insecticide")
+        halflife_insecticide = c(KillingDuringHostSeekingAbsolute = -2))[[1]])), "Negative halflife_insecticide")
 })
 
 test_that("campaigns replace nets: the expected GVI effect, not stacked cohorts", {
@@ -421,7 +421,7 @@ test_that("campaigns replace nets: the expected GVI effect, not stacked cohorts"
 
 test_that("dummy hosts: one host per campaign with its decay, in-bed populations", {
     sch = AnophelesModel2:::om_schedule(sched_num, end_date)
-    net = dh_net(halflife_insecticide = c(HostSeekingKilling = 1.5))
+    net = dh_net(halflife_insecticide = c(KillingDuringHostSeekingAbsolute = 1.5))
     h = AnophelesModel2:::om_dummy_hosts(dummy_rec(net), sch)
     expect_equal(unname(sapply(h$add, `[[`, "name")), c("N_dummy_1", "N_dummy_2"))
     expect_equal(h$add[[1]]$timed$deploy, list(time = "2021-01-01", lifespan = "730d"))
@@ -437,7 +437,7 @@ test_that("dummy hosts: one host per campaign with its decay, in-bed populations
     expect_equal(h$modify[[2]]$timed$deploy$time, "2022-01-01")
     # Attrition x linear insecticide decay: the fitted Weibull of the net, as
     # the GVI effects (the same function writes both)
-    fd = net[[1]]$fitted_decay[net[[1]]$fitted_decay$component == "HostSeekingKilling", ]
+    fd = net[[1]]$fitted_decay[net[[1]]$fitted_decay$component == "KillingDuringHostSeekingAbsolute", ]
     expect_equal(h$modify[[1]]$decay,
                  list("function" = "weibull", L = as.character(signif(fd$L / 365, 6)),
                       k = as.character(signif(fd$kappa, 6)), increasing = "true"))
@@ -509,16 +509,16 @@ test_that("scenario values: per net and row, in-bed populations only", {
         halflife_insecticide = c(Deterrency = 3))), sched_ph, end_date, schema = 49)),
         "decay = \"placeholder\"")
     expect_error(suppressMessages(get_OM_xml(om, list(A = nets$A, C = dh_net(
-        halflife_insecticide = c(HostSeekingKilling = 3))), sched_ph, end_date, schema = 49)),
+        halflife_insecticide = c(KillingDuringHostSeekingAbsolute = 3))), sched_ph, end_date, schema = 49)),
         "decay = \"placeholder\"")
     # Dummy hosts need schema >= 46
     expect_error(suppressMessages(get_OM_xml(om, nets$A, sched_ph)), "schema >= 46")
 })
 
 test_that("dummy-host decay as placeholders, like the other effects", {
-    nets = list(A = dh_net(0.6, halflife_insecticide = c(HostSeekingKilling = 2)),
+    nets = list(A = dh_net(0.6, halflife_insecticide = c(KillingDuringHostSeekingAbsolute = 2)),
                 B = dh_net(1.2, halflife_attrition = 730,
-                           halflife_insecticide = c(HostSeekingKilling = -3)))
+                           halflife_insecticide = c(KillingDuringHostSeekingAbsolute = -3)))
     xml = suppressMessages(get_OM_xml(om, nets, sched_ph, name = "ITN", decay = "placeholder",
                                       entomology = FALSE, schema = 49))
     expect_match(xml$modify_hosts,
@@ -530,7 +530,7 @@ test_that("dummy-host decay as placeholders, like the other effects", {
     # Each net's fitted Weibull (attrition x insecticide decay), in years
     for (i in 1:2) {
         fd = nets[[i]][[1]]$fitted_decay
-        fd = fd[fd$component == "HostSeekingKilling", ]
+        fd = fd[fd$component == "KillingDuringHostSeekingAbsolute", ]
         expect_equal(v$ITN_hsk_L[i], fd$L / 365, tolerance = 1e-5, info = i)
         expect_equal(v$ITN_hsk_k[i], fd$kappa, tolerance = 1e-5, info = i)
     }
@@ -780,8 +780,8 @@ test_that("dummy-host intervention: no pre-prandial killing, dummy-host snippets
 })
 
 test_that("om_scenario_values fills every placeholder of the snippets", {
-    nets = list(A = dh_net(0.6, halflife_insecticide = c(HostSeekingKilling = 2)),
-                B = dh_net(1.2, halflife_insecticide = c(HostSeekingKilling = 2)))
+    nets = list(A = dh_net(0.6, halflife_insecticide = c(KillingDuringHostSeekingAbsolute = 2)),
+                B = dh_net(1.2, halflife_insecticide = c(KillingDuringHostSeekingAbsolute = 2)))
     scens = data.frame(net = c("A", "B"), cov2021 = 0.8, cov2022 = 0.5)
     for (decay in c("fixed", "placeholder")) {
         # Entomology placeholders (EIR, seasonality) are not intervention values
@@ -941,9 +941,9 @@ test_that("GVI decays are fitted over 3 years for ITNs and 1 year for IRS", {
 })
 
 test_that("dummy hosts of a specification and of an intervention object agree", {
-    spec = om_vector_control(c(Deterrency = 0.3, HostSeekingKilling = 0.6, PostPrandial = 0.4),
+    spec = om_vector_control(c(Deterrency = 0.3, KillingDuringHostSeekingAbsolute = 0.6, PostPrandial = 0.4),
                              halflife_attrition = 365, shape_attrition = 2,
-                             halflife_insecticide = c(HostSeekingKilling = 2))
+                             halflife_insecticide = c(KillingDuringHostSeekingAbsolute = 2))
     long = data.frame(date = c("2021-01-01", "2025-01-01"), coverage = c("@c1@", "@c2@"))
     cov  = data.frame(c1 = c(0.8, 0.5), c2 = 0.6)
     xml_of = function(x) suppressMessages(get_OM_xml(om, x, long, "2030-01-01", name = "N",
@@ -951,7 +951,7 @@ test_that("dummy hosts of a specification and of an intervention object agree", 
     # Same fitting window (3 years for ITNs): the decay of host-seeking
     # killing is fitted over it, as for the GVI effects
     legacy = suppressMessages(build_intervention(spec$efficacy, halflife_attrition = 365,
-        shape_attrition = 2, halflife_insecticide = c(HostSeekingKilling = 2),
+        shape_attrition = 2, halflife_insecticide = c(KillingDuringHostSeekingAbsolute = 2),
         duration_years = 3, model_p = model_p))
     expect_equal(xml_of(spec)$add_hosts, xml_of(legacy)$add_hosts)
     expect_equal(xml_of(spec)$modify_hosts, xml_of(legacy)$modify_hosts)
@@ -1014,7 +1014,7 @@ test_that("om_campaigns builds regular or given schedules", {
 })
 
 test_that("the end_date of a schedule is used everywhere, and must agree with an argument", {
-    spec = om_vector_control(c(Deterrency = 0.3, HostSeekingKilling = 0.6, PostPrandial = 0.4),
+    spec = om_vector_control(c(Deterrency = 0.3, KillingDuringHostSeekingAbsolute = 0.6, PostPrandial = 0.4),
                              halflife_attrition = 365, shape_attrition = 2)
     s_end = om_campaigns(dates = sched_ph$date, coverage = sched_ph$coverage,
                          end_date = end_date)
@@ -1093,7 +1093,7 @@ test_that("continuous and campaign deployments of the same net", {
 })
 
 test_that("a placeholder repeated over campaigns gives one coverage column", {
-    spec = om_vector_control(c(Deterrency = 0.3, HostSeekingKilling = 0.6, PostPrandial = 0.4),
+    spec = om_vector_control(c(Deterrency = 0.3, KillingDuringHostSeekingAbsolute = 0.6, PostPrandial = 0.4),
                              halflife_attrition = 365, shape_attrition = 2)
     same = om_campaigns("2021-01-01", "2023-01-01", coverage = "@cont@")
     xml_of = function(s) suppressMessages(get_OM_xml(om, spec, s, "2024-01-01", name = "N",
@@ -1187,9 +1187,9 @@ test_that("om_scenario_values: final decays per effect, written as given", {
 
     # Host-seeking killing: an effect like the others (the dummy hosts' decay)
     dh = function(days = 365, k = 2)
-        om_vector_control(c(Deterrency = 0.3, HostSeekingKilling = 0.6, PostPrandial = 0.4),
+        om_vector_control(c(Deterrency = 0.3, KillingDuringHostSeekingAbsolute = 0.6, PostPrandial = 0.4),
                           halflife_attrition = days, shape_attrition = k,
-                          halflife_insecticide = c(HostSeekingKilling = 2))
+                          halflife_insecticide = c(KillingDuringHostSeekingAbsolute = 2))
     xml_dh = suppressMessages(get_OM_xml(om, dh(), sched_ph, end_date, name = "D",
                                          decay = "placeholder", entomology = FALSE,
                                          schema = 49))
@@ -1200,20 +1200,20 @@ test_that("om_scenario_values: final decays per effect, written as given", {
     expect_equal(v_final$D_dummy_1_pop1, 0.8 * 0.6 / alpha_h(1))
     # Per effect: host-seeking killing alone
     v_hsk = om_scenario_values(s, xml_dh, combine = FALSE,
-                               halflife = c(HostSeekingKilling = "hl"))
+                               halflife = c(KillingDuringHostSeekingAbsolute = "hl"))
     expect_equal(v_hsk$D_hsk_L, 1.5)
     expect_false(isTRUE(all.equal(v_hsk$D_deterrency_L, 1.5)))
     # Half-life only: the shape of the net's exported (fitted) decay is kept
     built = function(days, k) AnophelesModel2:::om_build_spec(dh(days, k), model_p, 3)
     w_net = suppressMessages(AnophelesModel2:::om_template_decay_values(
-        built(365, 2), "HostSeekingKilling", "weibull"))
+        built(365, 2), "KillingDuringHostSeekingAbsolute", "weibull"))
     v_hl = suppressMessages(om_scenario_values(s, xml_dh, combine = FALSE, halflife = "hl"))
     expect_equal(c(v_hl$D_hsk_L, v_hl$D_hsk_k), c(1.5, unname(w_net["k"])))
     # combine = TRUE: the row's attrition x the insecticide decay of
     # host-seeking killing, fitted, as for the GVI effects
     v_comb = suppressMessages(om_scenario_values(s, xml_dh, halflife = "hl", kappa = "k"))
     w = suppressMessages(AnophelesModel2:::om_template_decay_values(
-        built(1.5 * 365, 3), "HostSeekingKilling", "weibull"))
+        built(1.5 * 365, 3), "KillingDuringHostSeekingAbsolute", "weibull"))
     expect_equal(c(v_comb$D_hsk_L, v_comb$D_hsk_k), unname(w[c("L", "k")]))
     expect_lt(v_comb$D_hsk_L, 1.5)                    # faster than the attrition alone
     expect_equal(c(v_comb$D_deterrency_L, v_comb$D_deterrency_k), c(1.5, 3))

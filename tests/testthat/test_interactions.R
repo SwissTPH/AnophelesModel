@@ -16,7 +16,7 @@ cov     = c(0, 0.3, 0.7, 1)
 
 efficacy_of = function(mode, scale = 1) scale * switch(mode,
     standard   = c(Deterrency = 0.3, PrePrandial = 0.4, PostPrandial = 0.2),
-    dummy_host = c(Deterrency = 0.3, HostSeekingKilling = 0.5, PostPrandial = 0.2))
+    dummy_host = c(Deterrency = 0.3, KillingDuringHostSeekingAbsolute = 0.5, PostPrandial = 0.2))
 
 # Decay cases: attrition shapes, a general component decay, a rising
 # (negative) linear insecticide decay. `ins` lists the effects with an

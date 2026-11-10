@@ -30,8 +30,11 @@ or \code{"dummy_host"} for the four-host model.}
 
 \item{rescale_hsk}{Logical (default \code{TRUE}); dummy-host mode only.
 If \code{TRUE}, multiply host-seeking killing by the control
-\code{alpha_0} of its arm (see Details). Set to \code{FALSE} for
-datasets whose host-seeking killing is already absolute.}
+\code{alpha_0} of its arm (see Details). If \code{FALSE}, return the
+fitted relative value as \code{KillingDuringHostSeekingRelative} (with
+its fitted decay), e.g. to rescale it with another \code{alpha_0};
+\code{\link{build_intervention}} does not accept it (convert it to
+\code{KillingDuringHostSeekingAbsolute} first).}
 
 \item{verbose}{Logical (default \code{TRUE}). Print a summary of the
 loaded parameterisation.}
@@ -65,7 +68,8 @@ Two model modes are supported:
   \item \code{"standard"} (default): three-host model with
     \code{Deterrency}, \code{PrePrandial}, and \code{PostPrandial}.
   \item \code{"dummy_host"}: four-host model with
-    \code{Deterrency}, \code{HostSeekingKilling}, and \code{PostPrandial}.
+    \code{Deterrency}, \code{KillingDuringHostSeekingAbsolute}, and
+    \code{PostPrandial}.
     \code{Deterrency} and \code{PostPrandial} are required in both modes.
 }
 
@@ -80,14 +84,15 @@ efficacy throughout, pass \code{insecticide_decay = FALSE} to
 
 In the experimental hut model, host-seeking killing is fitted
 \strong{relative} to the availability \code{alpha_0} of the trial's control
-arm (extra host-seeking mortality \code{KillingDuringHostSeeking * alpha_0}).
-Since \code{alpha_0} varies widely between trials, relative values are not
-comparable across trials. With \code{rescale_hsk = TRUE}, the returned
-\code{HostSeekingKilling} is the \strong{absolute} value
-\code{KillingDuringHostSeeking * alpha_0}, using the control \code{alpha_0}
-of the same arm (unwashed or washed fit), and its insecticide decay is
-recomputed from the absolute unwashed and washed values, with the trial's
-\code{aged_time}.
+arm (extra host-seeking mortality
+\code{KillingDuringHostSeekingRelative * alpha_0}). Since \code{alpha_0}
+varies widely between trials, relative values are not comparable across
+trials. With \code{rescale_hsk = TRUE}, the returned
+\code{KillingDuringHostSeekingAbsolute} is the \strong{absolute} value
+\code{KillingDuringHostSeekingRelative * alpha_0}, using the control
+\code{alpha_0} of the same arm (unwashed or washed fit), and its insecticide
+decay is recomputed from the absolute unwashed and washed values, with the
+trial's \code{aged_time}. The model uses the absolute value only.
 }
 \examples{
 # Standard three-host model

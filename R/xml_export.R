@@ -534,8 +534,8 @@ om_mosq_params = function(vec_p, chi, hosts_p) {
 #' warning (here, in \code{\link{define_OM_vector_control}} and in
 #' \code{\link{get_OM_xml}}).
 #'
-#' Dummy-host interventions (\code{HostSeekingKilling}) have no pre-prandial
-#' killing: their GVI has deterrency and post-prandial killing only, and the
+#' Dummy-host interventions (\code{KillingDuringHostSeekingAbsolute}) have no
+#' pre-prandial killing: their GVI has deterrency and post-prandial killing only, and the
 #' host-seeking killing, which has no GVI equivalent, is not part of this
 #' snippet (nor of \code{\link{add_OM_GVI}}), and a warning says so: it is
 #' written by \code{\link{define_OM_vector_control}} +
@@ -607,7 +607,7 @@ om_model_effects = function(mode) {
 }
 # Placeholder labels of the effects
 om_ph_label = c(Deterrency = "deterrency", PrePrandial = "preprandial",
-                HostSeekingKilling = "hsk",
+                KillingDuringHostSeekingAbsolute = "hsk",
                 PostPrandial = "postprandial")
 # Placeholder-safe version of a name
 om_ph_name = function(name) gsub("[^A-Za-z0-9]+", "_", name)
@@ -1013,12 +1013,13 @@ om_schedule = function(schedule, end_date = NULL) {
 # Host-seeking killing (dummy host) as added non-human hosts
 #
 # In the package, a covered person has a dummy host of availability
-# HostSeekingKilling x insecticide decay (alphai_4, in units of the human
-# availability alpha_h), on which every mosquito that finds it dies; attrition
-# removes covered people (survival). In OpenMalaria (schema >= 46), each
-# campaign k is one added non-human host <name>_dummy_<k> (addNonHumanHosts),
-# whose availability relative to an adult human is c_k x HostSeekingKilling /
-# alpha_h (alpha_h of the population's model), with biting probability 0. One
+# KillingDuringHostSeekingAbsolute x insecticide decay (alphai_4, in units of
+# the human availability alpha_h), on which every mosquito that finds it dies;
+# attrition removes covered people (survival). In OpenMalaria (schema >= 46),
+# each campaign k is one added non-human host <name>_dummy_<k>
+# (addNonHumanHosts), whose availability relative to an adult human is c_k x
+# KillingDuringHostSeekingAbsolute / alpha_h (alpha_h of the population's
+# model), with biting probability 0. One
 # nonHumanHostsModification multiplies its availability by the decay of
 # host-seeking killing, obtained as for the GVI effects (om_gvi_decay()):
 # attrition x insecticide decay, exact when it is a single OpenMalaria
@@ -1037,7 +1038,8 @@ om_settings = function(item) if (om_is_spec(item)) item else item$settings
 # Internal: host-seeking killing (absolute) of a specification or object
 om_hsk_value = function(item) {
     e = om_settings(item)$efficacy
-    if ("HostSeekingKilling" %in% names(e)) unname(e[["HostSeekingKilling"]]) else 0
+    comp = "KillingDuringHostSeekingAbsolute"
+    if (comp %in% names(e)) unname(e[[comp]]) else 0
 }
 
 # Decay functions with a shape parameter k
@@ -1050,7 +1052,7 @@ om_host_years = 100
 # record of om_vc_components()): host-seeking killing per net, human
 # availability per population, and the OpenMalaria decay of host-seeking
 # killing (as for the GVI effects: the nets' decay, or placeholders with
-# decay = "placeholder", function fns[["HostSeekingKilling"]])
+# decay = "placeholder", function fns$KillingDuringHostSeekingAbsolute)
 om_dummy_record = function(nets, om_ento, active, ph_decay, fns, pn) {
     mosq = om_ento$shares$mosquito
     alpha_h = vapply(seq_along(mosq), function(j) {
@@ -1062,7 +1064,7 @@ om_dummy_record = function(nets, om_ento, active, ph_decay, fns, pn) {
                  "give no valid model)")
         a
     }, numeric(1))
-    comp = "HostSeekingKilling"
+    comp = "KillingDuringHostSeekingAbsolute"
     list(hsk     = vapply(nets, om_hsk_value, numeric(1), USE.NAMES = FALSE),
          alpha_h = alpha_h,
          decay   = if (ph_decay) om_template_decay(fns[[comp]], paste0(pn, "_", om_ph_label[[comp]]))
@@ -1174,9 +1176,9 @@ om_dummy_messages = function(h, caller) {
 #' are as in \code{\link{build_intervention}}.
 #'
 #' @param efficacy Named efficacies (\code{Deterrency}, \code{PrePrandial},
-#'   \code{PostPrandial}, \code{HostSeekingKilling}), or the output of
-#'   \code{\link{get_ITN_params}}, whose efficacy, insecticide decay, model
-#'   structure and name are used (unless given here).
+#'   \code{PostPrandial}, \code{KillingDuringHostSeekingAbsolute}), or the
+#'   output of \code{\link{get_ITN_params}}, whose efficacy, insecticide
+#'   decay, model structure and name are used (unless given here).
 #' @param halflife_attrition,shape_attrition,decay_attrition Attrition decay,
 #'   as in \code{build_intervention()} (\code{halflife_attrition} in days).
 #' @param halflife_insecticide,component_decay,insecticide_decay
@@ -1201,7 +1203,8 @@ om_dummy_messages = function(h, caller) {
 #'                         halflife_attrition = 2 * 365, shape_attrition = 2)
 #' # Custom net
 #' custom = om_vector_control(
-#'     c(Deterrency = 0.3, HostSeekingKilling = 0.5, PostPrandial = 0.4),
+#'     c(Deterrency = 0.3, KillingDuringHostSeekingAbsolute = 0.5,
+#'       PostPrandial = 0.4),
 #'     halflife_attrition = 2 * 365, shape_attrition = 2, name = "Custom ITN")
 #'
 #' @export
@@ -1526,15 +1529,15 @@ om_baselist_ento = function(baseList) {
 #' warning (silenced with \code{options(AnophelesModel2.om_dummy_host =
 #' TRUE)}). OpenMalaria's
 #' GVI has no host-seeking killing. In this package it is a dummy host per
-#' covered person, of availability \code{HostSeekingKilling} \eqn{\times}
-#' insecticide decay (relative to the human availability \eqn{\alpha_h}),
-#' on which every mosquito that finds it dies. It is written as
+#' covered person, of availability \code{KillingDuringHostSeekingAbsolute}
+#' \eqn{\times} insecticide decay (relative to the human availability
+#' \eqn{\alpha_h}), on which every mosquito that finds it dies. It is written as
 #' OpenMalaria non-human hosts: for each campaign \eqn{k} (date \eqn{t_k},
 #' coverage \eqn{c_k}), an added non-human host \code{<name>_dummy_<k>}
 #' (\code{addNonHumanHosts}, deployed at \eqn{t_k}), of availability
-#' relative to an adult human \eqn{c_k \times} \code{HostSeekingKilling}
-#' \eqn{/ \alpha_h} (\eqn{\alpha_h} of the population's model) and biting
-#' probability 0, whose availability decays as the GVI effects do: attrition
+#' relative to an adult human \eqn{c_k \times}
+#' \code{KillingDuringHostSeekingAbsolute} \eqn{/ \alpha_h} (\eqn{\alpha_h}
+#' of the population's model) and biting probability 0, whose availability decays as the GVI effects do: attrition
 #' \eqn{\times} insecticide decay of host-seeking killing, exact when it is a
 #' single OpenMalaria decay, otherwise the Weibull fitted to their product
 #' (one \code{nonHumanHostsModifications} \code{<name>_dummy_<k>_decay},
@@ -1613,7 +1616,8 @@ om_baselist_ento = function(baseList) {
 #'                                        mode = "dummy_host"),
 #'                         halflife_attrition = 2 * 365, shape_attrition = 2)
 #' custom = om_vector_control(
-#'     c(Deterrency = 0.3, HostSeekingKilling = 0.5, PostPrandial = 0.4),
+#'     c(Deterrency = 0.3, KillingDuringHostSeekingAbsolute = 0.5,
+#'       PostPrandial = 0.4),
 #'     halflife_attrition = 2 * 365, shape_attrition = 2)
 #' nets = list(IG2 = ig2, custom = custom)
 #' om_ento  = get_OM_ento_snippet("Anopheles gambiae ss/coluzzii",
@@ -1700,7 +1704,8 @@ om_vc_components = function(interv, om_ento, intervention_type, name,
     ph_decay = decay == "placeholder"
     # Decayed effects: the GVI effects, and host-seeking killing (the decay of
     # the dummy hosts), all treated alike
-    dcomps = c(comps, if (mode == "dummy_host") "HostSeekingKilling")
+    dcomps = c(comps,
+               if (mode == "dummy_host") "KillingDuringHostSeekingAbsolute")
 
     if (several && !ph_decay) for (comp in dcomps) {
         d = lapply(nets, function(n) suppressMessages(om_gvi_decay(n, comp)))
@@ -2004,8 +2009,8 @@ om_deployment = function(name, ids, sch, subpop = NULL, cumulative = FALSE,
 #'     with \code{decay = "placeholder"};
 #'   \item \strong{dummy-host availabilities} (\code{<name>_dummy_<k>_pop<j>})
 #'     of dummy-host nets, when the net or the coverages vary: coverage of
-#'     campaign \eqn{k} \eqn{\times} \code{HostSeekingKilling} / human
-#'     availability of population \eqn{j}, the coverages taken from the
+#'     campaign \eqn{k} \eqn{\times} \code{KillingDuringHostSeekingAbsolute} /
+#'     human availability of population \eqn{j}, the coverages taken from the
 #'     columns named like the coverage placeholders of the schedule (e.g.
 #'     \code{cov2021}); the decay of the dummy hosts is that of host-seeking
 #'     killing (\code{<name>_hsk_L}, \code{<name>_hsk_k}), filled as the other
@@ -2028,8 +2033,8 @@ om_deployment = function(name, ids, sch, subpop = NULL, cumulative = FALSE,
 #' \code{combine = FALSE}, the columns are \strong{final} decays, written as
 #' they are: one column per effect (named vector, e.g.
 #' \code{c(Deterrency = "hl_det", PrePrandial = "hl_pre", PostPrandial =
-#' "hl_post", HostSeekingKilling = "hl_hsk")}) or one column for all
-#' effects (host-seeking killing: the decay of the dummy hosts). Without
+#' "hl_post", KillingDuringHostSeekingAbsolute = "hl_hsk")}) or one column
+#' for all effects (host-seeking killing: the decay of the dummy hosts). Without
 #' columns, each net's own decay is used. Decay
 #' columns need an intervention defined with \code{decay = "placeholder"}.
 #'
@@ -2138,13 +2143,15 @@ om_scenario_values = function(scenarios, source, name = NULL, net = NULL,
 
     # Decay columns per effect (combine = FALSE: per effect or one for all;
     # combine = TRUE: one attrition column)
-    effects = c(rec$comps, if (rec$mode == "dummy_host") "HostSeekingKilling")
+    effects = c(rec$comps,
+                if (rec$mode == "dummy_host") "KillingDuringHostSeekingAbsolute")
     per_effect = function(x) {
         if (is.null(x)) return(stats::setNames(rep(list(NULL), length(effects)), effects))
         if (is.null(names(x))) {
             if (length(x) != 1L) stop("Give one column, or a named vector (one per effect)")
             return(stats::setNames(rep(list(x), length(effects)), effects))
         }
+        check_hsk_names(names(x), "halflife / kappa")
         bad = setdiff(names(x), effects)
         if (length(bad)) stop("Unknown effect(s) ", paste(bad, collapse = ", "),
                               "; effects: ", paste(effects, collapse = ", "))

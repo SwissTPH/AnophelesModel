@@ -258,7 +258,7 @@ test_that("test: check loading host parameters for other hosts than human and an
                                      PBi, PCi, PDi, PEi, Kvi)
 
     expect_error(def_host_params(host_table = custom_params),
-                 "extra elements \\{'horse','sheep'\\}")
+                 "\\{'horse','sheep'\\}")
 })
 
 
@@ -438,7 +438,7 @@ test_that("build_intervention output matches supplied efficacy inputs exactly at
 test_that("build_intervention errors on out-of-range probability efficacy values", {
     # Replaces old test that expected def_interventions_effects() to error when
     # alphai > 1 was passed. Deterrency/PrePrandial/PostPrandial are probabilities
-    # and must be in [0,1]; HostSeekingKilling is an absolute rate (>= 0, can exceed 1).
+    # and must be in [0,1]; KillingDuringHostSeekingAbsolute is an absolute rate (>= 0, can exceed 1).
     model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"), def_host_params())
 
     # Probability components outside [0,1] must error
@@ -458,10 +458,10 @@ test_that("build_intervention errors on out-of-range probability efficacy values
         ),
         regexp = "\\[0, 1\\]"
     )
-    # HostSeekingKilling > 1 is valid (absolute rate, not a probability)
+    # KillingDuringHostSeekingAbsolute > 1 is valid (absolute rate, not a probability)
     expect_no_error(
         build_intervention(
-            efficacy = c(Deterrency = 0.3, PostPrandial = 0.4, HostSeekingKilling = 3.58),
+            efficacy = c(Deterrency = 0.3, PostPrandial = 0.4, KillingDuringHostSeekingAbsolute = 3.58),
             halflife_attrition = 180, shape_attrition = 2, decay_attrition = "weibull",
             duration_years = 1 / 365, model_p = model_p
         )
@@ -483,11 +483,11 @@ test_that("build_intervention errors on unrecognised efficacy component names", 
     )
 })
 
-test_that("HostSeekingKilling is used directly as the per-day dummy availability (no td)", {
+test_that("KillingDuringHostSeekingAbsolute is used directly as the per-day dummy availability (no td)", {
     # Provisional convention: a hut-night is treated as a day (see CLAUDE.md)
     model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"), def_host_params())
     interv = suppressMessages(build_intervention(
-        efficacy = c(Deterrency = 0.3, HostSeekingKilling = 0.61, PostPrandial = 0.4),
+        efficacy = c(Deterrency = 0.3, KillingDuringHostSeekingAbsolute = 0.61, PostPrandial = 0.4),
         halflife_attrition = 180, shape_attrition = 2,
         duration_years = 1 / 365, model_p = model_p))
     expect_equal(interv[[1]]$effects$alphai[1, 4], 0.61)
@@ -501,20 +501,50 @@ test_that("standard and dummy-host models are mutually exclusive", {
 
     expect_error(bi(c(Deterrency = 0.3, PostPrandial = 0.4), mode = "dummy"),
                  "mode must be")
-    expect_error(bi(c(Deterrency = 0.3, HostSeekingKilling = 2), mode = "standard"),
+    expect_error(bi(c(Deterrency = 0.3, KillingDuringHostSeekingAbsolute = 2), mode = "standard"),
                  "requires mode")
-    expect_error(bi(c(Deterrency = 0.3, PrePrandial = 0.2, HostSeekingKilling = 2)),
+    expect_error(bi(c(Deterrency = 0.3, PrePrandial = 0.2, KillingDuringHostSeekingAbsolute = 2)),
                  "mutually exclusive")
-    # PrePrandial = 0 alongside HostSeekingKilling is accepted
-    expect_no_error(bi(c(Deterrency = 0.3, PrePrandial = 0, HostSeekingKilling = 2)))
+    # PrePrandial = 0 alongside KillingDuringHostSeekingAbsolute is accepted
+    expect_no_error(bi(c(Deterrency = 0.3, PrePrandial = 0, KillingDuringHostSeekingAbsolute = 2)))
 
     ps = data.frame(name = "x", deterrency = 0.3, preprandial = 0.2,
-                    postprandial = 0.4, host_seeking_killing = 2,
+                    postprandial = 0.4, killing_during_host_seeking_absolute = 2,
                     halflife_attrition = 180, shape_attrition = 2,
                     decay_attrition = "weibull", stringsAsFactors = FALSE)
     expect_error(suppressMessages(run_interventions(ps, model_p, c(0, 1),
                                                     duration_years = 1 / 365)),
                  "mutually exclusive")
+})
+
+test_that("former and relative host-seeking killing names give an error naming the absolute one", {
+    model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"), def_host_params())
+    bi = function(efficacy, ...) suppressMessages(build_intervention(
+        efficacy = efficacy, halflife_attrition = 180, shape_attrition = 2,
+        duration_years = 1 / 365, model_p = model_p, mode = "dummy_host", ...))
+    for (nm in c("HostSeekingKilling", "KillingDuringHostSeeking",
+                 "KillingDuringHostSeekingRelative")) {
+        expect_error(bi(stats::setNames(c(0.3, 0.6, 0.4),
+                                        c("Deterrency", nm, "PostPrandial"))),
+                     paste0("efficacy: ", nm, " not accepted.*KillingDuringHostSeekingAbsolute"))
+        # also as a decay name
+        expect_error(bi(c(Deterrency = 0.3, KillingDuringHostSeekingAbsolute = 0.6,
+                          PostPrandial = 0.4),
+                        halflife_insecticide = stats::setNames(2, nm)),
+                     paste0("halflife_insecticide: ", nm, " not accepted"))
+    }
+    # A batch column with the former name would otherwise run the standard model
+    for (nm in c("host_seeking_killing", "killing_during_host_seeking_relative")) {
+        ps = data.frame(name = "x", deterrency = 0.3, preprandial = 0,
+                        postprandial = 0.4, halflife_attrition = 180,
+                        shape_attrition = 2, decay_attrition = "weibull",
+                        stringsAsFactors = FALSE)
+        ps[[nm]] = 0.6
+        expect_error(suppressMessages(run_interventions(ps, model_p, c(0, 1),
+                                                        duration_years = 1 / 365)),
+                     paste0("param_sets: ", nm, " not accepted.*",
+                            "killing_during_host_seeking_absolute"))
+    }
 })
 
 test_that("removed deprecated arguments are no longer accepted", {

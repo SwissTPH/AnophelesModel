@@ -72,8 +72,8 @@ acts on all the bites of every population, outdoor bites included, with a
 warning (here, in \code{\link{define_OM_vector_control}} and in
 \code{\link{get_OM_xml}}).
 
-Dummy-host interventions (\code{HostSeekingKilling}) have no pre-prandial
-killing: their GVI has deterrency and post-prandial killing only, and the
+Dummy-host interventions (\code{KillingDuringHostSeekingAbsolute}) have no
+pre-prandial killing: their GVI has deterrency and post-prandial killing only, and the
 host-seeking killing, which has no GVI equivalent, is not part of this
 snippet (nor of \code{\link{add_OM_GVI}}), and a warning says so: it is
 written by \code{\link{define_OM_vector_control}} +

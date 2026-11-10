@@ -40,21 +40,22 @@ Optional columns:
 \itemize{
   \item \code{name}: label of the parameter set (used by
     \code{plot_impact()}); any other column is also carried to the output.
-  \item \code{host_seeking_killing}: activates the dummy-host (4-host)
-    model; absolute availability of the dummy host (see
-    \code{HostSeekingKilling} in \code{build_intervention()}). Non-missing
-    values must be finite and non-negative; \code{NA} means inactive.
+  \item \code{killing_during_host_seeking_absolute}: activates the
+    dummy-host (4-host) model; absolute availability of the dummy host (see
+    \code{KillingDuringHostSeekingAbsolute} in \code{build_intervention()}).
+    Non-missing values must be finite and non-negative; \code{NA} means
+    inactive.
   \item \code{halflife_det}, \code{halflife_pre}, \code{halflife_post},
     \code{halflife_hsk}: per-component linear insecticide decay (years);
     despite the name, the time at which the effect reaches zero (see
     \code{halflife_insecticide} in \code{build_intervention()}).
-    \code{halflife_hsk} applies to \code{host_seeking_killing} in
-    dummy-host mode.
+    \code{halflife_hsk} applies to
+    \code{killing_during_host_seeking_absolute} in dummy-host mode.
   \item \code{decay_det}, \code{L_det}, \code{kappa_det} (and equivalently
     \code{_pre}, \code{_post}, \code{_hsk}): general per-component decay
     function, \code{L} (days; meaning depends on the shape, see
     \code{decay_function()}), and shape. \code{_hsk} controls the decay of
-    \code{host_seeking_killing}. Overrides the corresponding
+    \code{killing_during_host_seeking_absolute}. Overrides the corresponding
     \code{halflife_*} column whenever a shape is specified. Constant shapes
     need no \code{L_*} or \code{kappa_*}; other shapes require their
     parameters (incomplete specifications raise an error).
@@ -128,12 +129,14 @@ parameter sets.
 Two model structures are supported and are \strong{mutually exclusive}. The
 model is auto-detected from \code{param_sets}:
 \itemize{
-  \item \strong{Standard (3-host)}: no \code{host_seeking_killing} column
-    (or all values \code{NA}). Uses \code{deterrency}, \code{preprandial},
+  \item \strong{Standard (3-host)}: no
+    \code{killing_during_host_seeking_absolute} column (or all values
+    \code{NA}). Uses \code{deterrency}, \code{preprandial},
     \code{postprandial}.
-  \item \strong{Dummy-host (4-host)}: \code{host_seeking_killing} column
-    present with at least one non-\code{NA} value. Uses \code{deterrency},
-    \code{host_seeking_killing}, \code{postprandial}. \code{preprandial}
-    must be \code{0} for all rows.
+  \item \strong{Dummy-host (4-host)}:
+    \code{killing_during_host_seeking_absolute} column present with at
+    least one non-\code{NA} value. Uses \code{deterrency},
+    \code{killing_during_host_seeking_absolute}, \code{postprandial}.
+    \code{preprandial} must be \code{0} for all rows.
 }
 }

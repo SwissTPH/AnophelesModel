@@ -77,8 +77,8 @@ decay_function = function(L, kappa = NULL, datej, decay) {
 #'
 #' When \code{dummy_host = TRUE} a fourth host type ("dummy host") is appended
 #' with all parameters set to zero. Its availability is subsequently set by
-#' \code{build_intervention()} when \code{"HostSeekingKilling"} is supplied in
-#' the \code{efficacy} vector.
+#' \code{build_intervention()} when \code{"KillingDuringHostSeekingAbsolute"}
+#' is supplied in the \code{efficacy} vector.
 #'
 #' @param model_p Model object from \code{build_model_obj()}.
 #' @param npoints Number of interpolation time points.
@@ -149,8 +149,8 @@ make_mult_matrices = function(ps, days, insecticide_decay = TRUE) {
     npoints = length(days)
     np      = nrow(ps)
 
-    use_dummy = !is.null(ps$host_seeking_killing) &&
-                any(!is.na(ps$host_seeking_killing))
+    use_dummy = !is.null(ps$killing_during_host_seeking_absolute) &&
+                any(!is.na(ps$killing_during_host_seeking_absolute))
 
     # Attrition columns, matched exactly ([[ ]]: $ partially matches, e.g. a
     # missing shape_attrition would pick up kappa_det). decay_attrition is
@@ -220,13 +220,14 @@ make_mult_matrices = function(ps, days, insecticide_decay = TRUE) {
     ins_det  = comp_decay_mat(gs("decay_det"),  gc("L_det"),  gc("kappa_det"),  gc("halflife_det"), "Deterrency")
     ins_pre  = comp_decay_mat(gs("decay_pre"),  gc("L_pre"),  gc("kappa_pre"),  gc("halflife_pre"), "PrePrandial")
     ins_post = comp_decay_mat(gs("decay_post"), gc("L_post"), gc("kappa_post"), gc("halflife_post"), "PostPrandial")
-    ins_hsk  = comp_decay_mat(gs("decay_hsk"),  gc("L_hsk"),  gc("kappa_hsk"),  gc("halflife_hsk"), "HostSeekingKilling")
+    ins_hsk  = comp_decay_mat(gs("decay_hsk"),  gc("L_hsk"),  gc("kappa_hsk"),  gc("halflife_hsk"),
+                              "KillingDuringHostSeekingAbsolute")
 
     eff_det  = ps$deterrency
     eff_pre  = ps$preprandial
     eff_post = ps$postprandial
-    eff_hsk  = if (!is.null(ps$host_seeking_killing))
-                   ifelse(is.na(ps$host_seeking_killing), 0, ps$host_seeking_killing)
+    hsk_col  = ps$killing_during_host_seeking_absolute
+    eff_hsk  = if (!is.null(hsk_col)) ifelse(is.na(hsk_col), 0, hsk_col)
                else rep(0, np)
 
     mult_det  = pmax(1 - outer(eff_det,  rep(1, npoints)) * ins_det,  0)
@@ -317,9 +318,10 @@ apply_eff_matrices = function(mm, host_p) {
 #'   \item \strong{Standard (3-host)}: uses \code{Deterrency},
 #'     \code{PrePrandial}, and \code{PostPrandial}.
 #'   \item \strong{Dummy-host (4-host)}: uses \code{Deterrency},
-#'     \code{HostSeekingKilling}, and \code{PostPrandial}.
+#'     \code{KillingDuringHostSeekingAbsolute}, and \code{PostPrandial}.
 #'     A fourth dummy-host column is added to all effects matrices.
-#'     Do not supply \code{PrePrandial} together with \code{HostSeekingKilling}.
+#'     Do not supply \code{PrePrandial} together with
+#'     \code{KillingDuringHostSeekingAbsolute}.
 #' }
 #'
 #' @param efficacy Non-empty numeric vector with unique component names and
@@ -336,21 +338,21 @@ apply_eff_matrices = function(mm, host_p) {
 #'   \item \code{"PostPrandial"} in \code{[0,1]} — post-prandial killing:
 #'     reduces the probability of surviving after feeding on a protected
 #'     human to find a resting place (\code{PCi}).
-#'   \item \code{"HostSeekingKilling"} \eqn{\geq 0} — killing during
-#'     host-seeking via a dummy-host mechanism. Dummy-host model only. An
-#'     \strong{absolute} rate, not a probability: it is used directly as the
-#'     availability of the dummy host (one per protected person), in the
+#'   \item \code{"KillingDuringHostSeekingAbsolute"} \eqn{\geq 0} — killing
+#'     during host-seeking via a dummy-host mechanism. Dummy-host model only.
+#'     An \strong{absolute} rate, not a probability: it is used directly as
+#'     the availability of the dummy host (one per protected person), in the
 #'     same units as the host availabilities \code{alphai}. Values from
 #'     experimental hut fits that are relative to the control availability
-#'     \code{alpha_0} must first be multiplied by \code{alpha_0}
-#'     (\code{get_ITN_params()} does this).
+#'     \code{alpha_0} (\code{KillingDuringHostSeekingRelative}) must first be
+#'     multiplied by \code{alpha_0} (\code{get_ITN_params()} does this).
 #' }
 #'
 #' Note on time units: the experimental hut model has no time scale (its
 #' rates are per hut-night), whereas the rates of this package are per day,
 #' with \code{td} the duration of host seeking. By convention, a hut-night is
-#' treated as a day: \code{HostSeekingKilling} is used directly as a per-day
-#' rate, without dividing by \code{td}. This is provisional, until the
+#' treated as a day: \code{KillingDuringHostSeekingAbsolute} is used directly
+#' as a per-day rate, without dividing by \code{td}. This is provisional, until the
 #' experimental hut fitting model is improved. With this convention, the field
 #' impacts of the dummy-host parameterisations are of the same order as those
 #' of the standard parameterisations of the same trials, whereas dividing by
@@ -442,7 +444,9 @@ build_intervention = function(efficacy,
         any(names(efficacy) == "") || anyDuplicated(names(efficacy)))
         stop("efficacy must have non-empty, unique component names")
     prob_components = c("Deterrency", "PrePrandial", "PostPrandial")
-    valid_components = c("Deterrency", "PrePrandial", "PostPrandial", "HostSeekingKilling")
+    valid_components = c("Deterrency", "PrePrandial", "PostPrandial",
+                         "KillingDuringHostSeekingAbsolute")
+    check_hsk_names(names(efficacy), "efficacy")
     unknown = setdiff(names(efficacy), valid_components)
     if (length(unknown))
         stop("unrecognised efficacy component(s): ", paste(unknown, collapse = ", "),
@@ -467,20 +471,21 @@ build_intervention = function(efficacy,
         (!is.numeric(halflife_insecticide) || !is.null(dim(halflife_insecticide))))
         stop("halflife_insecticide must be a named numeric vector (years)")
 
-    has_hsk = "HostSeekingKilling" %in% names(efficacy)
+    has_hsk = "KillingDuringHostSeekingAbsolute" %in% names(efficacy)
     if (!is.null(mode)) {
         if (length(mode) != 1L || !(mode %in% c("standard", "dummy_host")))
             stop("mode must be \"standard\" or \"dummy_host\"")
         if (mode == "standard" && has_hsk)
-            stop("HostSeekingKilling requires mode = \"dummy_host\"")
+            stop("KillingDuringHostSeekingAbsolute requires mode = \"dummy_host\"")
     }
     use_dummy_host = if (!is.null(mode)) mode == "dummy_host" else has_hsk
     if (use_dummy_host && "PrePrandial" %in% names(efficacy) &&
         efficacy[["PrePrandial"]] != 0)
-        stop("The dummy-host model (HostSeekingKilling) and PrePrandial are ",
-             "mutually exclusive: omit PrePrandial or set it to 0")
+        stop("The dummy-host model (KillingDuringHostSeekingAbsolute) and ",
+             "PrePrandial are mutually exclusive: omit PrePrandial or set it to 0")
     if (use_dummy_host) {
-        message("build_intervention: using dummy-host (4-host) model with HostSeekingKilling.")
+        message("build_intervention: using dummy-host (4-host) model with ",
+                "KillingDuringHostSeekingAbsolute.")
     } else {
         message("build_intervention: using standard (3-host) model with PrePrandial.")
     }
@@ -497,7 +502,8 @@ build_intervention = function(efficacy,
         stringsAsFactors   = FALSE
     )
     if (use_dummy_host)
-        ps$host_seeking_killing = if (has_hsk) unname(efficacy["HostSeekingKilling"]) else 0
+        ps$killing_during_host_seeking_absolute =
+            if (has_hsk) unname(efficacy["KillingDuringHostSeekingAbsolute"]) else 0
 
     # Component names of the decays must be valid (a misspelled name would
     # silently leave that effect without its decay)
@@ -509,7 +515,7 @@ build_intervention = function(efficacy,
         nm_map = c(Deterrency         = "halflife_det",
                    PrePrandial        = "halflife_pre",
                    PostPrandial       = "halflife_post",
-                   HostSeekingKilling = "halflife_hsk")
+                   KillingDuringHostSeekingAbsolute = "halflife_hsk")
         for (comp in intersect(names(halflife_insecticide), names(nm_map)))
             ps[[nm_map[[comp]]]] = unname(halflife_insecticide[comp])
     }
@@ -519,7 +525,7 @@ build_intervention = function(efficacy,
         sfx = c(Deterrency         = "det",
                 PrePrandial        = "pre",
                 PostPrandial       = "post",
-                HostSeekingKilling = "hsk")
+                KillingDuringHostSeekingAbsolute = "hsk")
         for (comp in intersect(names(component_decay), names(sfx))) {
             cd = component_decay[[comp]]
             s  = sfx[[comp]]
@@ -567,7 +573,7 @@ build_intervention = function(efficacy,
     # Single Weibull per component approximating attrition x insecticide decay
     if (insecticide_decay) {
         sfx = c(Deterrency = "det", PrePrandial = "pre",
-                PostPrandial = "post", HostSeekingKilling = "hsk")
+                PostPrandial = "post", KillingDuringHostSeekingAbsolute = "hsk")
         is_weibull = tolower(decay_attrition) == "weibull"
         comps = intersect(names(sfx), names(efficacy))
         fits = lapply(comps, function(comp) {
@@ -615,13 +621,15 @@ build_intervention = function(efficacy,
 #' Two model structures are supported and are \strong{mutually exclusive}. The
 #' model is auto-detected from \code{param_sets}:
 #' \itemize{
-#'   \item \strong{Standard (3-host)}: no \code{host_seeking_killing} column
-#'     (or all values \code{NA}). Uses \code{deterrency}, \code{preprandial},
+#'   \item \strong{Standard (3-host)}: no
+#'     \code{killing_during_host_seeking_absolute} column (or all values
+#'     \code{NA}). Uses \code{deterrency}, \code{preprandial},
 #'     \code{postprandial}.
-#'   \item \strong{Dummy-host (4-host)}: \code{host_seeking_killing} column
-#'     present with at least one non-\code{NA} value. Uses \code{deterrency},
-#'     \code{host_seeking_killing}, \code{postprandial}. \code{preprandial}
-#'     must be \code{0} for all rows.
+#'   \item \strong{Dummy-host (4-host)}:
+#'     \code{killing_during_host_seeking_absolute} column present with at
+#'     least one non-\code{NA} value. Uses \code{deterrency},
+#'     \code{killing_during_host_seeking_absolute}, \code{postprandial}.
+#'     \code{preprandial} must be \code{0} for all rows.
 #' }
 #'
 #' @param param_sets Data frame where each row defines one parameter set.
@@ -645,21 +653,22 @@ build_intervention = function(efficacy,
 #' \itemize{
 #'   \item \code{name}: label of the parameter set (used by
 #'     \code{plot_impact()}); any other column is also carried to the output.
-#'   \item \code{host_seeking_killing}: activates the dummy-host (4-host)
-#'     model; absolute availability of the dummy host (see
-#'     \code{HostSeekingKilling} in \code{build_intervention()}). Non-missing
-#'     values must be finite and non-negative; \code{NA} means inactive.
+#'   \item \code{killing_during_host_seeking_absolute}: activates the
+#'     dummy-host (4-host) model; absolute availability of the dummy host (see
+#'     \code{KillingDuringHostSeekingAbsolute} in \code{build_intervention()}).
+#'     Non-missing values must be finite and non-negative; \code{NA} means
+#'     inactive.
 #'   \item \code{halflife_det}, \code{halflife_pre}, \code{halflife_post},
 #'     \code{halflife_hsk}: per-component linear insecticide decay (years);
 #'     despite the name, the time at which the effect reaches zero (see
 #'     \code{halflife_insecticide} in \code{build_intervention()}).
-#'     \code{halflife_hsk} applies to \code{host_seeking_killing} in
-#'     dummy-host mode.
+#'     \code{halflife_hsk} applies to
+#'     \code{killing_during_host_seeking_absolute} in dummy-host mode.
 #'   \item \code{decay_det}, \code{L_det}, \code{kappa_det} (and equivalently
 #'     \code{_pre}, \code{_post}, \code{_hsk}): general per-component decay
 #'     function, \code{L} (days; meaning depends on the shape, see
 #'     \code{decay_function()}), and shape. \code{_hsk} controls the decay of
-#'     \code{host_seeking_killing}. Overrides the corresponding
+#'     \code{killing_during_host_seeking_absolute}. Overrides the corresponding
 #'     \code{halflife_*} column whenever a shape is specified. Constant shapes
 #'     need no \code{L_*} or \code{kappa_*}; other shapes require their
 #'     parameters (incomplete specifications raise an error).
@@ -757,24 +766,28 @@ run_interventions = function(param_sets, model_p, coverage_vec,
     for (d in seq_along(all_ps))
         check_intervention_params(all_ps[[d]], if (is.null(interv_param_sets))
             "param_sets" else paste0("interv_param_sets[[", d, "]]"))
-    is_dummy = function(ps) !is.null(ps$host_seeking_killing) &&
-                            any(!is.na(ps$host_seeking_killing))
+    is_dummy = function(ps) {
+        hsk = ps$killing_during_host_seeking_absolute
+        !is.null(hsk) && any(!is.na(hsk))
+    }
     # All draws must use the same model structure
     dummy_draws = vapply(all_ps, is_dummy, logical(1))
     if (length(unique(dummy_draws)) > 1L)
         stop("interv_param_sets mixes the standard and dummy-host models (draws ",
-             paste(which(dummy_draws), collapse = ", "), " have host_seeking_killing): ",
+             paste(which(dummy_draws), collapse = ", "),
+             " have killing_during_host_seeking_absolute): ",
              "use one model structure for all draws")
     if (is_dummy(all_ps[[1]])) {
         message("run_interventions: using dummy-host (4-host) model ",
-                "(host_seeking_killing column detected).")
+                "(killing_during_host_seeking_absolute column detected).")
     } else {
         message("run_interventions: using standard (3-host) model.")
     }
     for (ps in all_ps)
         if (is_dummy(ps) && any(ps$preprandial != 0, na.rm = TRUE))
-            stop("The dummy-host model (host_seeking_killing) and pre-prandial ",
-                 "killing are mutually exclusive: set preprandial = 0 for all rows.")
+            stop("The dummy-host model (killing_during_host_seeking_absolute) and ",
+                 "pre-prandial killing are mutually exclusive: set preprandial = 0 ",
+                 "for all rows.")
 
     # Determine n_draw from any supplied uncertainty source
     n_draw_sources = c(

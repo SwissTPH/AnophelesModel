@@ -33,21 +33,21 @@ efficacy parameters:
   \item \code{"PostPrandial"} in \code{[0,1]} — post-prandial killing:
     reduces the probability of surviving after feeding on a protected
     human to find a resting place (\code{PCi}).
-  \item \code{"HostSeekingKilling"} \eqn{\geq 0} — killing during
-    host-seeking via a dummy-host mechanism. Dummy-host model only. An
-    \strong{absolute} rate, not a probability: it is used directly as the
-    availability of the dummy host (one per protected person), in the
+  \item \code{"KillingDuringHostSeekingAbsolute"} \eqn{\geq 0} — killing
+    during host-seeking via a dummy-host mechanism. Dummy-host model only.
+    An \strong{absolute} rate, not a probability: it is used directly as
+    the availability of the dummy host (one per protected person), in the
     same units as the host availabilities \code{alphai}. Values from
     experimental hut fits that are relative to the control availability
-    \code{alpha_0} must first be multiplied by \code{alpha_0}
-    (\code{get_ITN_params()} does this).
+    \code{alpha_0} (\code{KillingDuringHostSeekingRelative}) must first be
+    multiplied by \code{alpha_0} (\code{get_ITN_params()} does this).
 }
 
 Note on time units: the experimental hut model has no time scale (its
 rates are per hut-night), whereas the rates of this package are per day,
 with \code{td} the duration of host seeking. By convention, a hut-night is
-treated as a day: \code{HostSeekingKilling} is used directly as a per-day
-rate, without dividing by \code{td}. This is provisional, until the
+treated as a day: \code{KillingDuringHostSeekingAbsolute} is used directly
+as a per-day rate, without dividing by \code{td}. This is provisional, until the
 experimental hut fitting model is improved. With this convention, the field
 impacts of the dummy-host parameterisations are of the same order as those
 of the standard parameterisations of the same trials, whereas dividing by
@@ -141,9 +141,10 @@ Two model structures are supported and are \strong{mutually exclusive}:
   \item \strong{Standard (3-host)}: uses \code{Deterrency},
     \code{PrePrandial}, and \code{PostPrandial}.
   \item \strong{Dummy-host (4-host)}: uses \code{Deterrency},
-    \code{HostSeekingKilling}, and \code{PostPrandial}.
+    \code{KillingDuringHostSeekingAbsolute}, and \code{PostPrandial}.
     A fourth dummy-host column is added to all effects matrices.
-    Do not supply \code{PrePrandial} together with \code{HostSeekingKilling}.
+    Do not supply \code{PrePrandial} together with
+    \code{KillingDuringHostSeekingAbsolute}.
 }
 }
 \keyword{internal}

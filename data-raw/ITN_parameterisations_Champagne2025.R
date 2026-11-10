@@ -7,6 +7,12 @@
 raw = read.csv("data-raw/fitted_parameters_posteriormax.csv",
                stringsAsFactors = FALSE, check.names = FALSE)
 
+# Host-seeking killing is fitted relative to the control availability alpha_0;
+# the name says so (the package uses KillingDuringHostSeekingAbsolute).
+stopifnot("KillingDuringHostSeeking" %in% raw$parameter)
+raw$parameter[raw$parameter == "KillingDuringHostSeeking"] =
+    "KillingDuringHostSeekingRelative"
+
 # Fit of each row. A trial (EHT) can have several fits, each with its own
 # control arm (e.g. Sovegnon: Interceptor G2 with control treatment -1,
 # Pyrethroid-only with control treatment -2); in the table, the rows of a fit

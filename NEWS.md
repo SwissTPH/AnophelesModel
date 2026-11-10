@@ -6,6 +6,20 @@ entomological model of the mosquito feeding cycle (Chitnis et al.) and the
 host / activity databases, but the intervention framework and API were
 rewritten and are **not backward compatible**.
 
+## Host-seeking killing names
+
+* Host-seeking killing is named `KillingDuringHostSeekingAbsolute`
+  (efficacy component) and `killing_during_host_seeking_absolute` (batch
+  column), formerly `HostSeekingKilling` / `host_seeking_killing`, so that
+  it is clear it is the absolute rate (consistent with
+  AnophelesEntoTrials). The relative value of the hut trial fits is
+  `KillingDuringHostSeekingRelative` in `ITN_parameterisations_Champagne2025`
+  (formerly `KillingDuringHostSeeking`); `get_ITN_params(rescale_hsk =
+  FALSE)` returns it under that name. Former and relative names give an
+  error naming the absolute one (a former batch column would otherwise have
+  run the standard model). The decay suffix `_hsk` (`halflife_hsk`,
+  OpenMalaria placeholders) is unchanged.
+
 ## Correctness and input validation
 
 * Explicit per-component insecticide decay shapes always take priority over
@@ -120,8 +134,8 @@ rewritten and are **not backward compatible**.
   is given only there). Host-seeking killing of dummy-host nets is exported
   as the model's dummy host: per campaign, an OpenMalaria added non-human
   host (`addNonHumanHosts`, availability relative to an adult human =
-  coverage × `HostSeekingKilling` / human availability, biting probability
-  0) whose availability decays as the GVI effects do: attrition ×
+  coverage × `KillingDuringHostSeekingAbsolute` / human availability,
+  biting probability 0) whose availability decays as the GVI effects do: attrition ×
   insecticide decay of host-seeking killing, exact when it is a single
   OpenMalaria decay, otherwise the Weibull fitted to the product (one
   `nonHumanHostsModifications` per host, `<name>_dummy_<k>_decay`, with an
@@ -266,8 +280,8 @@ rewritten and are **not backward compatible**.
 ## New
 
 * `build_intervention()` builds an intervention from user-supplied efficacies
-  (`Deterrency`, `PrePrandial`, `PostPrandial`, `HostSeekingKilling`), an
-  attrition decay and optional per-component insecticide decay.
+  (`Deterrency`, `PrePrandial`, `PostPrandial`,
+  `KillingDuringHostSeekingAbsolute`), an attrition decay and optional per-component insecticide decay.
 * `run_interventions()` evaluates many parameter sets × coverages in one
   vectorised call, with zipped uncertainty draws (`vec_param_sets`,
   `interv_param_sets`, `exposure_sets`, `coverage_sets`).
@@ -276,13 +290,13 @@ rewritten and are **not backward compatible**.
   The dataset has a `fit` column: a trial fitted in several parts (Sovegnon)
   has one control per fit, and host-seeking killing is rescaled by the
   control of the net's own fit.
-* **Dummy-host model**: host-seeking killing (`HostSeekingKilling`) adds a
-  fourth host type whose availability is the **absolute** killing rate (in
+* **Dummy-host model**: host-seeking killing
+  (`KillingDuringHostSeekingAbsolute`) adds a fourth host type whose availability is the **absolute** killing rate (in
   the units of the host availabilities, not a probability). It is mutually
   exclusive with pre-prandial killing. `get_ITN_params(mode = "dummy_host")`
   converts the hut-trial estimates, which are relative to the control-arm
   availability `alpha_0`, to absolute values by multiplying by `alpha_0` of
-  the same arm (`rescale_hsk = FALSE` to skip). The hut model's rates are per
+  the same arm (`rescale_hsk = FALSE` returns the relative value). The hut model's rates are per
   hut-night while the package uses per-day rates; by provisional convention a
   hut-night is treated as a day (no conversion by the host-seeking duration
   `td`), pending an improved experimental hut fitting model.

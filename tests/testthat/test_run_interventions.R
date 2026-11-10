@@ -21,8 +21,8 @@ reference_run = function(param_sets, model_p, coverage_vec, duration_years = 3) 
         efficacy = c(Deterrency   = row$deterrency,
                      PrePrandial  = row$preprandial,
                      PostPrandial = row$postprandial)
-        if (!is.null(row$host_seeking_killing) && !is.na(row$host_seeking_killing))
-            efficacy["HostSeekingKilling"] = row$host_seeking_killing
+        if (!is.null(row$killing_during_host_seeking_absolute) && !is.na(row$killing_during_host_seeking_absolute))
+            efficacy["KillingDuringHostSeekingAbsolute"] = row$killing_during_host_seeking_absolute
         hl = NULL
         if (!is.null(row$halflife_det) && !is.na(row$halflife_det))
             hl = c(Deterrency=row$halflife_det, PrePrandial=row$halflife_pre,
@@ -215,7 +215,7 @@ test_that("run_interventions accepts interv_param_sets as data frame and matches
 })
 
 # ---------------------------------------------------------------------------
-# 5. Dummy-host (HostSeekingKilling) model: output matches loop reference
+# 5. Dummy-host (KillingDuringHostSeekingAbsolute) model: output matches loop reference
 # ---------------------------------------------------------------------------
 test_that("run_interventions dummy-host model matches the reference loop", {
     model_p      = make_model_p()
@@ -227,7 +227,7 @@ test_that("run_interventions dummy-host model matches the reference loop", {
         deterrency          = 0.0,
         preprandial         = 0.0,
         postprandial        = 0.0,
-        host_seeking_killing = 0.6,
+        killing_during_host_seeking_absolute = 0.6,
         halflife_attrition  = 180,
         shape_attrition     = 2,
         decay_attrition     = "weibull",

@@ -19,7 +19,7 @@ combined   = function(...) suppressMessages(
     calculate_combined_impact(..., model_p = model_p))
 
 std   = c(Deterrency = 0.5, PrePrandial = 0.4, PostPrandial = 0.3)
-dummy = c(Deterrency = 0.4, HostSeekingKilling = 2, PostPrandial = 0.3)
+dummy = c(Deterrency = 0.4, KillingDuringHostSeekingAbsolute = 2, PostPrandial = 0.3)
 null  = c(Deterrency = 0, PrePrandial = 0, PostPrandial = 0)
 cov   = c(0, 0.25, 0.5, 0.75, 1)
 
@@ -69,7 +69,7 @@ test_that("calculate_impact matches the reference with component decay and a dum
         bi(std, days = 200, name = "comp", component_decay = list(
             Deterrency = list(decay = "hill", L = 90, kappa = 3),
             PrePrandial = list(decay = "linear", L = 150))),
-        bi(dummy, days = 100, name = "dh", halflife_insecticide = c(HostSeekingKilling = 0.5))),
+        bi(dummy, days = 100, name = "dh", halflife_insecticide = c(KillingDuringHostSeekingAbsolute = 0.5))),
         cov)
 })
 
@@ -81,7 +81,7 @@ test_that("calculate_impact output has the documented structure", {
     expect_equal(res$intervention, rep(1:2, each = length(cov)))
     expect_equal(res$name, rep(c("A", "B"), each = length(cov)))
     expect_equal(res$coverage, rep(cov, 2))
-    expect_equal(res$host_seeking_killing, c(rep(NA, length(cov)), rep(2, length(cov))))
+    expect_equal(res$killing_during_host_seeking_absolute, c(rep(NA, length(cov)), rep(2, length(cov))))
 
     timed = calculate_impact(bi(std), cov, model_p, keep_time = TRUE)
     expect_named(timed, c("impact", "time"))
@@ -233,7 +233,7 @@ test_that("dummy-host combined with a null intervention equals the single dummy-
 
 test_that("dummy-host combinations run and add host-seeking killing", {
     dh  = bi(dummy)[[1]]
-    dh2 = bi(c(Deterrency = 0.2, HostSeekingKilling = 1.5, PostPrandial = 0.4))[[1]]
+    dh2 = bi(c(Deterrency = 0.2, KillingDuringHostSeekingAbsolute = 1.5, PostPrandial = 0.4))[[1]]
     itn = bi(std)[[1]]
 
     both = combined(intervention1 = dh, intervention2 = dh2,
@@ -258,15 +258,15 @@ test_that("host-seeking killing of two dummy-host interventions adds up exactly"
     constant = function(efficacy, days = 30) suppressMessages(build_intervention(
         efficacy, decay_attrition = "none", duration_years = days / 365,
         model_p = model_p, insecticide_decay = FALSE))[[1]]
-    a = c(Deterrency = 0,   HostSeekingKilling = 0.6, PostPrandial = 0)
-    b = c(Deterrency = 0,   HostSeekingKilling = 1.5, PostPrandial = 0)
+    a = c(Deterrency = 0,   KillingDuringHostSeekingAbsolute = 0.6, PostPrandial = 0)
+    b = c(Deterrency = 0,   KillingDuringHostSeekingAbsolute = 1.5, PostPrandial = 0)
     expect_equal(combined(intervention1 = constant(a), intervention2 = constant(b),
                           cov_intervention1 = 1, cov_intervention2 = 1),
                  avg_impact(calculate_impact(list(constant(a + b)), 1, model_p)),
                  tolerance = 1e-10)
-    a = c(Deterrency = 0.3, HostSeekingKilling = 0.6, PostPrandial = 0.2)
-    b = c(Deterrency = 0.5, HostSeekingKilling = 1.5, PostPrandial = 0.4)
-    ab = c(Deterrency = 1 - 0.7 * 0.5, HostSeekingKilling = 2.1,
+    a = c(Deterrency = 0.3, KillingDuringHostSeekingAbsolute = 0.6, PostPrandial = 0.2)
+    b = c(Deterrency = 0.5, KillingDuringHostSeekingAbsolute = 1.5, PostPrandial = 0.4)
+    ab = c(Deterrency = 1 - 0.7 * 0.5, KillingDuringHostSeekingAbsolute = 2.1,
            PostPrandial = 1 - 0.8 * 0.6)
     expect_equal(combined(intervention1 = constant(a), intervention2 = constant(b),
                           cov_intervention1 = 1, cov_intervention2 = 1),
@@ -383,7 +383,7 @@ test_that("complete dummy-host protection can be combined with an active interve
         model_p = model_p, insecticide_decay = FALSE))[[1]]
     other = constant(std)
     for (component in c("Deterrency", "PostPrandial")) {
-        efficacy = c(Deterrency = 0, HostSeekingKilling = 2, PostPrandial = 0)
+        efficacy = c(Deterrency = 0, KillingDuringHostSeekingAbsolute = 2, PostPrandial = 0)
         efficacy[component] = 1
         protected = constant(efficacy)
         expect_equal(avg_impact(calculate_impact(list(protected), 1, model_p)), 1)

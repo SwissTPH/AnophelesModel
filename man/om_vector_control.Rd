@@ -19,9 +19,9 @@ om_vector_control(
 }
 \arguments{
 \item{efficacy}{Named efficacies (\code{Deterrency}, \code{PrePrandial},
-\code{PostPrandial}, \code{HostSeekingKilling}), or the output of
-\code{\link{get_ITN_params}}, whose efficacy, insecticide decay, model
-structure and name are used (unless given here).}
+\code{PostPrandial}, \code{KillingDuringHostSeekingAbsolute}), or the
+output of \code{\link{get_ITN_params}}, whose efficacy, insecticide
+decay, model structure and name are used (unless given here).}
 
 \item{halflife_attrition, shape_attrition, decay_attrition}{Attrition decay,
 as in \code{build_intervention()} (\code{halflife_attrition} in days).}
@@ -58,7 +58,8 @@ ig2 = om_vector_control(get_ITN_params("Interceptor G2", "Kibondo",
                         halflife_attrition = 2 * 365, shape_attrition = 2)
 # Custom net
 custom = om_vector_control(
-    c(Deterrency = 0.3, HostSeekingKilling = 0.5, PostPrandial = 0.4),
+    c(Deterrency = 0.3, KillingDuringHostSeekingAbsolute = 0.5,
+      PostPrandial = 0.4),
     halflife_attrition = 2 * 365, shape_attrition = 2, name = "Custom ITN")
 
 }

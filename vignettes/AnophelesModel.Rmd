@@ -208,20 +208,20 @@ Efficacy parameters map directly to feeding-cycle probabilities:
 | `Deterrency` | Reduces host availability (`alphai`) for protected humans: deterred mosquitoes keep searching | Both |
 | `PrePrandial` | Kills mosquitoes after they find a protected human, before they feed: reduces the probability of biting and surviving (`PBi`) | Standard (3 hosts) |
 | `PostPrandial` | Kills mosquitoes after feeding: reduces the probability of surviving to find a resting place (`PCi`) | Both |
-| `HostSeekingKilling` | Adds a dummy host: mosquitoes killed while searching | Dummy-host (4 hosts) |
+| `KillingDuringHostSeekingAbsolute` | Adds a dummy host: mosquitoes killed while searching | Dummy-host (4 hosts) |
 
 In the feeding-cycle model, a mosquito that fails a stage after finding a
 host dies, so pre- and post-prandial effects are mortality.
 
 Any subset of the components can be given (omitted ones are 0). `Deterrency`,
 `PrePrandial` and `PostPrandial` are probabilities in [0, 1]. In the
-dummy-host model, `HostSeekingKilling` replaces `PrePrandial` (a non-zero
-`PrePrandial` with it is an error): mosquitoes are killed while searching for a host, through a
-fourth "dummy" host whose availability is `HostSeekingKilling`. It is
-therefore an **absolute rate** (per day, in the units of the host
-availabilities `alphai`), not a probability, and can exceed 1. By a
-provisional convention, the per hut-night rates of experimental hut fits are
-used as per-day rates.
+dummy-host model, `KillingDuringHostSeekingAbsolute` replaces `PrePrandial`
+(a non-zero `PrePrandial` with it is an error): mosquitoes are killed while
+searching for a host, through a fourth "dummy" host whose availability is
+`KillingDuringHostSeekingAbsolute`. As the name says, it is an **absolute
+rate** (per day, in the units of the host availabilities `alphai`), not a
+probability, and can exceed 1. By a provisional convention, the per
+hut-night rates of experimental hut fits are used as per-day rates.
 
 All components share an **attrition decay** (`halflife_attrition`,
 `shape_attrition`, `decay_attrition`) describing physical degradation over
@@ -311,10 +311,13 @@ my_interv_custom = build_intervention(
 and post-prandial killing remain. Use `mode = "dummy_host"` to load the
 corresponding parameters from the database. In the hut trial fits,
 host-seeking killing is estimated relative to the availability `alpha_0` of
-the trial's control arm; since `alpha_0` varies widely between trials,
-`get_ITN_params()` multiplies it back by the control `alpha_0` of the same arm
-(unwashed or washed) to return an **absolute** value comparable across trials
-(`rescale_hsk = FALSE` skips this for datasets that are already absolute):
+the trial's control arm (`KillingDuringHostSeekingRelative` in the
+database); since `alpha_0` varies widely between trials, `get_ITN_params()`
+multiplies it back by the control `alpha_0` of the same arm (unwashed or
+washed) to return the **absolute** value `KillingDuringHostSeekingAbsolute`,
+comparable across trials and used by the model (`rescale_hsk = FALSE`
+returns the relative value, e.g. to rescale it with another `alpha_0`; the
+model does not accept it):
 ```{r}
 itn_dh_p = get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host")
 
@@ -395,7 +398,8 @@ object, so both give the same results, in the same format, and
 `plot_impact()` draws both.
 
 - **Columns of `param_sets`:** the efficacies `deterrency`, `preprandial`,
-  `postprandial` (required) and optionally `host_seeking_killing`; the
+  `postprandial` (required) and optionally
+  `killing_during_host_seeking_absolute`; the
   attrition decay `decay_attrition` (required), with `halflife_attrition`
   (days) unless it is `"none"` and `shape_attrition` for Weibull, Hill and
   smooth-compact; optional per-component decay columns (below). Any other
@@ -435,21 +439,21 @@ plot_impact(results)
 #### Dummy-host model
 
 The two model structures of Step 5 are mutually exclusive within a
-`param_sets` table. For the dummy-host model, add `host_seeking_killing` (an
-absolute rate, see Step 5) and set `preprandial` to 0 (the column stays
+`param_sets` table. For the dummy-host model, add
+`killing_during_host_seeking_absolute` (an absolute rate, see Step 5) and set `preprandial` to 0 (the column stays
 required):
 
 ```{r}
 dummyhost_ps = data.frame(
-    name                 = c("Dummy-host ITN", "Dummy-host ITN, HSK decay"),
-    deterrency           = 0.55,
-    preprandial          = 0,
-    postprandial         = 0.24,
-    host_seeking_killing = 1.10,
-    halflife_attrition   = 180, shape_attrition = 2, decay_attrition = "weibull",
+    name         = c("Dummy-host ITN", "Dummy-host ITN, HSK decay"),
+    deterrency   = 0.55,
+    preprandial  = 0,
+    postprandial = 0.24,
+    killing_during_host_seeking_absolute = 1.10,
+    halflife_attrition = 180, shape_attrition = 2, decay_attrition = "weibull",
     # second row: Weibull insecticide decay of host-seeking killing (half-life 90 days)
     decay_hsk = c(NA, "weibull"), L_hsk = c(NA, 90), kappa_hsk = c(NA, 2),
-    stringsAsFactors     = FALSE
+    stringsAsFactors = FALSE
 )
 res_dh = run_interventions(dummyhost_ps, model_p, seq(0, 1, by = 0.2),
                            duration_years = 3)
@@ -790,8 +794,8 @@ Host-seeking killing, which the GVI cannot represent, is written as it is in
 the model, a dummy host on which every mosquito that finds it dies: for each
 campaign, an OpenMalaria non-human host (`<name>_dummy_<k>`, added at the
 campaign date), whose availability relative to an adult human is the
-coverage × `HostSeekingKilling` / human availability, and decays as the GVI
-effects do: attrition × insecticide decay of host-seeking killing, exact
+coverage × `KillingDuringHostSeekingAbsolute` / human availability, and
+decays as the GVI effects do: attrition × insecticide decay of host-seeking killing, exact
 when it is a single OpenMalaria decay, otherwise the fitted Weibull (one
 modification with an increasing decay, none if it does not decay). As for the GVI, whose effects are
 refreshed (not stacked) in people who receive a net again, each campaign

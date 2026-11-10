@@ -73,15 +73,15 @@ progress:} this part has not been run in OpenMalaria yet, and gives a
 warning (silenced with \code{options(AnophelesModel2.om_dummy_host =
 TRUE)}). OpenMalaria's
 GVI has no host-seeking killing. In this package it is a dummy host per
-covered person, of availability \code{HostSeekingKilling} \eqn{\times}
-insecticide decay (relative to the human availability \eqn{\alpha_h}),
-on which every mosquito that finds it dies. It is written as
+covered person, of availability \code{KillingDuringHostSeekingAbsolute}
+\eqn{\times} insecticide decay (relative to the human availability
+\eqn{\alpha_h}), on which every mosquito that finds it dies. It is written as
 OpenMalaria non-human hosts: for each campaign \eqn{k} (date \eqn{t_k},
 coverage \eqn{c_k}), an added non-human host \code{<name>_dummy_<k>}
 (\code{addNonHumanHosts}, deployed at \eqn{t_k}), of availability
-relative to an adult human \eqn{c_k \times} \code{HostSeekingKilling}
-\eqn{/ \alpha_h} (\eqn{\alpha_h} of the population's model) and biting
-probability 0, whose availability decays as the GVI effects do: attrition
+relative to an adult human \eqn{c_k \times}
+\code{KillingDuringHostSeekingAbsolute} \eqn{/ \alpha_h} (\eqn{\alpha_h}
+of the population's model) and biting probability 0, whose availability decays as the GVI effects do: attrition
 \eqn{\times} insecticide decay of host-seeking killing, exact when it is a
 single OpenMalaria decay, otherwise the Weibull fitted to their product
 (one \code{nonHumanHostsModifications} \code{<name>_dummy_<k>_decay},
@@ -134,7 +134,8 @@ ig2 = om_vector_control(get_ITN_params("Interceptor G2", "Kibondo",
                                        mode = "dummy_host"),
                         halflife_attrition = 2 * 365, shape_attrition = 2)
 custom = om_vector_control(
-    c(Deterrency = 0.3, HostSeekingKilling = 0.5, PostPrandial = 0.4),
+    c(Deterrency = 0.3, KillingDuringHostSeekingAbsolute = 0.5,
+      PostPrandial = 0.4),
     halflife_attrition = 2 * 365, shape_attrition = 2)
 nets = list(IG2 = ig2, custom = custom)
 om_ento  = get_OM_ento_snippet("Anopheles gambiae ss/coluzzii",

@@ -24,7 +24,7 @@ row = function(net, EHT, par) db[db$netType == net & db$EHT == EHT &
                                      db$parameter == par, ]
 
 test_that("dummy-host HSK is rescaled by the control alpha_0 of the same arm", {
-    hsk  = row("Interceptor G2", "Kibondo", "KillingDuringHostSeeking")
+    hsk  = row("Interceptor G2", "Kibondo", "KillingDuringHostSeekingRelative")
     ctrl = row("control", "Kibondo", "alpha_0")
     abs_U = hsk$Unwashed * ctrl$Unwashed
     abs_W = hsk$Washed   * ctrl$Washed
@@ -32,33 +32,48 @@ test_that("dummy-host HSK is rescaled by the control alpha_0 of the same arm", {
     p = get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host",
                        verbose = FALSE)
     expect_equal(p$alpha_0, c(Unwashed = ctrl$Unwashed, Washed = ctrl$Washed))
-    expect_equal(p$efficacy[["HostSeekingKilling"]], abs_U)
-    expect_equal(p$halflife_insecticide[["HostSeekingKilling"]],
+    expect_equal(p$efficacy[["KillingDuringHostSeekingAbsolute"]], abs_U)
+    expect_equal(p$halflife_insecticide[["KillingDuringHostSeekingAbsolute"]],
                  3 / (1 - abs_W / abs_U))
 
     pw = get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host",
                         washed = TRUE, verbose = FALSE)
-    expect_equal(pw$efficacy[["HostSeekingKilling"]], abs_W)
+    expect_equal(pw$efficacy[["KillingDuringHostSeekingAbsolute"]], abs_W)
 
     # Other components are not rescaled
     post = row("Interceptor G2", "Kibondo", "Postprandialkilling")
     expect_equal(p$efficacy[["PostPrandial"]], post$Unwashed)
 })
 
-test_that("rescale_hsk = FALSE returns the stored values", {
-    hsk = row("Interceptor G2", "Kibondo", "KillingDuringHostSeeking")
+test_that("rescale_hsk = FALSE returns the stored relative values, under their name", {
+    hsk = row("Interceptor G2", "Kibondo", "KillingDuringHostSeekingRelative")
     p = get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host",
                        rescale_hsk = FALSE, verbose = FALSE)
     expect_null(p$alpha_0)
-    expect_equal(p$efficacy[["HostSeekingKilling"]], hsk$Unwashed)
-    expect_equal(p$halflife_insecticide[["HostSeekingKilling"]],
+    expect_false("KillingDuringHostSeekingAbsolute" %in% names(p$efficacy))
+    expect_equal(p$efficacy[["KillingDuringHostSeekingRelative"]], hsk$Unwashed)
+    expect_equal(p$halflife_insecticide[["KillingDuringHostSeekingRelative"]],
                  hsk$halflife_insecticide)
+    # The model does not take a relative value
+    expect_error(build_intervention(efficacy = p$efficacy, mode = "dummy_host",
+                                    duration_years = 1, model_p = build_model_obj(
+                                        def_vector_params(), def_host_params())),
+                 "KillingDuringHostSeekingRelative not accepted")
+})
+
+test_that("the dummy-host efficacy names are in the same order after rescaling", {
+    p = get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host",
+                       verbose = FALSE)
+    r = get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host",
+                       rescale_hsk = FALSE, verbose = FALSE)
+    expect_equal(sub("Absolute$", "Relative", names(p$efficacy)), names(r$efficacy))
+    expect_equal(names(p$halflife_insecticide), names(p$efficacy))
 })
 
 test_that("standard mode is unaffected by the rescaling", {
     p = get_ITN_params("Interceptor G2", "Kibondo", verbose = FALSE)
     expect_null(p$alpha_0)
-    expect_false("HostSeekingKilling" %in% names(p$efficacy))
+    expect_false("KillingDuringHostSeekingAbsolute" %in% names(p$efficacy))
 })
 
 test_that("list_ITN_params lists pairs usable by get_ITN_params in both modes", {
@@ -103,23 +118,23 @@ test_that("the rescaled host-seeking killing decays over the trial's own aging t
     db = ITN_parameterisations_Champagne2025
     expect_false(is.null(db$aged_time))
     hsk_hl = function(net, eht) get_ITN_params(net, eht, mode = "dummy_host",
-                                               verbose = FALSE)$halflife_insecticide[["HostSeekingKilling"]]
+                                               verbose = FALSE)$halflife_insecticide[["KillingDuringHostSeekingAbsolute"]]
     # Sovegnon: washed arm = 2 years (1.94 x 0.81 unwashed, 1.32 x 0.73 washed)
     expect_equal(unique(db$aged_time[db$EHT == "Sovegnon"]), 2)
     expect_equal(hsk_hl("Interceptor G2", "Sovegnon"),
                  2 / (1 - (1.32 * 0.73) / (1.94 * 0.81)), tolerance = 1e-10)
     # Without rescaling, the dataset's own value (also computed with 2 years)
     stored = db$halflife_insecticide[db$netType == "Interceptor G2" & db$EHT == "Sovegnon" &
-                                     db$parameter == "KillingDuringHostSeeking"]
+                                     db$parameter == "KillingDuringHostSeekingRelative"]
     expect_equal(get_ITN_params("Interceptor G2", "Sovegnon", mode = "dummy_host",
                                 rescale_hsk = FALSE, verbose = FALSE)$halflife_insecticide[[
-                                    "HostSeekingKilling"]], stored)
+                                    "KillingDuringHostSeekingRelative"]], stored)
     expect_equal(stored, 2 / (1 - 1.32 / 1.94), tolerance = 1e-10)
     # Other trials: 3 years
     k = db[db$netType == "Interceptor G2" & db$EHT == "Kibondo", ]
     expect_equal(unique(k$aged_time), 3)
     a0 = get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host", verbose = FALSE)$alpha_0
-    h  = k[k$parameter == "KillingDuringHostSeeking", ]
+    h  = k[k$parameter == "KillingDuringHostSeekingRelative", ]
     expect_equal(hsk_hl("Interceptor G2", "Kibondo"),
                  3 / (1 - (h$Washed * a0[["Washed"]]) / (h$Unwashed * a0[["Unwashed"]])),
                  tolerance = 1e-10)

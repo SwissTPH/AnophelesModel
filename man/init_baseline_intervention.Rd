@@ -26,7 +26,7 @@ parameters — no intervention applied. Used internally by
 
 When \code{dummy_host = TRUE} a fourth host type ("dummy host") is appended
 with all parameters set to zero. Its availability is subsequently set by
-\code{build_intervention()} when \code{"HostSeekingKilling"} is supplied in
-the \code{efficacy} vector.
+\code{build_intervention()} when \code{"KillingDuringHostSeekingAbsolute"}
+is supplied in the \code{efficacy} vector.
 }
 \keyword{internal}

@@ -167,27 +167,27 @@ test_that("host-seeking killing decays exactly with its insecticide decay", {
     model_p = build_model_obj(def_vector_params("Anopheles gambiae ss/coluzzii"),
                               def_host_params())
     hsk = function(...) suppressMessages(build_intervention(
-        efficacy = c(Deterrency = 0.3, HostSeekingKilling = 0.8, PostPrandial = 0.2),
+        efficacy = c(Deterrency = 0.3, KillingDuringHostSeekingAbsolute = 0.8, PostPrandial = 0.2),
         duration_years = 2, model_p = model_p, ...))[[1]]$effects
     t = 0:(2 * 365 - 1)
     # Linear time to zero (years), falling and rising
-    e = hsk(decay_attrition = "none", halflife_insecticide = c(HostSeekingKilling = 1.5))
+    e = hsk(decay_attrition = "none", halflife_insecticide = c(KillingDuringHostSeekingAbsolute = 1.5))
     expect_equal(e$alphai[, 4], 0.8 * pmax(1 - t / (365 * 1.5), 0), tolerance = 1e-12)
-    e = hsk(decay_attrition = "none", halflife_insecticide = c(HostSeekingKilling = -4))
+    e = hsk(decay_attrition = "none", halflife_insecticide = c(KillingDuringHostSeekingAbsolute = -4))
     expect_equal(e$alphai[, 4], 0.8 * (1 + t / (365 * 4)), tolerance = 1e-12)
     # A general shape
     e = hsk(decay_attrition = "none",
-            component_decay = list(HostSeekingKilling = list(decay = "exponential", L = 200)))
+            component_decay = list(KillingDuringHostSeekingAbsolute = list(decay = "exponential", L = 200)))
     expect_equal(e$alphai[, 4], 0.8 * 2^(-t / 200), tolerance = 1e-12)
     # Attrition is not folded into it (it is the share of people still covered)
     e = hsk(halflife_attrition = 365, shape_attrition = 2, decay_attrition = "weibull",
-            halflife_insecticide = c(HostSeekingKilling = 1.5))
+            halflife_insecticide = c(KillingDuringHostSeekingAbsolute = 1.5))
     expect_equal(e$alphai[, 4], 0.8 * pmax(1 - t / (365 * 1.5), 0), tolerance = 1e-12)
     expect_equal(e$survival, decay_function(365, 2, t, "weibull"), tolerance = 1e-12)
     # The other effects keep their own (here no) decay
     expect_equal(unique(e$alphai[, 1] / e$alphai[, 2]), 1 - 0.3)
     # Switched off: constant
-    e = hsk(decay_attrition = "none", halflife_insecticide = c(HostSeekingKilling = 1.5),
+    e = hsk(decay_attrition = "none", halflife_insecticide = c(KillingDuringHostSeekingAbsolute = 1.5),
             insecticide_decay = FALSE)
     expect_equal(unique(e$alphai[, 4]), 0.8)
 })

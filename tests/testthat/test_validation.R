@@ -74,28 +74,28 @@ test_that("both interfaces reject invalid probability efficacies", {
 
 test_that("host-seeking killing is a finite non-negative rate, not a probability", {
     for (value in list(-0.1, Inf, -Inf, NaN, "2", matrix(NA, 1, 1))) {
-        expect_error(validation_build(c(HostSeekingKilling = value)), "efficacy")
+        expect_error(validation_build(c(KillingDuringHostSeekingAbsolute = value)), "efficacy")
         ps = validation_ps
         ps$preprandial = 0
-        ps$host_seeking_killing = value
-        expect_error(validation_run(ps), "host_seeking_killing")
+        ps$killing_during_host_seeking_absolute = value
+        expect_error(validation_run(ps), "killing_during_host_seeking_absolute")
     }
-    expect_error(validation_build(c(HostSeekingKilling = NA_real_)), "missing")
+    expect_error(validation_build(c(KillingDuringHostSeekingAbsolute = NA_real_)), "missing")
     ps = validation_ps
     ps$preprandial = 0
-    ps$host_seeking_killing = 2
+    ps$killing_during_host_seeking_absolute = 2
     interv = validation_build(c(Deterrency = 0.4, PostPrandial = 0.2,
-                                HostSeekingKilling = 2))
+                                KillingDuringHostSeekingAbsolute = 2))
     expect_equal(validation_run(ps)$avg_impact,
         calculate_impact(interv, c(0, 1), validation_model)$avg_impact)
     # NA is the documented inactive marker in batch tables, including a
     # logical all-NA column. It must not disable the standard model's killing.
     ps = validation_ps
-    ps$host_seeking_killing = NA
+    ps$killing_during_host_seeking_absolute = NA
     expect_equal(validation_run(ps)$avg_impact, validation_run()$avg_impact)
     ps = validation_ps[rep(1, 2), ]
     ps$preprandial = 0
-    ps$host_seeking_killing = c(2, NA_real_)
+    ps$killing_during_host_seeking_absolute = c(2, NA_real_)
     expect_true(all(is.finite(validation_run(ps)$avg_impact)))
     expect_equal(ncol(validation_build(mode = "dummy_host")[[1]]$effects$alphai), 4)
 })
@@ -236,8 +236,8 @@ test_that("uncertainty draws cannot mix the standard and dummy-host models", {
     std = validation_ps
     dh  = validation_ps
     dh$preprandial = 0
-    std$host_seeking_killing = NA
-    dh$host_seeking_killing  = 0.5
+    std$killing_during_host_seeking_absolute = NA
+    dh$killing_during_host_seeking_absolute  = 0.5
     expect_error(suppressMessages(run_interventions(std, validation_model, c(0, 1),
         interv_param_sets = rbind(std, dh), duration_years = 2 / 365)),
         "mixes the standard and dummy-host models")

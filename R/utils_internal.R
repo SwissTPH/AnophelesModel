@@ -46,6 +46,7 @@ check_component_names = function(x, label, valid) {
     nm = names(x)
     if (length(x) && (is.null(nm) || anyNA(nm) || any(nm == "")))
         stop(label, " must be named by component (", paste(valid, collapse = ", "), ")")
+    check_hsk_names(nm, label)
     unknown = setdiff(nm, valid)
     if (length(unknown))
         stop(label, ": unknown component(s) ", paste(unknown, collapse = ", "),
@@ -53,6 +54,27 @@ check_component_names = function(x, label, valid) {
     if (anyDuplicated(nm))
         stop(label, ": duplicated component(s) ", paste(unique(nm[duplicated(nm)]),
                                                         collapse = ", "))
+    invisible()
+}
+
+# Host-seeking killing is the absolute rate KillingDuringHostSeekingAbsolute
+# (batch column killing_during_host_seeking_absolute). Its former name
+# (HostSeekingKilling) or the relative value of the hut fits would otherwise
+# be rejected without explanation, or, as a batch column, silently ignored
+# (standard model run instead).
+.HSK_OTHER_NAMES = c("HostSeekingKilling", "KillingDuringHostSeeking",
+                     "KillingDuringHostSeekingRelative", "host_seeking_killing",
+                     "killing_during_host_seeking",
+                     "killing_during_host_seeking_relative")
+check_hsk_names = function(nm, label) {
+    other = intersect(nm, .HSK_OTHER_NAMES)
+    if (length(other))
+        stop(label, ": ", paste(other, collapse = ", "), " not accepted. ",
+             "Host-seeking killing is the absolute rate ",
+             "KillingDuringHostSeekingAbsolute (batch column ",
+             "killing_during_host_seeking_absolute); a value relative to the ",
+             "control availability alpha_0 of a hut trial must first be ",
+             "multiplied by alpha_0 (as get_ITN_params() does)")
     invisible()
 }
 
@@ -105,6 +127,7 @@ check_intervention_params = function(ps, label) {
     if (!is.data.frame(ps) || nrow(ps) == 0L)
         stop(label, " must be a non-empty data frame")
     if (anyDuplicated(names(ps))) stop(label, " must have unique column names")
+    check_hsk_names(names(ps), label)
     required = c("deterrency", "preprandial", "postprandial")
     missing_cols = setdiff(required, names(ps))
     if (length(missing_cols))
@@ -117,9 +140,9 @@ check_intervention_params = function(ps, label) {
         stop(label, ": unknown decay column(s) ", paste(unknown, collapse = ", "),
              " (decay columns end in _det, _pre, _post, _hsk, or are ",
              "halflife_attrition / decay_attrition)")
-    if (!is.null(ps$host_seeking_killing))
-        check_efficacy_values(ps$host_seeking_killing,
-                             paste0(label, "$host_seeking_killing"),
+    if (!is.null(ps$killing_during_host_seeking_absolute))
+        check_efficacy_values(ps$killing_during_host_seeking_absolute,
+                             paste0(label, "$killing_during_host_seeking_absolute"),
                              probability = FALSE, allow_na = TRUE)
     invisible(ps)
 }

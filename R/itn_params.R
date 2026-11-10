@@ -7,9 +7,9 @@
     Postprandialkilling = "PostPrandial"
 )
 .ITN_DUMMYHOST_MAP = c(
-    Repellent                = "Deterrency",
-    KillingDuringHostSeeking = "HostSeekingKilling",
-    Postprandialkilling      = "PostPrandial"
+    Repellent                        = "Deterrency",
+    KillingDuringHostSeekingRelative = "KillingDuringHostSeekingRelative",
+    Postprandialkilling              = "PostPrandial"
 )
 
 
@@ -56,7 +56,8 @@ list_ITN_params = function() {
 #'   \item \code{"standard"} (default): three-host model with
 #'     \code{Deterrency}, \code{PrePrandial}, and \code{PostPrandial}.
 #'   \item \code{"dummy_host"}: four-host model with
-#'     \code{Deterrency}, \code{HostSeekingKilling}, and \code{PostPrandial}.
+#'     \code{Deterrency}, \code{KillingDuringHostSeekingAbsolute}, and
+#'     \code{PostPrandial}.
 #'     \code{Deterrency} and \code{PostPrandial} are required in both modes.
 #' }
 #'
@@ -71,14 +72,15 @@ list_ITN_params = function() {
 #'
 #' In the experimental hut model, host-seeking killing is fitted
 #' \strong{relative} to the availability \code{alpha_0} of the trial's control
-#' arm (extra host-seeking mortality \code{KillingDuringHostSeeking * alpha_0}).
-#' Since \code{alpha_0} varies widely between trials, relative values are not
-#' comparable across trials. With \code{rescale_hsk = TRUE}, the returned
-#' \code{HostSeekingKilling} is the \strong{absolute} value
-#' \code{KillingDuringHostSeeking * alpha_0}, using the control \code{alpha_0}
-#' of the same arm (unwashed or washed fit), and its insecticide decay is
-#' recomputed from the absolute unwashed and washed values, with the trial's
-#' \code{aged_time}.
+#' arm (extra host-seeking mortality
+#' \code{KillingDuringHostSeekingRelative * alpha_0}). Since \code{alpha_0}
+#' varies widely between trials, relative values are not comparable across
+#' trials. With \code{rescale_hsk = TRUE}, the returned
+#' \code{KillingDuringHostSeekingAbsolute} is the \strong{absolute} value
+#' \code{KillingDuringHostSeekingRelative * alpha_0}, using the control
+#' \code{alpha_0} of the same arm (unwashed or washed fit), and its insecticide
+#' decay is recomputed from the absolute unwashed and washed values, with the
+#' trial's \code{aged_time}. The model uses the absolute value only.
 #'
 #' @param net_type Character string; net type label as in the \code{netType}
 #'   column of \code{ITN_parameterisations_Champagne2025}.
@@ -92,8 +94,11 @@ list_ITN_params = function() {
 #'   \emph{Washed} values.
 #' @param rescale_hsk Logical (default \code{TRUE}); dummy-host mode only.
 #'   If \code{TRUE}, multiply host-seeking killing by the control
-#'   \code{alpha_0} of its arm (see Details). Set to \code{FALSE} for
-#'   datasets whose host-seeking killing is already absolute.
+#'   \code{alpha_0} of its arm (see Details). If \code{FALSE}, return the
+#'   fitted relative value as \code{KillingDuringHostSeekingRelative} (with
+#'   its fitted decay), e.g. to rescale it with another \code{alpha_0};
+#'   \code{\link{build_intervention}} does not accept it (convert it to
+#'   \code{KillingDuringHostSeekingAbsolute} first).
 #' @param verbose Logical (default \code{TRUE}). Print a summary of the
 #'   loaded parameterisation.
 #'
@@ -168,17 +173,19 @@ get_ITN_params = function(net_type, EHT, mode = "standard",
     name = paste0(net_type, " (", EHT, ")")
 
     # Host-seeking killing is fitted relative to the control availability of
-    # its trial arm (mu_i = mu_0 + KillingDuringHostSeeking * alpha_0 in the
-    # EHT model). Rescale it to an absolute value per arm, so that values are
-    # comparable across trials, and recompute its insecticide decay from the
-    # absolute values (the control alpha_0 may differ between arms).
+    # its trial arm (mu_i = mu_0 + KillingDuringHostSeekingRelative * alpha_0
+    # in the EHT model). Rescale it to an absolute value per arm, so that
+    # values are comparable across trials, and recompute its insecticide decay
+    # from the absolute values (the control alpha_0 may differ between arms).
     alpha_0 = NULL
-    if (rescale_hsk && "HostSeekingKilling" %in% names(efficacy)) {
+    rel_name = "KillingDuringHostSeekingRelative"
+    abs_name = "KillingDuringHostSeekingAbsolute"
+    if (rescale_hsk && rel_name %in% names(efficacy)) {
         # The control of the same fit (a trial can have several fits, each with
         # its own control, e.g. Sovegnon)
         fit      = if (!is.null(rows$fit)) unique(rows$fit) else NULL
         alpha_0  = control_alpha_0(db, EHT, ref, fit)
-        hsk      = rows[rows$parameter == "KillingDuringHostSeeking", ]
+        hsk      = rows[rows$parameter == rel_name, ]
         hsk_abs  = c(Unwashed = hsk$Unwashed * alpha_0[["Unwashed"]],
                      Washed   = hsk$Washed   * alpha_0[["Washed"]])
         # Years of the washed (20x) arm: 3 for most trials, 2 for Sovegnon
@@ -187,9 +194,11 @@ get_ITN_params = function(net_type, EHT, mode = "standard",
             stop("ITN_parameterisations_Champagne2025 has no aged_time for '", net_type,
                  "' (", EHT, "): regenerate it with ",
                  "data-raw/ITN_parameterisations_Champagne2025.R")
-        efficacy[["HostSeekingKilling"]] = hsk_abs[[val_col]]
-        halflife_insecticide[["HostSeekingKilling"]] =
+        efficacy[[rel_name]] = hsk_abs[[val_col]]
+        halflife_insecticide[[rel_name]] =
             aged_time / (1 - hsk_abs[["Washed"]] / hsk_abs[["Unwashed"]])
+        names(efficacy)[names(efficacy) == rel_name] = abs_name
+        names(halflife_insecticide)[names(halflife_insecticide) == rel_name] = abs_name
     }
 
     if (verbose) {
@@ -199,7 +208,7 @@ get_ITN_params = function(net_type, EHT, mode = "standard",
         cat("Efficacy (", if (washed) "washed" else "unwashed", "):\n", sep = "")
         print(round(efficacy, 3))
         if (!is.null(alpha_0))
-            cat("HostSeekingKilling rescaled by the control alpha_0 (unwashed ",
+            cat("Host-seeking killing rescaled by the control alpha_0 (unwashed ",
                 alpha_0[["Unwashed"]], ", washed ", alpha_0[["Washed"]], ")\n",
                 sep = "")
         cat("Insecticide decay, linear time to zero (years; omitted = no decay):\n")

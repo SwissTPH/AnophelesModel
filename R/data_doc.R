@@ -154,7 +154,7 @@
 #'
 #' Efficacy components are provided for the standard three-host model
 #' (\code{Repellent}, \code{Preprandialkilling}, \code{Postprandialkilling})
-#' and the dummy-host model (\code{KillingDuringHostSeeking}).
+#' and the dummy-host model (\code{KillingDuringHostSeekingRelative}).
 #'
 #' Use \code{\link{get_ITN_params}} to load a specific net type / EHT
 #' combination into a format ready for \code{\link{build_intervention}}.
@@ -167,11 +167,13 @@
 #'   \item \code{reference}: citation for the underlying EHT data.
 #'   \item \code{parameter}: efficacy component
 #'     (\code{Repellent}, \code{Preprandialkilling},
-#'      \code{Postprandialkilling}, \code{KillingDuringHostSeeking},
+#'      \code{Postprandialkilling}, \code{KillingDuringHostSeekingRelative},
 #'      \code{alpha_0}, \code{mu_0}).
-#'     \code{KillingDuringHostSeeking} is relative to the control-arm
+#'     \code{KillingDuringHostSeekingRelative} is relative to the control-arm
 #'     availability \code{alpha_0} (rows with \code{netType == "control"});
-#'     \code{\link{get_ITN_params}} rescales it to an absolute value.
+#'     \code{\link{get_ITN_params}} rescales it to the absolute value used by
+#'     the model, \code{KillingDuringHostSeekingAbsolute}. (Named
+#'     \code{KillingDuringHostSeeking} in the source table.)
 #'   \item \code{Unwashed}: fitted efficacy for a new (unwashed) net.
 #'   \item \code{Washed}: fitted efficacy after washing / ageing.
 #'   \item \code{aged_time}: years represented by the washed arm (3, or 2
