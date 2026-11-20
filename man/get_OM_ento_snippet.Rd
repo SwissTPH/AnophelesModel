@@ -74,9 +74,10 @@ List with
     \code{defineEntomology(seasonalityParameters = )}, with placeholders
     \code{"@contrib_<population>@"} for \code{annualEIR} (numbers with
     \code{species_shares}) and \code{"@m1@"},
-    ..., \code{"@m12@"} for the seasonality, to be replaced (with R >= 4.3,
-    \code{defineEntomology()} currently rejects monthly placeholders;
-    replace them with numeric values, or a fixed openMalariaUtilities);
+    ..., \code{"@m12@"} for the seasonality, filled per scenario (columns
+    \code{m1}, ..., \code{m12}), or replaced by numbers with
+    \code{define_OM_entomology(seasonality = )} (older
+    openMalariaUtilities versions reject the placeholders with R >= 4.3);
   \item \code{shares}: data frame with \code{mosquito}, \code{taxon},
     \code{type} (\code{indoor1}, \code{indoor2}, \code{outdoor} or
     \code{all}), \code{share} within the taxon (with

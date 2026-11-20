@@ -71,7 +71,7 @@ interventions) or \code{"placeholder"} (decay parameters as placeholders,
 e.g. when the attrition varies between scenarios).}
 
 \item{schema}{OpenMalaria schema version of the scenario (default 44).
-Dummy-host interventions need 46 or later (developed for 49); from 49,
+Dummy-host interventions need 46 or later (checked with 49); from 49,
 the entomology has no \code{propInfected} / \code{propInfectious}.}
 
 \item{x}{Object of class \code{om_xml}.}

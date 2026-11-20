@@ -7,7 +7,7 @@
 define_OM_entomology(
   baseList,
   om_ento,
-  seasonality,
+  seasonality = paste0("@m", 1:12, "@"),
   scaledAnnualEIR = "@EIR@",
   ...
 )
@@ -17,9 +17,10 @@ define_OM_entomology(
 
 \item{om_ento}{Output of \code{\link{get_OM_ento_snippet}}.}
 
-\item{seasonality}{Numeric vector of 12 monthly (or 365 daily) values for
-all populations, or a named list with one such vector per population
-(names as in \code{om_ento$shares$mosquito}).}
+\item{seasonality}{12 monthly (or 365 daily) values for all populations:
+non-negative numbers, or placeholders (default
+\code{paste0("@m", 1:12, "@")}); or a named list with one such vector per
+population (names as in \code{om_ento$shares$mosquito}).}
 
 \item{scaledAnnualEIR}{Total annual EIR: a number or a placeholder
 (default \code{"@EIR@"}).}
@@ -40,9 +41,10 @@ same mosquito populations and parameters.
 The \code{annualEIR} of each population is its relative contribution to
 the EIR (see \code{get_OM_ento_snippet(species_shares = )}); the total EIR
 is \code{scaledAnnualEIR}. The seasonality gives the shape of the EIR over
-the year; it must be numeric, since \code{defineEntomology()} currently
-rejects monthly placeholders with R >= 4.3 (an openMalariaUtilities issue;
-\code{get_OM_xml()} writes the entomology with placeholders).
+the year: numbers, or placeholders (by default \code{"@m1@"}, ...,
+\code{"@m12@"}, filled per scenario by columns \code{m1}, ...,
+\code{m12}). Placeholders need a recent openMalariaUtilities: older
+versions of \code{defineEntomology()} reject them with R >= 4.3.
 
 The animal host parameters of each population are those of \code{om_ento}
 (its \code{hosts_p}), as in \code{\link{get_OM_xml}}:

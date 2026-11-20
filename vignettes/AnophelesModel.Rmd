@@ -719,14 +719,17 @@ into the `baseList`, with the total EIR in `scaledAnnualEIR` (here a
 placeholder) and the seasonality, which gives the shape of the EIR over the
 year (OpenMalaria rescales it to the annual EIR). The `baseList` also keeps
 the entomology, so that the interventions use the same mosquito populations
-and parameters. The seasonality must currently be numeric (with R >= 4.3,
-openMalariaUtilities rejects the monthly placeholders); `get_OM_xml()` keeps
-them as placeholders.
+and parameters. The seasonality is either fixed numbers, or placeholders
+(default `@m1@`, ..., `@m12@`, filled per scenario by columns `m1`, ...,
+`m12`), which need a recent openMalariaUtilities (older versions reject them
+with R >= 4.3):
 ```{r, eval=FALSE}
 # baseList: an openMalariaUtilities scenario
 baseList = define_OM_entomology(baseList, om_ento,
                                 seasonality = c(2, 3, 5, 8, 6, 3, 1, 1, 1, 1, 1, 2),
                                 scaledAnnualEIR = "@EIR@")
+# or with the seasonality per scenario (columns m1..m12)
+baseList = define_OM_entomology(baseList, om_ento, scaledAnnualEIR = "@EIR@")
 ```
 
 ### Vector control
@@ -781,15 +784,23 @@ baseList = deploy_OM_vector_control(baseList, "IG2", schedule)
 Deployments restricted to age groups, and continuous deployment (e.g. EPI),
 are described in [Age-specific deployments](#age-specific-deployments) below.
 
-**What has been checked in OpenMalaria.** The export of standard ITNs
-deployed by campaigns was run in OpenMalaria 44 and its entomological
-outputs checked (each effect on its own parameter, in-bed populations only,
-decays, refresh on redeployment, baseline EIR). IRS, age-restricted,
-sub-population, cumulative and continuous deployments, and the dummy host,
-have not been run in OpenMalaria yet.
+**What has been checked in OpenMalaria.** The export was run in
+OpenMalaria through openMalariaUtilities and its entomological outputs
+checked (each effect on its own parameter, in the populations it should
+reach, decays, campaigns):
 
-**Dummy-host nets (work in progress).** Their export has not been run in
-OpenMalaria yet and gives a warning. The GVI has deterrency and post-prandial killing only.
+- OpenMalaria 44: standard ITNs deployed by campaigns (also refresh on
+  redeployment and baseline EIR);
+- OpenMalaria 49: standard ITNs (same effects as in 44), dummy-host nets
+  (below), a list of nets with placeholder decays (identical to the nets
+  defined separately), IRS (both IRS exposure definitions), age-restricted,
+  cumulative and continuous deployments.
+
+The plain-text route (`get_OM_xml()`) writes the same XML as the
+openMalariaUtilities route. Sub-population deployments have not been run in
+OpenMalaria.
+
+**Dummy-host nets.** The GVI has deterrency and post-prandial killing only.
 Host-seeking killing, which the GVI cannot represent, is written as it is in
 the model, a dummy host on which every mosquito that finds it dies: for each
 campaign, an OpenMalaria non-human host (`<name>_dummy_<k>`, added at the
@@ -800,8 +811,21 @@ when it is a single OpenMalaria decay, otherwise the fitted Weibull (one
 modification with an increasing decay, none if it does not decay). As for the GVI, whose effects are
 refreshed (not stacked) in people who receive a net again, each campaign
 replaces the nets of its recipients: earlier dummy hosts are reduced by the
-coverage of every later campaign. Increasing decays
-need **OpenMalaria schema 46 or later** (developed for 49): set
+coverage of every later campaign. In OpenMalaria 49, timing, coverage,
+replacement, populations reached and lifespan behave as designed, and the
+decay of the dummy hosts follows the written decay within 0.3% of the
+initial effect.
+
+The relative availability of an added host is scaled by OpenMalaria by the
+availability of an average **adult**, the person sleeping in the
+experimental hut where host-seeking killing was measured. Relative to the
+average human of the population (the human of this package's model),
+host-seeking killing is therefore stronger in OpenMalaria than in the
+package, by the ratio of adult to mean human availability (1.35 in the
+scenario checked, with a Tanzanian demography). This choice may be
+revisited.
+
+Increasing decays need **OpenMalaria schema 46 or later** (checked with 49): set
 `OMVersion = 49L` in the `baseList` (or `schema = 49` in `get_OM_xml()`);
 from schema 49, the entomology is written without `propInfected` /
 `propInfectious`, which 49 removed. Standard nets work with both 44 and 49.

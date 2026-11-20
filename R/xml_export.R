@@ -1,6 +1,6 @@
 # Export to OpenMalaria via r-openMalariaUtilities (OMU) or as XML text.
-# Schema 44 by default; dummy-host interventions need schema >= 46 (developed
-# for 49), whose only change to what is written here is the removal of
+# Schema 44 by default; dummy-host interventions need schema >= 46 (checked
+# with 49), whose only change to what is written here is the removal of
 # propInfected / propInfectious from <anopheles> (49).
 
 # Internal: number -> string, as in the OMU examples
@@ -32,26 +32,6 @@ om_baselist_schema = function(baseList)
     if (is.null(baseList$OMVersion)) 44L else om_check_schema(baseList$OMVersion)
 # Smallest schema with increasing decays (dummy host)
 om_dummy_min_schema = 46L
-
-# Internal: the OpenMalaria export of dummy-host interventions is work in
-# progress (not yet run in OpenMalaria): a warning, unless acknowledged with
-# options(AnophelesModel2.om_dummy_host = TRUE). The GVI export of standard
-# ITNs deployed by campaigns was checked in OpenMalaria 44 (see
-# define_OM_vector_control()).
-om_check_dummy_enabled = function() {
-    if (!isTRUE(getOption("AnophelesModel2.om_dummy_host")))
-        warning("\n",
-            "*************************************************************************\n",
-            "* WORK IN PROGRESS: the OpenMalaria export of dummy-host interventions  *\n",
-            "* (host-seeking killing as added non-human hosts, schema >= 46) has not *\n",
-            "* been run in OpenMalaria yet. Check the results carefully, or use      *\n",
-            "* standard ITNs (get_ITN_params(mode = \"standard\")), whose export by    *\n",
-            "* campaigns was checked in OpenMalaria 44.                              *\n",
-            "* (Silence: options(AnophelesModel2.om_dummy_host = TRUE))              *\n",
-            "*************************************************************************",
-            call. = FALSE)
-    invisible()
-}
 
 # Internal: decay shape names of this package -> OpenMalaria decay functions
 om_decay_name = function(decay) {
@@ -155,9 +135,10 @@ om_decay_name = function(decay) {
 #'     \code{defineEntomology(seasonalityParameters = )}, with placeholders
 #'     \code{"@contrib_<population>@"} for \code{annualEIR} (numbers with
 #'     \code{species_shares}) and \code{"@m1@"},
-#'     ..., \code{"@m12@"} for the seasonality, to be replaced (with R >= 4.3,
-#'     \code{defineEntomology()} currently rejects monthly placeholders;
-#'     replace them with numeric values, or a fixed openMalariaUtilities);
+#'     ..., \code{"@m12@"} for the seasonality, filled per scenario (columns
+#'     \code{m1}, ..., \code{m12}), or replaced by numbers with
+#'     \code{define_OM_entomology(seasonality = )} (older
+#'     openMalariaUtilities versions reject the placeholders with R >= 4.3);
 #'   \item \code{shares}: data frame with \code{mosquito}, \code{taxon},
 #'     \code{type} (\code{indoor1}, \code{indoor2}, \code{outdoor} or
 #'     \code{all}), \code{share} within the taxon (with
@@ -585,7 +566,6 @@ get_OM_GVI_snippet = function(interv, om_ento, intervention_type = c("ITN", "IRS
     if (is.null(name)) name = om_default_name(interv, "GVI")
     om_check_split(om_ento, intervention_type)
     interv = om_gvi_objects(list(interv), om_ento, intervention_type)[[1]]
-    if (interv$settings$mode == "dummy_host") om_check_dummy_enabled()
     if (interv$settings$mode == "dummy_host")
         warning("get_OM_GVI_snippet: dummy-host intervention, the GVI has ",
                 "deterrency and post-prandial killing only. Host-seeking killing is ",
@@ -785,6 +765,12 @@ om_add_components = function(baseList, components, append = TRUE) {
                            append = append, entry = "component", input = cm)
         append = TRUE
     }
+    # In <human>, every <component> must precede the <deployment>s
+    # (xs:sequence): components defined after a deploy are moved before the
+    # deployments, each group keeping its order (otherwise the XML is invalid)
+    human = baseList$interventions$human
+    is_comp = names(human) == "component"
+    baseList$interventions$human = c(human[is_comp], human[!is_comp])
     ids = vapply(components, `[[`, character(1), "id")
     message("Components written (deploy those of the same intervention ",
             "together): ", paste(ids, collapse = ", "))
@@ -1391,9 +1377,10 @@ om_default_model = function() {
 #' The \code{annualEIR} of each population is its relative contribution to
 #' the EIR (see \code{get_OM_ento_snippet(species_shares = )}); the total EIR
 #' is \code{scaledAnnualEIR}. The seasonality gives the shape of the EIR over
-#' the year; it must be numeric, since \code{defineEntomology()} currently
-#' rejects monthly placeholders with R >= 4.3 (an openMalariaUtilities issue;
-#' \code{get_OM_xml()} writes the entomology with placeholders).
+#' the year: numbers, or placeholders (by default \code{"@m1@"}, ...,
+#' \code{"@m12@"}, filled per scenario by columns \code{m1}, ...,
+#' \code{m12}). Placeholders need a recent openMalariaUtilities: older
+#' versions of \code{defineEntomology()} reject them with R >= 4.3.
 #'
 #' The animal host parameters of each population are those of \code{om_ento}
 #' (its \code{hosts_p}), as in \code{\link{get_OM_xml}}:
@@ -1406,9 +1393,10 @@ om_default_model = function() {
 #'
 #' @param baseList openMalariaUtilities \code{baseList}.
 #' @param om_ento Output of \code{\link{get_OM_ento_snippet}}.
-#' @param seasonality Numeric vector of 12 monthly (or 365 daily) values for
-#'   all populations, or a named list with one such vector per population
-#'   (names as in \code{om_ento$shares$mosquito}).
+#' @param seasonality 12 monthly (or 365 daily) values for all populations:
+#'   non-negative numbers, or placeholders (default
+#'   \code{paste0("@m", 1:12, "@")}); or a named list with one such vector per
+#'   population (names as in \code{om_ento$shares$mosquito}).
 #' @param scaledAnnualEIR Total annual EIR: a number or a placeholder
 #'   (default \code{"@EIR@"}).
 #' @param ... Passed to \code{defineEntomology()} (e.g. \code{name},
@@ -1420,7 +1408,8 @@ om_default_model = function() {
 #'
 #' @export
 #'
-define_OM_entomology = function(baseList, om_ento, seasonality,
+define_OM_entomology = function(baseList, om_ento,
+                                seasonality = paste0("@m", 1:12, "@"),
                                 scaledAnnualEIR = "@EIR@", ...) {
     if (!requireNamespace("openMalariaUtilities", quietly = TRUE))
         stop("define_OM_entomology() requires the openMalariaUtilities package ",
@@ -1434,21 +1423,37 @@ define_OM_entomology = function(baseList, om_ento, seasonality,
                  "om_ento$shares$mosquito")
         seas = seas[mosq]
     }
-    for (s in seas)
-        if (!is.numeric(s) || !length(s) %in% c(12L, 365L) || any(!is.finite(s)) ||
-            any(s < 0))
-            stop("seasonality must be 12 monthly or 365 daily non-negative numbers ",
-                 "(openMalariaUtilities currently rejects placeholders; use ",
-                 "get_OM_xml() to keep them)")
+    for (s in seas) om_check_seasonality(s)
     params = om_ento$seasonalityParameters
     for (j in seq_along(mosq)) params[[mosq[j]]]$seasonality = seas[[j]]
-    baseList = openMalariaUtilities::defineEntomology(
-        baseList, params, om_ento$mosquitoParameters,
-        scaledAnnualEIR = scaledAnnualEIR, ...)
+    placeholders = any(vapply(seas, is.character, logical(1)))
+    baseList = tryCatch(
+        openMalariaUtilities::defineEntomology(
+            baseList, params, om_ento$mosquitoParameters,
+            scaledAnnualEIR = scaledAnnualEIR, ...),
+        error = function(e) {
+            if (!placeholders) stop(e)
+            stop("openMalariaUtilities::defineEntomology() failed with placeholder ",
+                 "seasonality: older versions reject placeholders with R >= 4.3. ",
+                 "Update openMalariaUtilities, or give numbers. Error: ",
+                 conditionMessage(e), call. = FALSE)
+        })
     baseList$entomology$vector = om_fix_omu_vector(baseList$entomology$vector, om_ento,
                                                    om_baselist_schema(baseList))
     baseList$anophelesmodel2$ento = om_ento
     baseList
+}
+
+# Internal: seasonality of one population, 12 monthly or 365 daily values:
+# non-negative numbers, or placeholders only ("@m1@", ...)
+om_check_seasonality = function(s) {
+    ok = length(s) %in% c(12L, 365L) && !anyNA(s) &&
+        if (is.character(s)) all(grepl("^@[^@[:space:]]+@$", s))
+        else is.numeric(s) && all(is.finite(s)) && all(s >= 0)
+    if (!ok)
+        stop("seasonality must be 12 monthly or 365 daily non-negative numbers, ",
+             "or as many placeholders (e.g. paste0(\"@m\", 1:12, \"@\"))", call. = FALSE)
+    invisible()
 }
 
 # Internal: <vector> written by openMalariaUtilities::defineEntomology(),
@@ -1511,23 +1516,30 @@ om_baselist_ento = function(baseList) {
 #' \code{baseList$anophelesmodel2} (not written to the XML) and says so in a
 #' message.
 #'
-#' \strong{What has been checked in OpenMalaria.} The export of
-#' \strong{standard ITNs deployed by campaigns} was run in OpenMalaria 44
-#' through openMalariaUtilities, and its entomological outputs checked: each
-#' effect (deterrency, pre- and post-prandial killing) changes its own
-#' parameter, in the in-bed mosquito populations only; Weibull decays
-#' (exact and fitted); refresh on redeployment; baseline EIR and population
-#' contributions. \strong{Not yet run in OpenMalaria:} IRS, deployments
-#' restricted by age, sub-population or cumulative coverage, continuous
-#' deployment (\code{\link{om_continuous}}), the plain-text route
-#' (\code{\link{get_OM_xml}}, same lists, compared with the
-#' openMalariaUtilities route in the package tests) and the dummy host
-#' (below).
+#' \strong{What has been checked in OpenMalaria.} Run through
+#' openMalariaUtilities and checked on the entomological outputs:
+#' \itemize{
+#'   \item OpenMalaria 44: \strong{standard ITNs deployed by campaigns}: each
+#'     effect (deterrency, pre- and post-prandial killing) changes its own
+#'     parameter, in the in-bed mosquito populations only; Weibull decays
+#'     (exact and fitted); refresh on redeployment; baseline EIR and
+#'     population contributions.
+#'   \item OpenMalaria 49: standard ITNs (the same effects as in 44);
+#'     \strong{dummy-host nets} (below: timing, coverage, replacement by later
+#'     campaigns, populations reached and lifespan as designed; the decay of
+#'     the added hosts follows the written decay within 0.3\% of the initial
+#'     effect); a named list of nets with placeholder decays (identical to
+#'     the nets defined separately); \strong{IRS}, with both
+#'     \code{irs_exposure} definitions of \code{\link{get_OM_ento_snippet}};
+#'     deployments restricted by \strong{age} and with \strong{cumulative}
+#'     coverage; \strong{continuous} deployment (\code{\link{om_continuous}}).
+#' }
+#' The plain-text route (\code{\link{get_OM_xml}}) writes the same XML as the
+#' openMalariaUtilities route (package tests, and for schema 49). \strong{Not
+#' run in OpenMalaria:} deployments restricted to a sub-population
+#' (\code{subpop}).
 #'
-#' \strong{Host-seeking killing (OpenMalaria schema >= 46), work in
-#' progress:} this part has not been run in OpenMalaria yet, and gives a
-#' warning (silenced with \code{options(AnophelesModel2.om_dummy_host =
-#' TRUE)}). OpenMalaria's
+#' \strong{Host-seeking killing (OpenMalaria schema >= 46).} OpenMalaria's
 #' GVI has no host-seeking killing. In this package it is a dummy host per
 #' covered person, of availability \code{KillingDuringHostSeekingAbsolute}
 #' \eqn{\times} insecticide decay (relative to the human availability
@@ -1550,11 +1562,21 @@ om_baselist_ento = function(baseList) {
 #' (\code{<name>_dummy_<j>_replaced_<k>}, constant availability reduction
 #' \eqn{c_k}, the same number or placeholder as the schedule), which gives
 #' the expected effect of campaigns reaching random, independent shares of
-#' the population. Increasing decays need OpenMalaria schema 46 or later (developed for
-#' 49): the \code{OMVersion} of the \code{baseList}. As for the GVI effects,
+#' the population. Increasing decays need OpenMalaria schema 46 or later
+#' (checked with 49): the \code{OMVersion} of the \code{baseList}. As for the GVI effects,
 #' a rising insecticide decay (negative \code{halflife_insecticide}) is only
 #' exported through the fitted Weibull (with attrition). Host-seeking killing
 #' acts on the same populations as the GVI (in bed for ITNs).
+#'
+#' \strong{Reference human.} OpenMalaria multiplies the relative
+#' availability of an added host by the availability of an average
+#' \strong{adult}, the person sleeping in the experimental hut where
+#' host-seeking killing was measured. Relative to the average human of the
+#' population, which is the human of this package's model, the host-seeking
+#' killing is therefore stronger in OpenMalaria than in this package, by the
+#' ratio of adult to mean human availability (1.35 in the scenario checked,
+#' Tanzanian demography; it depends on the age structure). This choice may be
+#' revisited.
 #'
 #' \strong{Placeholders, only where something varies.}
 #' \itemize{
@@ -1688,11 +1710,10 @@ om_vc_components = function(interv, om_ento, intervention_type, name,
     name  = om_name(x, name, intervention_type)
     items = x$nets
     mode  = om_item_mode(items[[1]])
-    if (mode == "dummy_host") om_check_dummy_enabled()
     if (mode == "dummy_host" && schema < om_dummy_min_schema)
         stop("The host-seeking killing of dummy-host interventions is written as ",
              "non-human hosts with increasing decays, which need OpenMalaria schema >= ",
-             om_dummy_min_schema, " (developed for 49): use schema = 49 in get_OM_xml(), ",
+             om_dummy_min_schema, " (checked with 49): use schema = 49 in get_OM_xml(), ",
              "or OMVersion = 49L in the baseList (schema ", schema, " here)")
     om_check_split(om_ento, intervention_type)
     nets  = om_gvi_objects(items, om_ento, intervention_type)
@@ -2360,7 +2381,7 @@ om_scenario_record = function(source, name) {
 #' @param entomology Logical (default \code{TRUE}): include the entomology
 #'   snippet.
 #' @param schema OpenMalaria schema version of the scenario (default 44).
-#'   Dummy-host interventions need 46 or later (developed for 49); from 49,
+#'   Dummy-host interventions need 46 or later (checked with 49); from 49,
 #'   the entomology has no \code{propInfected} / \code{propInfectious}.
 #'
 #' @return Object of class \code{om_xml}: named list with \code{entomology},

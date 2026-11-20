@@ -131,7 +131,9 @@ rewritten and are **not backward compatible**.
   one `<deployment>` holding all its components (same people) and one deploy
   per campaign of a `schedule` (dates, numeric or placeholder coverages).
   The define writes the components, the deploy the deployment (the schedule
-  is given only there). Host-seeking killing of dummy-host nets is exported
+  is given only there). Defines and deploys can come in any order: components
+  are always written before the deployments, as OpenMalaria requires
+  (also with `add_OM_GVI()`). Host-seeking killing of dummy-host nets is exported
   as the model's dummy host: per campaign, an OpenMalaria added non-human
   host (`addNonHumanHosts`, availability relative to an adult human =
   coverage × `KillingDuringHostSeekingAbsolute` / human availability,
@@ -142,18 +144,25 @@ rewritten and are **not backward compatible**.
   increasing decay; placeholders `@<name>_hsk_L@` / `_k@` like the other
   effects). Written by the
   deploy (once, with the whole schedule); it needs OpenMalaria schema >= 46
-  (developed for 49), from the `baseList`'s `OMVersion`. A named list of
+  (checked with 49), from the `baseList`'s `OMVersion`. OpenMalaria scales
+  an added host by the availability of an average adult (the hut sleeper),
+  so relative to the average human the host-seeking killing is stronger
+  than in the package's model (by the adult / mean availability ratio, 1.35
+  in the scenario checked); this choice may be revisited. A named list of
   interventions defines one intervention whose values are chosen per
   scenario, e.g. to loop scenarios over net types.
 * Age-restricted deployments need both `minAge` and `maxAge` (or neither,
   all ages); a single limit, negative ages or `minAge >= maxAge` are errors.
-* The OpenMalaria export of dummy-host interventions (`define_OM_vector_control()`,
-  `get_OM_xml()`, `get_OM_GVI_snippet()`) warns that it is work in progress,
-  not yet validated in OpenMalaria (silenced with
-  `options(AnophelesModel2.om_dummy_host = TRUE)`). The export of standard
-  ITNs deployed by campaigns was checked in OpenMalaria 44 (entomological
-  outputs); IRS and the age-restricted, sub-population, cumulative and
-  continuous deployments have not been run in OpenMalaria yet.
+* Checked in OpenMalaria, through openMalariaUtilities, on the entomological
+  outputs: standard ITNs deployed by campaigns (OpenMalaria 44 and 49);
+  dummy-host nets, a named list of nets with placeholder decays, IRS (both
+  `irs_exposure` definitions), age-restricted, cumulative and continuous
+  deployments (OpenMalaria 49). For dummy-host nets, timing, coverage,
+  replacement by later campaigns, populations reached and lifespan are as
+  designed, and the decay of the added hosts follows the written decay
+  within 0.3% of the initial effect. The plain-text route writes the same
+  XML as the openMalariaUtilities route. Not run in OpenMalaria:
+  sub-population deployments (`subpop`).
 * `om_scenario_values()`: decay columns with fixed decays are an error even
   when nothing else needs filling; attrition columns on a net without
   attrition, and a `kappa` column on a shape-less attrition, are errors
@@ -245,7 +254,9 @@ rewritten and are **not backward compatible**.
   nets), with its parameters as placeholders; it is a Weibull only when the
   decay functions differ.
 * New `define_OM_entomology()`: writes the entomology with
-  `defineEntomology()` (numeric seasonality, `scaledAnnualEIR`) and keeps it
+  `defineEntomology()` (seasonality as numbers or placeholders, by default
+  `@m1@`...`@m12@`, which need a recent openMalariaUtilities;
+  `scaledAnnualEIR`) and keeps it
   in the `baseList`; `define_OM_vector_control()` takes the mosquito
   populations and parameters from there (no `om_ento` argument), so the
   interventions are consistent with the entomology.

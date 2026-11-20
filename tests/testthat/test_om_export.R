@@ -1,11 +1,6 @@
 library(AnophelesModel2)
 library(testthat)
 
-# The dummy-host export warns that it is work in progress (tested below);
-# acknowledged here so that the other tests do not repeat the warning. Reset
-# by testthat at the end of this file, even if the file stops early.
-withr::local_options(AnophelesModel2.om_dummy_host = TRUE)
-
 # Export to OpenMalaria through openMalariaUtilities (OMU) input lists.
 
 gss      = "Anopheles gambiae ss/coluzzii"
@@ -332,22 +327,17 @@ om_rebuild = function(h, k, j, days) {
     v
 }
 
-test_that("the dummy-host export warns that it is work in progress", {
-    withr::local_options(AnophelesModel2.om_dummy_host = NULL)
-    expect_warning(suppressMessages(get_OM_xml(om, dh_net(), sched_num, schema = 49)),
-                   "WORK IN PROGRESS")
-    # get_OM_GVI_snippet() also warns that host-seeking killing is not in the GVI
+test_that("the dummy-host export has no work-in-progress warning (run in OpenMalaria 49)", {
+    expect_no_warning(suppressMessages(get_OM_xml(om, dh_net(), sched_num, schema = 49)))
+    # get_OM_GVI_snippet() only warns that host-seeking killing is not in the GVI
     w = character(0)
     withCallingHandlers(suppressMessages(get_OM_GVI_snippet(dh_net(), om, "ITN")),
                         warning = function(x) {
                             w <<- c(w, conditionMessage(x))
                             invokeRestart("muffleWarning")
                         })
-    expect_true(any(grepl("WORK IN PROGRESS", w)))
-    expect_true(any(grepl("Host-seeking killing is not part of it", w)))
-    # Standard interventions: no warning
-    expect_no_warning(get_OM_xml(om, bi(halflife_attrition = 730, shape_attrition = 2),
-                                 sched_num, entomology = FALSE))
+    expect_length(w, 1)
+    expect_match(w, "Host-seeking killing is not part of it")
 })
 
 test_that("dummy hosts follow the decay of host-seeking killing, as the GVI effects", {
@@ -655,6 +645,31 @@ test_that("define / deploy a dummy-host net with numeric coverages", {
     b2 = suppressMessages(deploy_OM_vector_control(b2, "S", sched_num))
     expect_equal(by_name(b2$interventions$addNonHumanHosts, "nonHumanHosts")[[1]]$timed$deploy$lifespan,
                  "100y")
+})
+
+test_that("components defined after a deploy are written before the deployments", {
+    skip_if_not_installed("openMalariaUtilities")
+    # define A, deploy A, define B, deploy B: in <human>, all <component>s must
+    # precede the <deployment>s (xs:sequence), else the XML is invalid
+    b = om_base_ento(49L)
+    for (nm in c("A", "B")) {
+        b = suppressMessages(define_OM_vector_control(b, dh_net(name = nm)))
+        b = suppressMessages(deploy_OM_vector_control(b, nm, sched_num, end_date))
+    }
+    human = b$interventions$human
+    expect_equal(names(human), c("component", "component", "deployment", "deployment"))
+    expect_equal(unname(sapply(by_name(human, "component"), `[[`, "id")), c("A", "B"))
+    expect_equal(unname(sapply(by_name(human, "deployment"), `[[`, "name")),
+                 c("A", "B"))
+    # The same through add_OM_GVI() after a deploy (a standard net: the GVI
+    # of a dummy-host net warns that it lacks host-seeking killing)
+    gvi = suppressMessages(get_OM_GVI_snippet(
+        bi(halflife_attrition = 730, shape_attrition = 2), om, "ITN"))
+    b = suppressMessages(add_OM_GVI(b, gvi))
+    human = b$interventions$human
+    n_comp = sum(names(human) == "component")
+    expect_gt(n_comp, 2)
+    expect_equal(names(human), c(rep("component", n_comp), rep("deployment", 2)))
 })
 
 test_that("define / deploy a template of nets: one deployment with all components", {
@@ -971,8 +986,20 @@ test_that("define_OM_entomology keeps the entomology used by the interventions",
     b2 = suppressMessages(define_OM_entomology(om_base(), om, seas, scaledAnnualEIR = 20))
     an2 = by_name(b2$entomology$vector, "anopheles")
     expect_equal(an2[[2]]$seasonality$monthlyValues[[2]][[1]], 2)
-    expect_error(define_OM_entomology(om_base(), om, paste0("@m", 1:12, "@")), "placeholders")
     expect_error(define_OM_entomology(om_base(), om, seas[1]), "one element per population")
+    # Placeholder seasonality (default @m1@..@m12@): written by a recent
+    # openMalariaUtilities, a clear error with older versions (R >= 4.3)
+    res = tryCatch(suppressMessages(define_OM_entomology(om_base(), om)),
+                   error = function(e) e)
+    if (inherits(res, "error")) {
+        expect_match(conditionMessage(res), "older versions reject placeholders")
+    } else {
+        expect_true(all(paste0("@m", 1:12, "@") %in% unlist(res$entomology$vector)))
+    }
+    # Invalid seasonalities, checked before openMalariaUtilities
+    for (bad in list(c(paste0("@m", 1:11, "@"), "m12"), rep(-1, 12), rep(1, 11),
+                     paste0("@m", 1:11, "@")))
+        expect_error(define_OM_entomology(om_base(), om, bad), "seasonality must be")
     expect_false(is.null(an[[1]]$propInfected))
     # Schema 49: without propInfected / propInfectious
     an49 = by_name(om_base_ento(49L)$entomology$vector, "anopheles")

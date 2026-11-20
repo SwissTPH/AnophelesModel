@@ -55,23 +55,30 @@ For dummy-host interventions, the host-seeking killing is written by
 \code{baseList$anophelesmodel2} (not written to the XML) and says so in a
 message.
 
-\strong{What has been checked in OpenMalaria.} The export of
-\strong{standard ITNs deployed by campaigns} was run in OpenMalaria 44
-through openMalariaUtilities, and its entomological outputs checked: each
-effect (deterrency, pre- and post-prandial killing) changes its own
-parameter, in the in-bed mosquito populations only; Weibull decays
-(exact and fitted); refresh on redeployment; baseline EIR and population
-contributions. \strong{Not yet run in OpenMalaria:} IRS, deployments
-restricted by age, sub-population or cumulative coverage, continuous
-deployment (\code{\link{om_continuous}}), the plain-text route
-(\code{\link{get_OM_xml}}, same lists, compared with the
-openMalariaUtilities route in the package tests) and the dummy host
-(below).
+\strong{What has been checked in OpenMalaria.} Run through
+openMalariaUtilities and checked on the entomological outputs:
+\itemize{
+  \item OpenMalaria 44: \strong{standard ITNs deployed by campaigns}: each
+    effect (deterrency, pre- and post-prandial killing) changes its own
+    parameter, in the in-bed mosquito populations only; Weibull decays
+    (exact and fitted); refresh on redeployment; baseline EIR and
+    population contributions.
+  \item OpenMalaria 49: standard ITNs (the same effects as in 44);
+    \strong{dummy-host nets} (below: timing, coverage, replacement by later
+    campaigns, populations reached and lifespan as designed; the decay of
+    the added hosts follows the written decay within 0.3\% of the initial
+    effect); a named list of nets with placeholder decays (identical to
+    the nets defined separately); \strong{IRS}, with both
+    \code{irs_exposure} definitions of \code{\link{get_OM_ento_snippet}};
+    deployments restricted by \strong{age} and with \strong{cumulative}
+    coverage; \strong{continuous} deployment (\code{\link{om_continuous}}).
+}
+The plain-text route (\code{\link{get_OM_xml}}) writes the same XML as the
+openMalariaUtilities route (package tests, and for schema 49). \strong{Not
+run in OpenMalaria:} deployments restricted to a sub-population
+(\code{subpop}).
 
-\strong{Host-seeking killing (OpenMalaria schema >= 46), work in
-progress:} this part has not been run in OpenMalaria yet, and gives a
-warning (silenced with \code{options(AnophelesModel2.om_dummy_host =
-TRUE)}). OpenMalaria's
+\strong{Host-seeking killing (OpenMalaria schema >= 46).} OpenMalaria's
 GVI has no host-seeking killing. In this package it is a dummy host per
 covered person, of availability \code{KillingDuringHostSeekingAbsolute}
 \eqn{\times} insecticide decay (relative to the human availability
@@ -94,11 +101,21 @@ of every later campaign \eqn{k}
 (\code{<name>_dummy_<j>_replaced_<k>}, constant availability reduction
 \eqn{c_k}, the same number or placeholder as the schedule), which gives
 the expected effect of campaigns reaching random, independent shares of
-the population. Increasing decays need OpenMalaria schema 46 or later (developed for
-49): the \code{OMVersion} of the \code{baseList}. As for the GVI effects,
+the population. Increasing decays need OpenMalaria schema 46 or later
+(checked with 49): the \code{OMVersion} of the \code{baseList}. As for the GVI effects,
 a rising insecticide decay (negative \code{halflife_insecticide}) is only
 exported through the fitted Weibull (with attrition). Host-seeking killing
 acts on the same populations as the GVI (in bed for ITNs).
+
+\strong{Reference human.} OpenMalaria multiplies the relative
+availability of an added host by the availability of an average
+\strong{adult}, the person sleeping in the experimental hut where
+host-seeking killing was measured. Relative to the average human of the
+population, which is the human of this package's model, the host-seeking
+killing is therefore stronger in OpenMalaria than in this package, by the
+ratio of adult to mean human availability (1.35 in the scenario checked,
+Tanzanian demography; it depends on the age structure). This choice may be
+revisited.
 
 \strong{Placeholders, only where something varies.}
 \itemize{
