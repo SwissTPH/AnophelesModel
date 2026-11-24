@@ -112,6 +112,9 @@ rewritten and are **not backward compatible**.
 
 ## Export to OpenMalaria
 
+* New demo of the export: `demo("OM_export", package = "AnophelesModel2")`
+  (mosquito populations with species-specific activity patterns, ITNs, XML
+  text, scenario values; its last part needs openMalariaUtilities).
 * `get_OM_ento_snippet()` is rewritten: it returns the input lists of
   `openMalariaUtilities::defineEntomology()` (no XML nodes; the XML dependency
   is removed). It fixes the mapping of the original version, which wrote the
