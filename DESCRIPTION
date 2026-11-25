@@ -1,11 +1,11 @@
-Package: AnophelesModel
+Package: AnophelesModel2
 Type: Package
-Title: An R package to quantify the effect of vector bionomics on the impact of vector control interventions against malaria transmitted by Anopheles mosquitoes
-Version: 0.1.0
+Title: Quantify the Effect of Mosquito Bionomics on the Impact of Vector Control Interventions Against Malaria
+Version: 1.0.0
 Authors@R: as.person(c(
-    "Monica Golumbeanu <monica.golumbeanu@swisstph.ch> [aut, cre]", 
+    "Clara Champagne <clara.champagne@swisstph.ch> [aut, cre]",
+    "Monica Golumbeanu <monica.golumbeanu@swisstph.ch> [aut]",
     "Olivier Briet [aut]",
-    "Clara Champagne [aut]",
     "Jeanne Lemant [aut]",
     "Barnabas Zogo [aut]",
     "Maximilian Gerhards [aut]",
@@ -15,32 +15,31 @@ Authors@R: as.person(c(
     "Emilie Pothin [aut]",
     "Thomas Smith [aut]"
   ))
-Description: This package provides functions for parameterising and predicting 
-    models of the oviposition cycle of Anopheles mosquitoes. It is designed to 
-    quantify how vector bionomics influence the impact of vector control 
-    interventions against malaria.
+Description: Functions for parameterising and predicting models of the
+    oviposition cycle of Anopheles mosquitoes, to quantify how vector
+    bionomics influence the impact of vector control interventions against
+    malaria, and to parameterise the entomology and vector control of
+    OpenMalaria scenarios. Refactoring of the AnophelesModel package.
 Imports:
-    magrittr,
-    ggplot2,
+    ggplot2 (>= 3.4.0),
     data.table,
-    splines,
-    minpack.lm,
-    tgp,
     checkmate,
-    reshape,
-    dplyr,
-    XML
+    stats,
+    utils
 Suggests: 
     knitr,
     rmarkdown,
-    testthat,
-    DiagrammeR, 
-    ggpubr,
-    Hmisc
+    testthat (>= 3.1.5),
+    withr,
+    openMalariaUtilities,
+    xml2
+Remotes:
+    SwissTPH/r-openMalariaUtilities
 VignetteBuilder: knitr
 License: GPL (>=2)
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.3
 Depends: 
     R (>= 3.5.0)
+Config/roxygen2/version: 8.0.0
+RoxygenNote: 8.0.0

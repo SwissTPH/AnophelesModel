@@ -2,10 +2,10 @@
 # Unit tests for the AnophelesModel package
 ############################################
 
-library(AnophelesModel)
+library(AnophelesModel2)
 library(testthat)
 
-test_check("AnophelesModel")
+test_check("AnophelesModel2")
 
 
 

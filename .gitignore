@@ -1,7 +1,6 @@
 Meta
 tmp
 .Rhistory
-.Rbuildignore
 tex
 pdf
 synctex.gz
@@ -11,3 +10,9 @@ bbl
 .Rproj.user/
 .Rproj.user
 /.Rproj.user
+/doc/
+/docs/
+.RData
+.Rapp.history
+vignettes/*.htm
+vignettes/*_files/

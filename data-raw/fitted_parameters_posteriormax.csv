@@ -1,0 +1,119 @@
+"netType","EHT","reference","parameter","aged_time","treatment","Unwashed","Washed","halflife_insecticide","halflife_insecticide_old"
+"Pyrethroid-only","Kibondo","Kibondo et al.","Postprandialkilling",3,1,0.21,0.18,21,21
+"Interceptor G2","Kibondo","Kibondo et al.","Postprandialkilling",3,2,0.52,0.47,31.2,31.2
+"Pyrethroid-only","Kibondo","Kibondo et al.","Preprandialkilling",3,1,0.26,0.25,77.9999999999998,77.9999999999998
+"Interceptor G2","Kibondo","Kibondo et al.","Preprandialkilling",3,2,0.44,0.42,65.9999999999999,65.9999999999999
+"Pyrethroid-only","Kibondo","Kibondo et al.","Repellent",3,1,0.82,0.77,49.2,49.2
+"Interceptor G2","Kibondo","Kibondo et al.","Repellent",3,2,0.71,0.74,-71.0000000000001,-71.0000000000001
+"Pyrethroid-only","Kibondo","Kibondo et al.","KillingDuringHostSeeking",3,1,1.82,1.78,136.5,136.5
+"Interceptor G2","Kibondo","Kibondo et al.","KillingDuringHostSeeking",3,2,3.58,3.41,63.1764705882353,63.1764705882353
+"control","Kibondo","Kibondo et al.","alpha_0",3,-1,0.17,0.16,51,51
+"control","Kibondo","Kibondo et al.","mu_0",3,-1,0.14,0.14,Inf,Inf
+"Pyrethroid-only","BIT055","BIT055","Postprandialkilling",3,1,0.27,0.18,9,9
+"Olyset Plus","BIT055","BIT055","Postprandialkilling",3,2,0.53,0.31,7.22727272727273,7.22727272727273
+"Pyrethroid-only","BIT055","BIT055","Preprandialkilling",3,1,0.36,0.27,12,12
+"Olyset Plus","BIT055","BIT055","Preprandialkilling",3,2,0.45,0.31,9.64285714285714,9.64285714285714
+"Pyrethroid-only","BIT055","BIT055","Repellent",3,1,0.78,0.71,33.4285714285714,33.4285714285714
+"Olyset Plus","BIT055","BIT055","Repellent",3,2,0.9,0.8,27,27
+"Pyrethroid-only","BIT055","BIT055","KillingDuringHostSeeking",3,1,1.74,1.28,11.3478260869565,11.3478260869565
+"Olyset Plus","BIT055","BIT055","KillingDuringHostSeeking",3,2,2.33,1.47,8.12790697674419,8.12790697674419
+"control","BIT055","BIT055","alpha_0",3,-1,0.26,0.25,77.9999999999998,77.9999999999998
+"control","BIT055","BIT055","mu_0",3,-1,0.05,0.05,Inf,Inf
+"Pyrethroid-only","Assenga","Assenga et al., Tanzania","Postprandialkilling",3,1,0.19,0.05,4.07142857142857,4.07142857142857
+"Olyset Plus","Assenga","Assenga et al., Tanzania","Postprandialkilling",3,2,0.2,0.34,-4.28571428571429,-4.28571428571429
+"Interceptor G2","Assenga","Assenga et al., Tanzania","Postprandialkilling",3,3,0.14,0.27,-3.23076923076923,-3.23076923076923
+"Pyrethroid-only","Assenga","Assenga et al., Tanzania","Preprandialkilling",3,1,0.35,0.28,15,15
+"Olyset Plus","Assenga","Assenga et al., Tanzania","Preprandialkilling",3,2,0.34,0.32,51,51
+"Interceptor G2","Assenga","Assenga et al., Tanzania","Preprandialkilling",3,3,0.45,0.29,8.4375,8.4375
+"Pyrethroid-only","Assenga","Assenga et al., Tanzania","Repellent",3,1,0.83,0.75,31.125,31.125
+"Olyset Plus","Assenga","Assenga et al., Tanzania","Repellent",3,2,0.82,0.73,27.3333333333333,27.3333333333333
+"Interceptor G2","Assenga","Assenga et al., Tanzania","Repellent",3,3,0.57,0.31,6.57692307692308,6.57692307692308
+"Pyrethroid-only","Assenga","Assenga et al., Tanzania","KillingDuringHostSeeking",3,1,2.93,2.23,12.5571428571429,12.5571428571429
+"Olyset Plus","Assenga","Assenga et al., Tanzania","KillingDuringHostSeeking",3,2,2.82,2.58,35.25,35.25
+"Interceptor G2","Assenga","Assenga et al., Tanzania","KillingDuringHostSeeking",3,3,4.1,2.43,7.36526946107785,7.36526946107785
+"control","Assenga","Assenga et al., Tanzania","alpha_0",3,-1,0.15,0.15,Inf,Inf
+"control","Assenga","Assenga et al., Tanzania","mu_0",3,-1,0.03,0.03,Inf,Inf
+"Pyrethroid-only","Assenga, CI","Assenga et al., Côte d'Ivoire","Postprandialkilling",3,1,0.32,0.21,8.72727272727273,8.72727272727273
+"Olyset Plus","Assenga, CI","Assenga et al., Côte d'Ivoire","Postprandialkilling",3,2,0.53,0.26,5.88888888888889,5.88888888888889
+"Interceptor G2","Assenga, CI","Assenga et al., Côte d'Ivoire","Postprandialkilling",3,3,0.74,0.56,12.3333333333333,12.3333333333333
+"Pyrethroid-only","Assenga, CI","Assenga et al., Côte d'Ivoire","Preprandialkilling",3,1,0.19,0.21,-28.5,-28.5
+"Olyset Plus","Assenga, CI","Assenga et al., Côte d'Ivoire","Preprandialkilling",3,2,0.33,0.19,7.07142857142857,7.07142857142857
+"Interceptor G2","Assenga, CI","Assenga et al., Côte d'Ivoire","Preprandialkilling",3,3,0.64,0.57,27.4285714285714,27.4285714285714
+"Pyrethroid-only","Assenga, CI","Assenga et al., Côte d'Ivoire","Repellent",3,1,0.5,0.62,-12.5,-12.5
+"Olyset Plus","Assenga, CI","Assenga et al., Côte d'Ivoire","Repellent",3,2,0.8,0.49,7.74193548387097,7.74193548387097
+"Interceptor G2","Assenga, CI","Assenga et al., Côte d'Ivoire","Repellent",3,3,0.45,0.04,3.29268292682927,3.29268292682927
+"Pyrethroid-only","Assenga, CI","Assenga et al., Côte d'Ivoire","KillingDuringHostSeeking",3,1,0.38,0.48,-11.4,-11.4
+"Olyset Plus","Assenga, CI","Assenga et al., Côte d'Ivoire","KillingDuringHostSeeking",3,2,0.66,0.44,9,9
+"Interceptor G2","Assenga, CI","Assenga et al., Côte d'Ivoire","KillingDuringHostSeeking",3,3,2.11,2.29,-35.1666666666667,-35.1666666666667
+"control","Assenga, CI","Assenga et al., Côte d'Ivoire","alpha_0",3,-1,0.63,0.53,18.9,18.9
+"control","Assenga, CI","Assenga et al., Côte d'Ivoire","mu_0",3,-1,0.1,0.09,30,30
+"Pyrethroid-only","Odufuwa","Odufuwa et al.","Postprandialkilling",3,1,0.06,0.2,-1.28571428571429,-1.28571428571429
+"Olyset Plus","Odufuwa","Odufuwa et al.","Postprandialkilling",3,2,0.44,0.31,10.1538461538462,10.1538461538462
+"Pyrethroid-only","Odufuwa","Odufuwa et al.","Preprandialkilling",3,1,0.2,0.2,Inf,Inf
+"Olyset Plus","Odufuwa","Odufuwa et al.","Preprandialkilling",3,2,0.37,0.24,8.53846153846154,8.53846153846154
+"Pyrethroid-only","Odufuwa","Odufuwa et al.","Repellent",3,1,0.59,0.64,-35.4,-35.4
+"Olyset Plus","Odufuwa","Odufuwa et al.","Repellent",3,2,0.86,0.83,85.9999999999998,85.9999999999998
+"Pyrethroid-only","Odufuwa","Odufuwa et al.","KillingDuringHostSeeking",3,1,1.73,1.68,103.8,103.8
+"Olyset Plus","Odufuwa","Odufuwa et al.","KillingDuringHostSeeking",3,2,3.63,2.1,7.11764705882353,7.11764705882353
+"control","Odufuwa","Odufuwa et al.","alpha_0",3,-1,0.13,0.13,Inf,Inf
+"control","Odufuwa","Odufuwa et al.","mu_0",3,-1,0.12,0.11,36,36
+"Pyrethroid-only","BIT080","BIT080","Postprandialkilling",3,1,0.17,0.37,-2.55,-2.55
+"Interceptor G2","BIT080","BIT080","Postprandialkilling",3,2,0.15,0.35,-2.25,-2.25
+"Pyrethroid-only","BIT080","BIT080","Preprandialkilling",3,1,0.27,0.25,40.4999999999999,40.4999999999999
+"Interceptor G2","BIT080","BIT080","Preprandialkilling",3,2,0.44,0.34,13.2,13.2
+"Pyrethroid-only","BIT080","BIT080","Repellent",3,1,0.51,0.38,11.7692307692308,11.7692307692308
+"Interceptor G2","BIT080","BIT080","Repellent",3,2,0.5,0.35,10,10
+"Pyrethroid-only","BIT080","BIT080","KillingDuringHostSeeking",3,1,4.5,4.21,46.5517241379311,46.5517241379311
+"Interceptor G2","BIT080","BIT080","KillingDuringHostSeeking",3,2,8.27,6.19,11.9278846153846,11.9278846153846
+"control","BIT080","BIT080","alpha_0",3,-1,0.07,0.07,Inf,Inf
+"control","BIT080","BIT080","mu_0",3,-1,0.01,0.01,Inf,Inf
+"Pyrethroid-only","Martin","Martin et al., An. gambiae","Postprandialkilling",3,1,0.05,0.12,-2.14285714285714,-2.14285714285714
+"Olyset Plus","Martin","Martin et al., An. gambiae","Postprandialkilling",3,2,0.44,0.03,3.21951219512195,3.21951219512195
+"Interceptor G2","Martin","Martin et al., An. gambiae","Postprandialkilling",3,3,0.42,0.22,6.3,6.3
+"Pyrethroid-only","Martin","Martin et al., An. gambiae","Preprandialkilling",3,1,0.08,0.14,-4,-4
+"Olyset Plus","Martin","Martin et al., An. gambiae","Preprandialkilling",3,2,0.47,0.24,6.1304347826087,6.1304347826087
+"Interceptor G2","Martin","Martin et al., An. gambiae","Preprandialkilling",3,3,0.41,0.05,3.41666666666667,3.41666666666667
+"Pyrethroid-only","Martin","Martin et al., An. gambiae","Repellent",3,1,0.37,0.4,-37,-37
+"Olyset Plus","Martin","Martin et al., An. gambiae","Repellent",3,2,0.7,0.59,19.0909090909091,19.0909090909091
+"Interceptor G2","Martin","Martin et al., An. gambiae","Repellent",3,3,0.19,0.68,-1.16326530612245,-1.16326530612245
+"Pyrethroid-only","Martin","Martin et al., An. gambiae","KillingDuringHostSeeking",3,1,0.23,0.4,-4.05882352941177,-4.05882352941177
+"Olyset Plus","Martin","Martin et al., An. gambiae","KillingDuringHostSeeking",3,2,1.67,0.72,5.27368421052632,5.27368421052632
+"Interceptor G2","Martin","Martin et al., An. gambiae","KillingDuringHostSeeking",3,3,1.54,0.13,3.27659574468085,3.27659574468085
+"control","Martin","Martin et al., An. gambiae","alpha_0",3,-1,0.41,0.4,123,123
+"control","Martin","Martin et al., An. gambiae","mu_0",3,-1,0.04,0.05,-12,-12
+"Pyrethroid-only","Martin, f","Martin et al., An. funestus","Postprandialkilling",3,1,0.19,0.21,-28.5,-28.5
+"Olyset Plus","Martin, f","Martin et al., An. funestus","Postprandialkilling",3,2,0.28,0.07,4,4
+"Interceptor G2","Martin, f","Martin et al., An. funestus","Postprandialkilling",3,3,0.55,0.04,3.23529411764706,3.23529411764706
+"Pyrethroid-only","Martin, f","Martin et al., An. funestus","Preprandialkilling",3,1,0.12,0.09,12,12
+"Olyset Plus","Martin, f","Martin et al., An. funestus","Preprandialkilling",3,2,0.32,0.1,4.36363636363636,4.36363636363636
+"Interceptor G2","Martin, f","Martin et al., An. funestus","Preprandialkilling",3,3,0.41,0.15,4.73076923076923,4.73076923076923
+"Pyrethroid-only","Martin, f","Martin et al., An. funestus","Repellent",3,1,0.36,0.75,-2.76923076923077,-2.76923076923077
+"Olyset Plus","Martin, f","Martin et al., An. funestus","Repellent",3,2,0.51,0.52,-153.000000000001,-153.000000000001
+"Interceptor G2","Martin, f","Martin et al., An. funestus","Repellent",3,3,0.51,0.6,-17,-17
+"Pyrethroid-only","Martin, f","Martin et al., An. funestus","KillingDuringHostSeeking",3,1,0.36,0.22,7.71428571428572,7.71428571428572
+"Olyset Plus","Martin, f","Martin et al., An. funestus","KillingDuringHostSeeking",3,2,1.05,0.27,4.03846153846154,4.03846153846154
+"Interceptor G2","Martin, f","Martin et al., An. funestus","KillingDuringHostSeeking",3,3,1.49,0.39,4.06363636363636,4.06363636363636
+"control","Martin, f","Martin et al., An. funestus","alpha_0",3,-1,0.4,0.43,-40,-40
+"control","Martin, f","Martin et al., An. funestus","mu_0",3,-1,0.05,0.04,15,15
+"Interceptor G2","Sovegnon","Sovegnon et al.","Postprandialkilling",2,1,0.62,0.51,11.2727272727273,16.9090909090909
+"Interceptor G2","Sovegnon","Sovegnon et al.","Preprandialkilling",2,1,0.65,0.51,9.28571428571428,13.9285714285714
+"Interceptor G2","Sovegnon","Sovegnon et al.","Repellent",2,1,0.36,0.36,Inf,Inf
+"Interceptor G2","Sovegnon","Sovegnon et al.","KillingDuringHostSeeking",2,1,1.94,1.32,6.25806451612903,9.38709677419355
+"control","Sovegnon","Sovegnon et al.","alpha_0",2,-1,0.81,0.73,20.25,30.375
+"control","Sovegnon","Sovegnon et al.","mu_0",2,-1,0.34,0.36,-34.0000000000001,-51.0000000000002
+"Pyrethroid-only","Sovegnon","Sovegnon et al.","Postprandialkilling",2,1,0.06,0.11,-2.4,-3.6
+"Pyrethroid-only","Sovegnon","Sovegnon et al.","Preprandialkilling",2,1,0.24,0.4,-3,-4.5
+"Pyrethroid-only","Sovegnon","Sovegnon et al.","Repellent",2,1,0.05,0.14,-1.11111111111111,-1.66666666666667
+"Pyrethroid-only","Sovegnon","Sovegnon et al.","KillingDuringHostSeeking",2,1,0.44,0.81,-2.37837837837838,-3.56756756756757
+"control","Sovegnon","Sovegnon et al.","alpha_0",2,-2,1.72,1.66,57.3333333333332,85.9999999999998
+"control","Sovegnon","Sovegnon et al.","mu_0",2,-2,0.89,0.88,178,266.999999999999
+"Pyrethroid-only","Nguessan","Nguessan et al.","Postprandialkilling",3,1,0.06,0.06,Inf,Inf
+"Interceptor G2","Nguessan","Nguessan et al.","Postprandialkilling",3,2,0.47,0.48,-141.000000000001,-141.000000000001
+"Pyrethroid-only","Nguessan","Nguessan et al.","Preprandialkilling",3,1,0.17,0.09,6.375,6.375
+"Interceptor G2","Nguessan","Nguessan et al.","Preprandialkilling",3,2,0.54,0.46,20.25,20.25
+"Pyrethroid-only","Nguessan","Nguessan et al.","Repellent",3,1,0.67,0.54,15.4615384615385,15.4615384615385
+"Interceptor G2","Nguessan","Nguessan et al.","Repellent",3,2,0.5,0.44,25,25
+"Pyrethroid-only","Nguessan","Nguessan et al.","KillingDuringHostSeeking",3,1,0.23,0.1,5.30769230769231,5.30769230769231
+"Interceptor G2","Nguessan","Nguessan et al.","KillingDuringHostSeeking",3,2,1.14,0.88,13.1538461538462,13.1538461538462
+"control","Nguessan","Nguessan et al.","alpha_0",3,-1,0.91,0.94,-91.0000000000003,-91.0000000000003
+"control","Nguessan","Nguessan et al.","mu_0",3,-1,0.07,0.08,-21,-21
