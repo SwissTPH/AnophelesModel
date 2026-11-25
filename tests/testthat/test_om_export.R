@@ -870,8 +870,8 @@ test_that("snippets are well-formed XML", {
 
 test_that("the OMU entomology matches the text one, custom animal hosts included", {
     skip_if_not_installed("openMalariaUtilities")
-    # Deliberately distinct animal host parameters (defineEntomology() alone
-    # writes 0.95 / 0.95 / 0.99)
+    # Deliberately distinct animal host parameters (older versions of
+    # defineEntomology() wrote 0.95 / 0.95 / 0.99 whatever the input)
     ht = as.data.frame(def_host_params(verbose = FALSE), stringsAsFactors = FALSE)
     ht[ht$host == "animal", c("PBi", "PCi", "PDi")] = list(0.71, 0.72, 0.73)
     om_c = suppressMessages(get_OM_ento_snippet(
@@ -881,10 +881,6 @@ test_that("the OMU entomology matches the text one, custom animal hosts included
     om_num_seas = om_c
     om_num_seas$seasonalityParameters = lapply(om_c$seasonalityParameters, function(s) {
         s$seasonality = rep(1, 12); s })
-    raw = openMalariaUtilities::defineEntomology(
-        om_base(), om_num_seas$seasonalityParameters, om_num_seas$mosquitoParameters)
-    expect_false(isTRUE(by_name(raw$entomology$vector, "anopheles")[[1]]$nonHumanHosts$
-                            mosqProbBiting$value == "0.71"))      # OMU's fixed values
     for (version in c(44L, 49L)) {
         b = suppressMessages(define_OM_entomology(om_base(version), om_c, rep(1, 12)))
         omu  = b$entomology$vector

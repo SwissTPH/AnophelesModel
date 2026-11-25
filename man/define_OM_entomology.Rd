@@ -48,8 +48,8 @@ versions of \code{defineEntomology()} reject them with R >= 4.3.
 
 The animal host parameters of each population are those of \code{om_ento}
 (its \code{hosts_p}), as in \code{\link{get_OM_xml}}:
-\code{defineEntomology()} writes fixed values (0.95, 0.95, 0.99), which
-are replaced. The schema version is that of the \code{baseList}
+older versions of \code{defineEntomology()} wrote fixed values (0.95,
+0.95, 0.99), which are replaced. The schema version is that of the \code{baseList}
 (\code{OMVersion}, 44 if absent); from schema 49, \code{propInfected} and
 \code{propInfectious} (removed from the schema) are not written.
 
