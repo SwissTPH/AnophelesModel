@@ -11,7 +11,6 @@ bbl
 .Rproj.user
 /.Rproj.user
 /doc/
-/docs/
 .RData
 .Rapp.history
 vignettes/*.htm
