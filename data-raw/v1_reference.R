@@ -1,9 +1,12 @@
 # Reference results of AnophelesModel v1 on inputs identical to v2's, for
 # tests/testthat/test_v1_reference.R (which runs without v1 installed).
 #
-# Run once, from the package root, with both packages installed:
-#   remotes::install_github("SwissTPH/AnophelesModel")   # v1
+# The fixture was made while version 2 was developed as AnophelesModel2, with
+# both packages installed:
+#   remotes::install_github("SwissTPH/AnophelesModel@v1.1.0")   # v1
 #   source("data-raw/v1_reference.R")
+# Since the rename, v1 and v2 share the package name and cannot be loaded in
+# the same session: to rerun it, install v2 under the name AnophelesModel2.
 #
 # Identical inputs, so that differences come from the calculation only:
 # - the same custom vector parameters (whole-day tau, ts = 10), not the

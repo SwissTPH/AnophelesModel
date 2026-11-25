@@ -22,7 +22,7 @@ Reads and validates a table of vector bionomics with the
 same structure as \code{vec_ent_param}, for example a newer export from
 the AnophelesBionomics package, so that it can be used with
 \code{def_vector_params(bionomics_table = ...)} without reinstalling
-AnophelesModel2.
+AnophelesModel.
 }
 \seealso{
 \code{\link{def_vector_params}}, \code{\link{vec_ent_param}}

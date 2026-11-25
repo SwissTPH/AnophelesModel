@@ -52,7 +52,7 @@ model, post-prandial killing). Deploy it with
 For dummy-host interventions, the host-seeking killing is written by
 \code{deploy_OM_vector_control()}, one dummy host per campaign;
 \code{define_OM_vector_control()} keeps what it needs in
-\code{baseList$anophelesmodel2} (not written to the XML) and says so in a
+\code{baseList$anophelesmodel} (not written to the XML) and says so in a
 message.
 
 \strong{What has been checked in OpenMalaria.} Run through

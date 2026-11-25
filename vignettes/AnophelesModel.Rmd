@@ -1,5 +1,5 @@
 ---
-title: "AnophelesModel2 Documentation"
+title: "AnophelesModel Documentation"
 author: "Monica Golumbeanu, Clara Champagne"
 date: "`r Sys.Date()`"
 output:
@@ -7,7 +7,7 @@ output:
         fig_caption: yes
         toc: true
 vignette: >
-  %\VignetteIndexEntry{AnophelesModel2 Documentation}
+  %\VignetteIndexEntry{AnophelesModel Documentation}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 bibliography: references.bib
@@ -27,13 +27,13 @@ knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, comment = "#>")
 
 ## Introduction
 
-The `AnophelesModel2` package parameterises a model of the mosquito feeding
+The `AnophelesModel` package parameterises a model of the mosquito feeding
 cycle [@Chitnis2008] using mosquito bionomics, human activity patterns, and
 user-supplied intervention efficacy parameters. It estimates the
 species-specific impact of vector control interventions on vectorial capacity
-and can generate parameterisations for OpenMalaria. It is a refactoring of
-[AnophelesModel](https://github.com/SwissTPH/AnophelesModel) and is not
-backward compatible (see `NEWS.md` for the differences).
+and can generate parameterisations for OpenMalaria. Version 2 is a
+refactoring of version 1 and is not backward compatible (see `NEWS.md` for
+the differences).
 
 The five feeding-cycle stages are: **Host seeking → Host found (P~Ai~) →
 Fed (P~Bi~) → Resting (P~Ci~) → Ovipositing (P~Di~) → back to Host
@@ -53,7 +53,7 @@ The typical analysis follows these steps:
 ## Package database
 
 ```{r}
-library(AnophelesModel2)
+library(AnophelesModel)
 ```
 
 **Host parameters** (`host_ent_param`): species-independent transition
@@ -161,7 +161,7 @@ Time-series vectors can also be supplied directly as a named list with elements
 components. For example, `Exposure_Indoor_whileinbed` gives the fraction of bites received
 indoors while sleeping — the portion an ITN would protect against (for IRS,
 see below). Unlike in
-AnophelesModel, exposure does not modify the intervention efficacies: it
+version 1, exposure does not modify the intervention efficacies: it
 reduces the **effective coverage** (`coverage × exposure`), passed via the
 `exposure` argument of `calculate_impact()` and `run_interventions()`:
 ```{r}
@@ -691,7 +691,7 @@ the values below are illustrative). The contributions are either:
 
 Fixed contributions:
 ```{r}
-library(AnophelesModel2)
+library(AnophelesModel)
 
 spz = c("Anopheles gambiae ss/coluzzii" = 0.114, "Anopheles funestus" = 0.235)
 mix = eir_shares(c("Anopheles gambiae ss/coluzzii" = 0.7, "Anopheles funestus" = 0.3), spz)

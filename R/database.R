@@ -87,7 +87,7 @@ list_activity = function(species = "Anopheles gambiae", sampling = "HBI",
 #' The relevant proportion is used as the \code{exposure} argument of
 #' \code{calculate_impact()} / \code{run_interventions()}, which reduces the
 #' effective coverage (\code{coverage * exposure}); it does not modify the
-#' intervention efficacies (unlike AnophelesModel). Typically
+#' intervention efficacies (unlike AnophelesModel version 1). Typically
 #' \code{Exposure_Indoor_whileinbed} for ITNs; for IRS, see below.
 #'
 #' For IRS, two choices are defensible: the mosquitoes resting indoors

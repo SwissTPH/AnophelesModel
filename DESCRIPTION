@@ -1,7 +1,7 @@
-Package: AnophelesModel2
+Package: AnophelesModel
 Type: Package
 Title: Quantify the Effect of Mosquito Bionomics on the Impact of Vector Control Interventions Against Malaria
-Version: 1.0.0
+Version: 2.0.0
 Authors@R: as.person(c(
     "Clara Champagne <clara.champagne@swisstph.ch> [aut, cre]",
     "Monica Golumbeanu <monica.golumbeanu@swisstph.ch> [aut]",
@@ -19,7 +19,9 @@ Description: Functions for parameterising and predicting models of the
     oviposition cycle of Anopheles mosquitoes, to quantify how vector
     bionomics influence the impact of vector control interventions against
     malaria, and to parameterise the entomology and vector control of
-    OpenMalaria scenarios. Refactoring of the AnophelesModel package.
+    OpenMalaria scenarios. Version 2 is a refactoring of version 1.
+URL: https://github.com/SwissTPH/AnophelesModel, https://swisstph.github.io/AnophelesModel/
+BugReports: https://github.com/SwissTPH/AnophelesModel/issues
 Imports:
     ggplot2 (>= 3.4.0),
     data.table,

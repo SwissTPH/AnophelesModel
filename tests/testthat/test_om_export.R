@@ -1,4 +1,4 @@
-library(AnophelesModel2)
+library(AnophelesModel)
 library(testthat)
 
 # Export to OpenMalaria through openMalariaUtilities (OMU) input lists.
@@ -199,7 +199,7 @@ test_that("populations with a share of 0 are not written", {
     # With placeholders the population stays: om_ento_values() warns about a 0
     om_ph = suppressMessages(get_OM_ento_snippet(taxa, activity = activity))
     expect_warning(v <- om_ento_values(om_ph, sp), "gambiae.*share of 0")
-    expect_equal(v[[AnophelesModel2:::om_contrib_placeholder(
+    expect_equal(v[[AnophelesModel:::om_contrib_placeholder(
         paste0(gss, "_indoor1"))]], 0)
     expect_no_warning(om_ento_values(om_ph, c("Anopheles funestus" = 0.5,
                                               "Anopheles gambiae ss/coluzzii" = 0.5)))
@@ -304,7 +304,7 @@ by_name = function(l, nm) l[names(l) == nm]
 # Human availability of population j (the dummy hosts are relative to it)
 alpha_h = function(j) om$model_params[[j]]$host_params$alphai[1]
 dummy_rec = function(x, name = "N")
-    suppressMessages(AnophelesModel2:::om_vc_components(x, om, "ITN", name, schema = 49))$rec
+    suppressMessages(AnophelesModel:::om_vc_components(x, om, "ITN", name, schema = 49))$rec
 # Availability of the dummy host of campaign k for population j, rebuilt from
 # the written lists at host ages `days`, as OpenMalaria computes it: value x,
 # for each modification deployed `offset` days after the host,
@@ -342,7 +342,7 @@ test_that("the dummy-host export has no work-in-progress warning (run in OpenMal
 
 test_that("dummy hosts follow the decay of host-seeking killing, as the GVI effects", {
     days = 0:729
-    sch  = AnophelesModel2:::om_schedule(sched_num, end_date)
+    sch  = AnophelesModel:::om_schedule(sched_num, end_date)
     j    = which(om$shares$in_bed)[1]
     # A single OpenMalaria decay: exact
     exact = list(
@@ -357,7 +357,7 @@ test_that("dummy hosts follow the decay of host-seeking killing, as the GVI effe
                       halflife_insecticide = c(KillingDuringHostSeekingAbsolute = 3)))
     for (case in c(names(exact), names(fitted))) {
         net = suppressWarnings(do.call(dh_net, c(exact, fitted)[[case]]))[[1]]
-        h   = AnophelesModel2:::om_dummy_hosts(suppressWarnings(dummy_rec(net)), sch)
+        h   = AnophelesModel:::om_dummy_hosts(suppressWarnings(dummy_rec(net)), sch)
         # One decay modification per host
         expect_equal(sum(grepl("_decay$", sapply(h$modify, `[[`, "name"))), 2, info = case)
         # The package: KillingDuringHostSeekingAbsolute x insecticide decay x attrition, per
@@ -390,7 +390,7 @@ test_that("campaigns replace nets: the expected GVI effect, not stacked cohorts"
     # No attrition on purpose: the usual warning for such an ITN
     expect_warning(rec <- dummy_rec(net), "ITN without attrition")
     s = data.frame(date = c("2021-01-01", "2022-01-01"), coverage = c(1, 1))
-    h = AnophelesModel2:::om_dummy_hosts(rec, AnophelesModel2:::om_schedule(s))
+    h = AnophelesModel:::om_dummy_hosts(rec, AnophelesModel:::om_schedule(s))
     j = which(om$shares$in_bed)[1]
     total = function(t) om_rebuild(h, 1, j, t) +
         ifelse(t >= 365, om_rebuild(h, 2, j, pmax(t - 365, 0)), 0)
@@ -399,7 +399,7 @@ test_that("campaigns replace nets: the expected GVI effect, not stacked cohorts"
     # Three campaigns: weights c_j x prod (1 - c_k) of the later ones
     s3 = data.frame(date = c("2021-01-01", "2022-01-01", "2023-01-01"),
                     coverage = c(0.8, 0.5, "@c3@"))
-    h3 = AnophelesModel2:::om_dummy_hosts(rec, AnophelesModel2:::om_schedule(s3))
+    h3 = AnophelesModel:::om_dummy_hosts(rec, AnophelesModel:::om_schedule(s3))
     rep_mods = Filter(function(m) grepl("_replaced_", m$name), h3$modify)
     expect_equal(unname(sapply(rep_mods, `[[`, "name")),
                  c("N_dummy_1_replaced_2", "N_dummy_1_replaced_3", "N_dummy_2_replaced_3"))
@@ -410,9 +410,9 @@ test_that("campaigns replace nets: the expected GVI effect, not stacked cohorts"
 })
 
 test_that("dummy hosts: one host per campaign with its decay, in-bed populations", {
-    sch = AnophelesModel2:::om_schedule(sched_num, end_date)
+    sch = AnophelesModel:::om_schedule(sched_num, end_date)
     net = dh_net(halflife_insecticide = c(KillingDuringHostSeekingAbsolute = 1.5))
-    h = AnophelesModel2:::om_dummy_hosts(dummy_rec(net), sch)
+    h = AnophelesModel:::om_dummy_hosts(dummy_rec(net), sch)
     expect_equal(unname(sapply(h$add, `[[`, "name")), c("N_dummy_1", "N_dummy_2"))
     expect_equal(h$add[[1]]$timed$deploy, list(time = "2021-01-01", lifespan = "730d"))
     expect_equal(h$add[[2]]$timed$deploy, list(time = "2022-01-01", lifespan = "365d"))
@@ -435,22 +435,22 @@ test_that("dummy hosts: one host per campaign with its decay, in-bed populations
                  list(initial = "1"))
     # Without end_date: long-lived hosts; without insecticide decay: the
     # attrition, exactly
-    h2 = AnophelesModel2:::om_dummy_hosts(dummy_rec(dh_net()),
-                                          AnophelesModel2:::om_schedule(sched_num))
+    h2 = AnophelesModel:::om_dummy_hosts(dummy_rec(dh_net()),
+                                          AnophelesModel:::om_schedule(sched_num))
     expect_equal(h2$add[[1]]$timed$deploy$lifespan, "100y")
     expect_equal(unname(sapply(h2$modify, `[[`, "name")),
                  c("N_dummy_1_decay", "N_dummy_2_decay", "N_dummy_1_replaced_2"))
     expect_equal(h2$modify[[1]]$decay,
                  list("function" = "weibull", L = "1", k = "2", increasing = "true"))
     # No decay at all: no decay modification
-    h3 = AnophelesModel2:::om_dummy_hosts(suppressWarnings(dummy_rec(
+    h3 = AnophelesModel:::om_dummy_hosts(suppressWarnings(dummy_rec(
         dh_net(decay_attrition = "none", insecticide_decay = FALSE)[[1]])),
-        AnophelesModel2:::om_schedule(sched_num))
+        AnophelesModel:::om_schedule(sched_num))
     expect_equal(unname(sapply(h3$modify, `[[`, "name")), "N_dummy_1_replaced_2")
 })
 
 test_that("schedules are validated", {
-    s = AnophelesModel2:::om_schedule
+    s = AnophelesModel:::om_schedule
     expect_error(s(data.frame(date = "2021-01-01")), "columns date and coverage")
     expect_error(s(data.frame(date = c("2022-01-01", "2021-01-01"), coverage = 1)),
                  "increasing")
@@ -603,7 +603,7 @@ test_that("define / deploy a dummy-host net with numeric coverages", {
     ids = sapply(by_name(b$interventions$human, "component"), `[[`, "id")
     expect_equal(unname(ids), "IG2")
     expect_null(b$interventions$addNonHumanHosts)
-    expect_equal(b$anophelesmodel2$vc$IG2$mode, "dummy_host")
+    expect_equal(b$anophelesmodel$vc$IG2$mode, "dummy_host")
     expect_error(suppressMessages(define_OM_vector_control(b, net)), "already")
     expect_error(define_OM_vector_control(om_base(49L), net), "define_OM_entomology")
 
@@ -725,7 +725,7 @@ test_that("standard model: pre-prandial component and no host-seeking killing", 
 # ---------------------------------------------------------------------------
 # 5. XML text snippets (no openMalariaUtilities needed)
 # ---------------------------------------------------------------------------
-to_xml = AnophelesModel2:::om_list_to_xml
+to_xml = AnophelesModel:::om_list_to_xml
 
 test_that("the serializer follows the openMalariaUtilities conventions", {
     x = list(id = "a&b", n = 1, skip = NA, child = list(v = "1"), child = list(v = "2"))
@@ -888,7 +888,7 @@ test_that("the OMU entomology matches the text one, custom animal hosts included
     for (version in c(44L, 49L)) {
         b = suppressMessages(define_OM_entomology(om_base(version), om_c, rep(1, 12)))
         omu  = b$entomology$vector
-        ours = AnophelesModel2:::om_vector_list(om_num_seas, version)
+        ours = AnophelesModel:::om_vector_list(om_num_seas, version)
         expect_equal(names(ours), names(omu))
         for (i in seq_along(ours))
             expect_equal(to_xml(names(ours)[i], ours[[i]]), to_xml(names(omu)[i], omu[[i]]),
@@ -976,7 +976,7 @@ test_that("dummy hosts of a specification and of an intervention object agree", 
 test_that("define_OM_entomology keeps the entomology used by the interventions", {
     skip_if_not_installed("openMalariaUtilities")
     b = om_base_ento()
-    expect_identical(b$anophelesmodel2$ento, om)
+    expect_identical(b$anophelesmodel$ento, om)
     an = by_name(b$entomology$vector, "anopheles")
     expect_equal(unname(sapply(an, `[[`, "mosquito")), om$shares$mosquito)
     expect_equal(b$entomology$scaledAnnualEIR, "@EIR@")
@@ -1142,7 +1142,7 @@ test_that("a list keeps the decay function shared by its nets (e.g. a step)", {
                                     decay_attrition = "step", insecticide_decay = FALSE),
         assenga = om_vector_control(p("Assenga"), halflife_attrition = 365,
                                     decay_attrition = "step", insecticide_decay = FALSE))
-    comps = function(x, decay) suppressMessages(AnophelesModel2:::om_vc_components(
+    comps = function(x, decay) suppressMessages(AnophelesModel:::om_vc_components(
         x, om, "ITN", "histITN", decay))$components
     # Same decay for both nets: fixed values, or placeholders for its parameters
     expect_equal(comps(hist, "fixed")[[1]]$GVI$decay, list(L = "1", "function" = "step"))
@@ -1172,9 +1172,9 @@ test_that("om_scenario_values: attrition from the table, combined per effect", {
     scens = data.frame(att = c(2, 3, 2), k = 2)
     v = suppressMessages(om_scenario_values(scens, xml, halflife = "att", kappa = "k"))
     # Per effect: the attrition of the row x the effect's insecticide decay, fitted
-    built = AnophelesModel2:::om_build_spec(spec(730), model_p, 3)
+    built = AnophelesModel:::om_build_spec(spec(730), model_p, 3)
     for (comp in c("Deterrency", "PrePrandial", "PostPrandial")) {
-        w = suppressMessages(AnophelesModel2:::om_template_decay_values(built, comp, "weibull"))
+        w = suppressMessages(AnophelesModel:::om_template_decay_values(built, comp, "weibull"))
         lab = paste0("N_", c(Deterrency = "deterrency", PrePrandial = "preprandial",
                              PostPrandial = "postprandial")[[comp]])
         expect_equal(v[[paste0(lab, "_L")]][1], unname(w["L"]), info = comp)
@@ -1231,15 +1231,15 @@ test_that("om_scenario_values: final decays per effect, written as given", {
     expect_equal(v_hsk$D_hsk_L, 1.5)
     expect_false(isTRUE(all.equal(v_hsk$D_deterrency_L, 1.5)))
     # Half-life only: the shape of the net's exported (fitted) decay is kept
-    built = function(days, k) AnophelesModel2:::om_build_spec(dh(days, k), model_p, 3)
-    w_net = suppressMessages(AnophelesModel2:::om_template_decay_values(
+    built = function(days, k) AnophelesModel:::om_build_spec(dh(days, k), model_p, 3)
+    w_net = suppressMessages(AnophelesModel:::om_template_decay_values(
         built(365, 2), "KillingDuringHostSeekingAbsolute", "weibull"))
     v_hl = suppressMessages(om_scenario_values(s, xml_dh, combine = FALSE, halflife = "hl"))
     expect_equal(c(v_hl$D_hsk_L, v_hl$D_hsk_k), c(1.5, unname(w_net["k"])))
     # combine = TRUE: the row's attrition x the insecticide decay of
     # host-seeking killing, fitted, as for the GVI effects
     v_comb = suppressMessages(om_scenario_values(s, xml_dh, halflife = "hl", kappa = "k"))
-    w = suppressMessages(AnophelesModel2:::om_template_decay_values(
+    w = suppressMessages(AnophelesModel:::om_template_decay_values(
         built(1.5 * 365, 3), "KillingDuringHostSeekingAbsolute", "weibull"))
     expect_equal(c(v_comb$D_hsk_L, v_comb$D_hsk_k), unname(w[c("L", "k")]))
     expect_lt(v_comb$D_hsk_L, 1.5)                    # faster than the attrition alone
@@ -1358,7 +1358,7 @@ test_that("schedule dates must be YYYY-MM-DD everywhere", {
     expect_error(om_campaigns("2021-01-01x", "2023-01-01", coverage = 1), "from must be dates")
     expect_error(om_campaigns("2021-01-01", "2023-01-01", coverage = 1, end_date = "1/1/2030"),
                  "end_date must be dates")
-    expect_error(AnophelesModel2:::om_schedule(data.frame(date = "2021-13-01", coverage = 1)),
+    expect_error(AnophelesModel:::om_schedule(data.frame(date = "2021-13-01", coverage = 1)),
                  "schedule\\$date must be dates")
     expect_error(om_continuous(age = 0.25, coverage = 0.8, begin = "2021/01/01"),
                  "begin must be dates")

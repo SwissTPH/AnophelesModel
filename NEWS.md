@@ -1,7 +1,7 @@
-# AnophelesModel2 1.0.0
+# AnophelesModel 2.0.0
 
-AnophelesModel2 is a refactoring of
-[AnophelesModel](https://github.com/SwissTPH/AnophelesModel). It keeps the
+Version 2 is a refactoring of AnophelesModel version 1 (last release
+v1.1.0), developed as AnophelesModel2. It keeps the
 entomological model of the mosquito feeding cycle (Chitnis et al.) and the
 host / activity databases, but the intervention framework and API were
 rewritten and are **not backward compatible**.
@@ -89,7 +89,7 @@ rewritten and are **not backward compatible**.
 * `vec_ent_param` now comes from
   [AnophelesBionomics](https://github.com/SwissTPH/AnophelesBionomics)
   (posterior means and sds of its hierarchical Bayesian model), replacing the
-  older parameterisation. **Results differ from AnophelesModel.**
+  older parameterisation. **Results differ from version 1.**
 * Taxa have an explicit `level` (`species`, `complex`, `genus`), a parent
   `complex` and `imputed_traits` (parameters without data of their own).
   `def_vector_params()` gains `level`; `list_all_species()` returns a data
@@ -112,7 +112,7 @@ rewritten and are **not backward compatible**.
 
 ## Export to OpenMalaria
 
-* New demo of the export: `demo("OM_export", package = "AnophelesModel2")`
+* New demo of the export: `demo("OM_export", package = "AnophelesModel")`
   (mosquito populations with species-specific activity patterns, ITNs, XML
   text, scenario values; its last part needs openMalariaUtilities).
 * `get_OM_ento_snippet()` is rewritten: it returns the input lists of
@@ -333,7 +333,7 @@ rewritten and are **not backward compatible**.
 * `build_model_obj(vec_p, hosts_p)` no longer takes activity patterns or
   `total_pop`; `Nv0` is no longer an argument anywhere. Host populations are
   unit-sized and vectorial capacity reduction is scale-invariant.
-* **Exposure acts on coverage, not on efficacies.** AnophelesModel adjusted
+* **Exposure acts on coverage, not on efficacies.** Version 1 adjusted
   the intervention effects by indoor/in-bed exposure (`adjustment_for_location`).
   Now `calculate_exposure()` (formerly `get_in_out_exp()`, same calculation)
   gives an exposure factor passed as `exposure` to `calculate_impact()` /
@@ -347,7 +347,7 @@ rewritten and are **not backward compatible**.
   stored in each intervention (`$param_set`, added by `build_intervention()`)
   and returns the same `data.table` (one row per intervention and coverage,
   with `intervention`, `name`, the parameters, `coverage`, `exposure`,
-  `avg_vc`, `avg_impact`) instead of the nested list of AnophelesModel. The
+  `avg_vc`, `avg_impact`) instead of the nested list of version 1. The
   model parameters all come from `model_p`. Interventions are combined with
   `c()`; objects not made by `build_intervention()` are rejected.
 * `keep_time = TRUE` in `calculate_impact()` and `run_interventions()` also

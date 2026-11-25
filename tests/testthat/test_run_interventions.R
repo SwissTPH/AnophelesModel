@@ -1,4 +1,4 @@
-library(AnophelesModel2)
+library(AnophelesModel)
 library(testthat)
 
 # ---------------------------------------------------------------------------
@@ -159,8 +159,8 @@ test_that("run_interventions with vec_param_sets adds draw column and correct ro
     )
 
     # Two draws: slightly perturbed gambiae params
-    base_row = AnophelesModel2::vec_ent_param[
-        AnophelesModel2::vec_ent_param$species_name == "Anopheles gambiae ss/coluzzii", ][1, ]
+    base_row = AnophelesModel::vec_ent_param[
+        AnophelesModel::vec_ent_param$species_name == "Anopheles gambiae ss/coluzzii", ][1, ]
     draw1    = base_row; draw1$M = base_row$M * 0.95
     draw2    = base_row; draw2$M = base_row$M * 1.05
     vec_ps   = rbind(draw1, draw2)
@@ -314,7 +314,7 @@ chitnis_vc = function(alphai, Ni, P, vec_p, muvA) {
     PAi   = (1 - PA) * alphai * Ni / total
     cycle = P$PBi * P$PCi * P$PDi * P$PEi
     Pdf   = sum(PAi * cycle)
-    psts  = AnophelesModel2:::calc_psts(vec_p$ts, vec_p$tau, PA, Pdf)$psts
+    psts  = AnophelesModel:::calc_psts(vec_p$ts, vec_p$tau, PA, Pdf)$psts
     h = 1:2
     1 / sum(Ni[h]) * sum(PAi[h] * P$PBi[h]) * sum(PAi[h] * cycle[h]) /
         (1 - PA - Pdf)^2 * psts
@@ -347,7 +347,7 @@ test_that("eval_entomological_model reparameterisation gives the vectorial capac
         Ni    = cbind(prot, 1 - prot, 1)
         N_tot = 2
         alpha = matrix(interv_obj$alphai[ip, ], nrow(Ni), 3, byrow = TRUE)
-        res = AnophelesModel2:::eval_entomological_model(
+        res = AnophelesModel:::eval_entomological_model(
             P, vec_p, host_p, 1L, t_avail = alpha * Ni,
             host_frac = Ni / N_tot, N_total = N_tot)
         expected = vapply(seq_along(coverage_vec), function(k)
@@ -379,7 +379,7 @@ test_that("one-day, sub-day and multi-day batches match separate single-row runs
             p, model_p, cov, duration_years = days / 365, keep_time = TRUE))
         batch = run(ps)
         # Attrition matrix: one row per parameter set, one column per day
-        mm = AnophelesModel2:::make_mult_matrices(ps, seq_len(max(1, round(days))) - 1)
+        mm = AnophelesModel:::make_mult_matrices(ps, seq_len(max(1, round(days))) - 1)
         expect_equal(dim(mm$surv_mat), c(nrow(ps), max(1L, round(days))), info = days)
         for (i in seq_len(nrow(ps))) {
             single = run(ps[i, ])

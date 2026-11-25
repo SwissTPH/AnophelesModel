@@ -1,4 +1,4 @@
-library(AnophelesModel2)
+library(AnophelesModel)
 library(testthat)
 
 ########################################

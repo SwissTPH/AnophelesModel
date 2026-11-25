@@ -1,4 +1,4 @@
-library(AnophelesModel2)
+library(AnophelesModel)
 library(testthat)
 
 ########################################
@@ -91,15 +91,15 @@ test_that("an ambiguous control alpha_0 gives a clear error", {
     fake = data.frame(netType = "control", EHT = "X", parameter = "alpha_0",
                       reference = "same ref", Unwashed = c(0.8, 1.7),
                       Washed = c(0.7, 1.6), stringsAsFactors = FALSE)
-    expect_error(AnophelesModel2:::control_alpha_0(fake, "X", "same ref"),
+    expect_error(AnophelesModel:::control_alpha_0(fake, "X", "same ref"),
                  "unique control alpha_0")
     fake$reference = c("ref A", "ref B")
-    expect_equal(AnophelesModel2:::control_alpha_0(fake, "X", "ref B"),
+    expect_equal(AnophelesModel:::control_alpha_0(fake, "X", "ref B"),
                  c(Unwashed = 1.7, Washed = 1.6))
     # Same reference, several fits: matched on the fit
     fake$reference = "same ref"
     fake$fit = 1:2
-    expect_equal(AnophelesModel2:::control_alpha_0(fake, "X", "same ref", fit = 2),
+    expect_equal(AnophelesModel:::control_alpha_0(fake, "X", "same ref", fit = 2),
                  c(Unwashed = 1.7, Washed = 1.6))
 })
 

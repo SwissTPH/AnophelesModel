@@ -1440,7 +1440,7 @@ define_OM_entomology = function(baseList, om_ento,
         })
     baseList$entomology$vector = om_fix_omu_vector(baseList$entomology$vector, om_ento,
                                                    om_baselist_schema(baseList))
-    baseList$anophelesmodel2$ento = om_ento
+    baseList$anophelesmodel$ento = om_ento
     baseList
 }
 
@@ -1492,7 +1492,7 @@ om_fix_omu_vector = function(v, om_ento, schema) {
 
 # Internal: the entomology kept by define_OM_entomology()
 om_baselist_ento = function(baseList) {
-    om_ento = baseList$anophelesmodel2$ento
+    om_ento = baseList$anophelesmodel$ento
     if (is.null(om_ento))
         stop("No entomology in baseList: call define_OM_entomology() first ",
              "(the interventions use its mosquito populations and parameters)")
@@ -1513,7 +1513,7 @@ om_baselist_ento = function(baseList) {
 #' For dummy-host interventions, the host-seeking killing is written by
 #' \code{deploy_OM_vector_control()}, one dummy host per campaign;
 #' \code{define_OM_vector_control()} keeps what it needs in
-#' \code{baseList$anophelesmodel2} (not written to the XML) and says so in a
+#' \code{baseList$anophelesmodel} (not written to the XML) and says so in a
 #' message.
 #'
 #' \strong{What has been checked in OpenMalaria.} Run through
@@ -1676,7 +1676,7 @@ define_OM_vector_control = function(baseList, interv,
         stop("baseList already has components of '", b$name, "'")
     # Placeholders use the cleaned name (non-alphanumeric runs -> _): two
     # names giving the same one (e.g. "IG 2" and "IG_2") would share them
-    for (other in setdiff(names(baseList$anophelesmodel2$vc), b$name))
+    for (other in setdiff(names(baseList$anophelesmodel$vc), b$name))
         if (om_ph_name(other) == om_ph_name(b$name))
             stop("'", b$name, "' and '", other, "' give the same placeholder names (@",
                  om_ph_name(b$name), "_...@): choose another name")
@@ -1686,7 +1686,7 @@ define_OM_vector_control = function(baseList, interv,
     # deploy_OM_vector_control() and om_scenario_values(). Kept in a top-level
     # entry of baseList that openMalariaUtilities does not write to the XML
     # (its writer only writes the scenario sections it knows).
-    baseList$anophelesmodel2$vc[[b$name]] = b$rec
+    baseList$anophelesmodel$vc[[b$name]] = b$rec
     if (b$mode == "dummy_host")
         message("define_OM_vector_control: the host-seeking killing of '", b$name,
                 "' (dummy hosts, one per campaign) will be added by ",
@@ -1842,7 +1842,7 @@ deploy_OM_vector_control = function(baseList, name, schedule, end_date = NULL,
                  function(cm) as.character(cm$id), character(1))
     ids = ids[ids == name | ids %in% paste0(name, "-", om_gvi_effects)]
     if (!length(ids)) {
-        recs = baseList$anophelesmodel2$vc
+        recs = baseList$anophelesmodel$vc
         in_list = names(recs)[vapply(recs, function(r) name %in% r$members, logical(1))]
         if (length(in_list))
             stop("'", name, "' is one of the interventions of the list defined as '",
@@ -1855,7 +1855,7 @@ deploy_OM_vector_control = function(baseList, name, schedule, end_date = NULL,
 
     # Dummy host: the dummy hosts of the campaigns are written here, from the
     # record of define_OM_vector_control() and the whole schedule
-    rec = baseList$anophelesmodel2$vc[[name]]
+    rec = baseList$anophelesmodel$vc[[name]]
     dummy = !is.null(rec) && rec$mode == "dummy_host"
     if (dummy) om_check_hsk_deploy(subpop, cumulative, minAge, maxAge)
     d = om_build_deployment(name, ids, schedule, end_date, subpop, cumulative,
@@ -1884,7 +1884,7 @@ deploy_OM_vector_control = function(baseList, name, schedule, end_date = NULL,
                 c(baseList$interventions$nonHumanHostsModifications, h$modify)
     }
     # The schedule, for om_scenario_values() (coverages of the dummy hosts)
-    if (!is.null(rec) && !is.null(sch)) baseList$anophelesmodel2$vc[[name]]$sch = sch
+    if (!is.null(rec) && !is.null(sch)) baseList$anophelesmodel$vc[[name]]$sch = sch
     message("deploy_OM_vector_control: deployment '", name, "' with components ",
             paste(ids, collapse = ", "), ", ", d$when)
     if (dummy) om_dummy_messages(h, "deploy_OM_vector_control")
@@ -2316,7 +2316,7 @@ om_scenario_record = function(source, name) {
         return(rec)
     }
     if (is.null(name)) stop("name is needed with a baseList")
-    rec = source$anophelesmodel2$vc[[name]]
+    rec = source$anophelesmodel$vc[[name]]
     if (is.null(rec))
         stop("No intervention '", name, "' defined with define_OM_vector_control() ",
              "in this baseList")

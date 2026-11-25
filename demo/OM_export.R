@@ -1,5 +1,5 @@
 ################################################################################
-# AnophelesModel2 -> OpenMalaria: a short demo
+# AnophelesModel -> OpenMalaria: a short demo
 #
 #   1. mosquito populations          get_OM_ento_snippet()
 #   2. a net                          om_vector_control()
@@ -9,7 +9,7 @@
 #   6. same with openMalariaUtilities define_OM_entomology() / _vector_control()
 ################################################################################
 
-library(AnophelesModel2)
+library(AnophelesModel)
 
 
 # 1. MOSQUITO POPULATIONS ------------------------------------------------------

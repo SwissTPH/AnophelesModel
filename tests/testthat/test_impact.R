@@ -1,4 +1,4 @@
-library(AnophelesModel2)
+library(AnophelesModel)
 library(testthat)
 
 # calculate_impact() and calculate_combined_impact() run on the shared
@@ -415,10 +415,10 @@ test_that("non-finite VC is reported instead of becoming zero impact", {
     # Checked on the time loop itself: validated inputs cannot produce it
     interv = bi(std, days = 2)[[1]]
     h   = model_p$host_params
-    eff = AnophelesModel2:::apply_eff_matrices(
-        AnophelesModel2:::make_mult_matrices(interv$param_set, 0:1), h)
+    eff = AnophelesModel:::apply_eff_matrices(
+        AnophelesModel:::make_mult_matrices(interv$param_set, 0:1), h)
     eff$PBi_1[1, 2] = NA_real_
-    expect_error(AnophelesModel2:::simulate_vc(eff, AnophelesModel2:::host_base(h),
+    expect_error(AnophelesModel:::simulate_vc(eff, AnophelesModel:::host_base(h),
                                                model_p$vec_params, h, 1),
                  "non-finite.*vectorial capacity.*time point 2")
 })

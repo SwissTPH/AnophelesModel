@@ -1,4 +1,4 @@
-library(AnophelesModel2)
+library(AnophelesModel)
 library(testthat)
 
 L_test = 100
@@ -306,7 +306,7 @@ test_that("linear insecticide decay rejects zero and NaN while keeping existing 
     ps = data.frame(deterrency = 0, preprandial = 0.4, postprandial = 0,
                      decay_attrition = "none", halflife_attrition = NA_real_,
                      shape_attrition = NA_real_, halflife_pre = c(NA_real_, Inf, -2))
-    mm = AnophelesModel2:::make_mult_matrices(ps, c(0, 365))
+    mm = AnophelesModel:::make_mult_matrices(ps, c(0, 365))
     expect_equal(mm$mult_pre[1:2, ], matrix(0.6, 2, 2))
     expect_equal(mm$mult_pre[3, ], c(0.6, 0.4))
     ps$halflife_pre[2] = 0
@@ -333,7 +333,7 @@ test_that("the Weibull fit starts at 1, as the curve written to OpenMalaria", {
     # (L, kappa) does not do better
     days  = 0:(3 * 365 - 1)
     curve = decay_function(365, 2, days, "weibull") * pmax(1 - days / (365 * 1.5), 0)
-    fit   = AnophelesModel2:::fit_weibull_decay(curve, days, L_start = 365, kappa_start = 2)
+    fit   = AnophelesModel:::fit_weibull_decay(curve, days, L_start = 365, kappa_start = 2)
     sse   = function(L, k) sum((decay_function(L, k, days, "weibull") - curve)^2)
     best  = sse(fit[["L"]], fit[["kappa"]])
     expect_equal(fit[["rmse"]], sqrt(best / length(days)))

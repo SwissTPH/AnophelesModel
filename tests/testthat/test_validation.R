@@ -273,7 +273,7 @@ test_that("custom vector tables need the model's columns, in range", {
                  "vec_param_sets draw 2.*whole number")
     tab = vec_ent_param
     tab$ts[1] = 10.5
-    expect_error(AnophelesModel2:::check_bionomics_table(tab),
+    expect_error(AnophelesModel:::check_bionomics_table(tab),
                  "Bionomics table\\$ts.*whole number")
     # An incubation period shorter than the resting duration
     short = vec

@@ -1,7 +1,7 @@
-# Step 1 of 2: build the vector bionomics table of AnophelesModel2 from the
+# Step 1 of 2: build the vector bionomics table of AnophelesModel from the
 # posterior draws of AnophelesBionomics (no Stan refit).
 #
-# Requires AnophelesBionomics installed. Run from the AnophelesModel2 package
+# Requires AnophelesBionomics installed. Run from the AnophelesModel package
 # root; writes data-raw/vec_ent_param_AnophelesBionomics.csv (the versioned
 # reference table) and data-raw/vec_ent_param_AnophelesBionomics_source.txt.
 # Then run step 2, data-raw/vec_ent_param.R, to update the package dataset.

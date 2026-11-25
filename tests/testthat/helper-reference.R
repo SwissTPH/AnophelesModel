@@ -39,7 +39,7 @@ reference_calculate_impact = function(interventions_vec, coverage_vec, model_p) 
             t_avail = ref_rep.row(alphai_ip, n_cov) * Ni
             host_frac = Ni / N_total
 
-            ent = AnophelesModel2:::eval_entomological_model(
+            ent = AnophelesModel:::eval_entomological_model(
                 interv, model_p$vec_params, model_p$host_params, Nv0,
                 t_avail, host_frac, N_total)
 

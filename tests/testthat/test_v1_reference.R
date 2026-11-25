@@ -1,4 +1,4 @@
-library(AnophelesModel2)
+library(AnophelesModel)
 library(testthat)
 
 # v2 reproduces AnophelesModel v1 on identical inputs (same vector and host

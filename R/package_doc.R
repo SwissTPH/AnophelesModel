@@ -2,8 +2,8 @@
 #'
 #' @description A framework for assessing the impact of malaria vector
 #' control interventions, taking into account species- and/or
-#' geographically-specific mosquito bionomics. Refactoring of the
-#' AnophelesModel package.
+#' geographically-specific mosquito bionomics. Version 2 is a refactoring
+#' of version 1 (see NEWS.md for the differences).
 #'
 #' @section Overview:
 #' The package combines a database of vector bionomics (from the
@@ -25,7 +25,7 @@
 #' @author Nakul Chitnis, \email{nakul.chitnis@swisstph.ch}
 #' @author Tom Smith, \email{thomas.smith@swisstph.ch}
 #'
-#' @name AnophelesModel2-package
+#' @name AnophelesModel-package
 "_PACKAGE"
 
 # Suppress R CMD check NOTEs for lazy-loaded package datasets referenced by

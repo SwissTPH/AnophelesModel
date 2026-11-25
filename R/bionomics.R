@@ -80,7 +80,7 @@ check_bionomics_table = function(tab) {
 #' same structure as \code{vec_ent_param}, for example a newer export from
 #' the AnophelesBionomics package, so that it can be used with
 #' \code{def_vector_params(bionomics_table = ...)} without reinstalling
-#' AnophelesModel2.
+#' AnophelesModel.
 #'
 #' @param file Path to a CSV file. Required columns: \code{species_name},
 #'   \code{level} (\code{"species"}, \code{"complex"} or \code{"genus"}),
