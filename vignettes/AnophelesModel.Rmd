@@ -1,8 +1,8 @@
 ---
 title: "AnophelesModel Documentation"
-author: "Monica Golumbeanu, Olivier Briët, Clara Champagne, Jeanne Lemant, Barnabas Zogo, Maximilian Gerhards, Marianne Sinka, Nakul Chitnis, Melissa Penny, Emilie Pothin, Tom Smith"
+author: "Monica Golumbeanu, Clara Champagne"
 date: "`r Sys.Date()`"
-output: 
+output:
     rmarkdown::html_vignette:
         fig_caption: yes
         toc: true
@@ -15,773 +15,996 @@ bibliography: references.bib
 
 <style>
 p.caption {
-font-size: 0.85em;
-font-style: italic;
-color: grey
+  font-size: 0.85em;
+  font-style: italic;
+  color: grey
 }
 </style>
 
-
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(
-    echo = TRUE,
-    collapse = TRUE,
-    comment = "#>"
-)
+knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, comment = "#>")
 ```
 
 ## Introduction
-The `AnophelesModel` package can be used to parameterize a model of the
-mosquito feeding cycle using data about mosquito bionomics 
-(entomological characteristics) and biting 
-patterns, as well as human activity and intervention effects. The different 
-types of data have been extracted from field studies and are included in 
-the package. The model infers the species-specific impact of various
-vector control interventions on the vectorial capacity. The package can be used 
-to compare the impact of interventions for different mosquito species and to 
-generate parameterizations for the entomological and vector control components 
-of more complex models of malaria transmission dynamics.
 
-The `AnophelesModel` package is based on a state transition model 
-of the feeding dynamics of a mosquito population biting a population of 
-hosts defined in [@Chitnis2008]. The model consists of a system of three 
-difference equations
-describing the dynamics in the numbers of not-infected, infected, and infective
-mosquitoes, respectively. The transitions between the individual steps of the 
-cycle for a host *i* are modeled through probabilities and 
-summarized as follows:
+The `AnophelesModel` package parameterises a model of the mosquito feeding
+cycle [@Chitnis2008] using mosquito bionomics, human activity patterns, and
+user-supplied intervention efficacy parameters. It estimates the
+species-specific impact of vector control interventions on vectorial capacity
+and can generate parameterisations for OpenMalaria. Version 2 is a
+refactoring of version 1 and is not backward compatible (see `NEWS.md` for
+the differences).
 
-```{r, echo=FALSE, results='asis'}
-# DiagrammeR::grViz("digraph {
-  # graph [layout = dot, rankdir = LR]
-  # 
-  # node [shape = circle, fixedsize=TRUE, fontsize=7]        
-  # rec1 [label = <Host<BR/>seeking>]
-  # rec2 [label = <Host<BR/>found>]
-  # rec3 [label = <Fed>]
-  # rec4 [label = <Resting>]
-  # rec5 [label = <Ovipositing>]
-  # 
-  # # edge definitions with the node IDs
-  # rec1 -> rec2 [label= <P<SUB>Ai</SUB><BR/> >,fontsize=7]
-  # rec2 -> rec3 [label= <P<SUB>Bi</SUB><BR/> >,fontsize=7]
-  # rec3 -> rec4 [label= <P<SUB>Ci</SUB><BR/> >,fontsize=7]
-  # rec4 -> rec5 [label= <P<SUB>Di</SUB><BR/> >,fontsize=7]
-  # rec5 -> rec1 [label= <P<SUB>Ei</SUB><BR/> >,fontsize=7]
-  # }",
-  # width = 700)
-```
+The five feeding-cycle stages are: **Host seeking → Host found (P~Ai~) →
+Fed (P~Bi~) → Resting (P~Ci~) → Ovipositing (P~Di~) → back to Host
+seeking (P~Ei~)**.
 
-![**Figure 1: Overview of the `AnophelesModel` R package and its components.** The package integrates various types of input data (first panel) to parameterize an existing model of the mosquito feeding cycle (middle panel, schematic adapted from [@Chitnis2008]). This model represents the feeding cycle states with letters A through E and transition probabilities $P_{A^i}$ – $P_{E^i}$ between consecutive states for a host of type i (human, animal hosts). The dotted grey arrows indicate that mosquitoes can die at each stage. Blue lightning symbols indicate the transition probabilities affected by the vector control interventions included in the package](../man/figures/Fig1.png){width=90%}
+The typical analysis follows these steps:
 
+1. `def_vector_params()`, `def_host_params()` and `def_activity_patterns()`
+   (with `calculate_exposure()`)
+2. `build_model_obj()`
+3. `build_intervention()` (or `get_ITN_params()` for published ITN
+   parameterisations)
+4. `calculate_impact()`, or `run_interventions()` for many scenarios and
+   uncertainty draws
+5. optionally, export to OpenMalaria
 
-These probabilities (represented by the arrows in the diagram above) 
-are in turn affected by mosquito ecology, human behavior 
-and interventions as described in the following sections of this vignette. 
+## Package database
 
-This documentation provides information about the various use-cases of the
-package with examples. First, it gives an overview of the general 
-analysis workflow. Next, it presents the contents of the
-package database and its data objects. Finally, it provides more detailed 
-example use cases of the package functions. These examples include how to 
-parameterize the embedded entomological model and evaluate the impact of various
-vector control interventions for different mosquito species and geographical 
-locations. In addition, examples are shown about how to produce formatted 
-inputs for downstream analyses with 
-the [OpenMalaria](https://github.com/SwissTPH/openmalaria/wiki) [@Smith2006]
-individual-based model of malaria transmission dynamics.
-
-## General workflow
-With the main `AnophelesModel()` package function, the user can run in one go 
-the main analysis steps for parameterizing the model of the 
-mosquito feeding cycle [@Chitnis2008]
-and estimate the reduction on the vectorial capacity for various vector control 
-interventions. These steps are summarized in the diagram below, alongside the 
-corresponding functions:
-```{r, echo=FALSE, results='asis'}
-DiagrammeR::grViz("digraph {
-  graph [layout = dot, rankdir = LR]
-  
-  node [shape = rectangle]        
-  rec1 [label = <Define entomological <BR/> parameters <BR/><B>def_vector_params()</B>>]
-  rec2 [label = <Define mosquito and <BR/> human activity patterns <BR/> <B>def_activity_patterns()</B>>]
-  rec3 [label = <Define human host <BR/> parameters <BR/><B>def_host_params()</B>>]
-  rec4 [label = <Initialize entomological model <BR/><B>build_model_obj()</B>>]
-  rec5 [label = <Define interventions effects <BR/><B>def_interventions_effects()</B>>]
-  rec6 [label = <Calculate impact on <BR/> vectorial capacity <BR/><B>calculate_impact()</B>>]
-  
-  # edge definitions with the node IDs
-  rec1 -> rec4 
-  rec2 -> rec4 
-  rec3 -> rec4
-  rec4 -> rec5
-  rec5 -> rec6
-  }",
-  width = 720)
-```
-
-The user can directly run the `AnophelesModel()` function as an initial test 
-run with a default analysis. By default, the `AnophelesModel()` function 
-performs the above steps considering 
-the parameters for *An. gambiae* in a Kenyan setting and with default activity 
-patterns for mosquitoes and humans. It calibrates the entomological model,
-estimates the impact of indoor residual spraying (IRS), long-lasting 
-insecticide-treated nets (LLINs) and house screening, then plots the average 
-vectorial capacity for a range of intervention coverages:
-```{r, dpi=150, fig.cap="Output figure generated with the standard call of the AnophelesModel() function"}
-# load the AnophelesModel package
+```{r}
 library(AnophelesModel)
-
-# call main function with default values
-results_gambiae = AnophelesModel()
 ```
 
-In the section [Estimating the impact of vector control interventions], 
-we describe in detail how the user can access the 
-functionalities of the package to customize the 
-call to this function or set up their own workflow to run the 
-analysis within the settings of interest.
+**Host parameters** (`host_ent_param`): species-independent transition
+probabilities (`PBi`, `PCi`, `PDi`, `PEi`, `Kvi`) for human and animal hosts
+in the absence of interventions.
 
-## AnophelesModel database 
-The package includes a comprehensive, curated database describing mosquito,
-human and intervention characteristics extracted after processing publicly
-available field data and organized into multiple data objects.
-Precisely, these objects include entomological (or bionomics) parameters
-characterizing various *Anopheles* species, their transitions in 
-the mosquito feeding cycle,
-activity cycles of humans and mosquitoes, as well as parameters 
-estimated from experimental hut studies describing
-the effects of various interventions.
-These parameters are used together within the entomological model included in
-the package to estimate the impact of interventions on the vectorial capacity.
-All the data objects are directly accessible to the user
-after loading the `AnophelesModel` package. 
+**Mosquito bionomics** (`vec_ent_param`): parameterisations for 57 *Anopheles*
+species, 17 complexes and the genus, from the
+[AnophelesBionomics](https://github.com/SwissTPH/AnophelesBionomics) package,
+which estimates each parameter with a hierarchical Bayesian model (genus,
+complex, species) from published field data. Taxa are identified by their name
+**and** level (`species`, `complex`, `genus`); `imputed_traits` lists the
+parameters for which a taxon has no data of its own (values from its complex
+or the genus). The resting duration `tau` is estimated from the ratio of fed to
+gravid females in resting collections.
 
-### Host-specific entomological parameters
-
-The entomological model in the `AnophelesModel` package considers three classes
-of hosts (denoted with subscript i): humans protected by interventions, 
-non-protected humans,
-and animal hosts. Each type of host determines specific transition probabilities
-between the consecutive stages of the mosquito feeding cycle
-(e.g., interventions such as nets will affect the probability of mosquito
-feeding on protected humans). The object `host_ent_param`
-in the package database contains, in absence of interventions, for human
-and animal hosts, default probabilities that a mosquito
-completes the consecutive stages of the feeding cycle in one night,
-conditional on having reached each stage:
-
-* `PBi`: Probability that a mosquito bites the host
-* `PCi`: Probability that a mosquito finds a resting place after biting
-* `PDi`: Probability that a mosquito survives the resting phase
-* `PEi`: Probability that a mosquito lays eggs and returns to host-seeking
-* `Kvi`: Proportion of susceptible mosquitoes that become infected after biting
-
-The `host_ent_param` object contains default values of these 
-probabilities in absence of interventions for the major mosquito species 
-*Anopheles gambiae*, *Anopheles funestus* and *Anopheles arabiensis* 
-as proposed by [@Chitnis2008] and [@briet2019]. 
-The `host_ent_param` object can be directly 
-used after loading the `AnophelesModel` package: 
 ```{r}
-# Print the object
-host_ent_param
-```
-
-### Mosquito bionomics
-
-The object `vec_ent_param` contains bionomic parameterizations for
-57 _Anopheles_ mosquito species and 17 complexes (families of species). 
-These parameters have been estimated using 
-a Bayesian hierarchical model [@lemant2021] accounting for 
-the phylogeny of 
-the _Anopheles_ genus and informed by previously published entomological data 
-[@Massey2016], [@briet2019]. Below, we provide an exhaustive list of these 
-parameters, their names reflecting the notations used in [@Chitnis2008]:
-
-* `species_name`: name of the mosquito species
-* `M`: parous rate (proportion of host seeking mosquitoes that have laid 
-eggs at least once)
-* `M.sd`: standard deviation of the parous rate 
-* `Chi`: human blood index (proportion of mosquito blood meals obtained 
-from humans)
-* `A0`: sac rate (proportion of mosquitoes who laid eggs the same day)
-* `A0.sd`: standard deviation of the sac rate
-* `zeta.3`: relative availability of different non-human hosts
-* `td`: proportion of a day that a mosquito actively seeks a host
-* `tau`: time required for a mosquito that has encountered a host to return to 
-host seeking
-* `ts`: duration of the extrinsic incubation period (time required for 
-sporozoites to develop in mosquitoes)
-* `endophily`: proportion of indoor resting mosquitoes
-* `endophily.sd`: standard deviation of the proportion of indoor 
-resting mosquitoes
-* `endophagy`: proportion of indoor feeding mosquitoes
-* `endophagy.sd`: standard deviation of the proportion of indoor 
-feeding mosquitoes
-
-The `vec_ent_param` object is available upon loading the `AnophelesModel` 
-package and can be directly used:
-```{r}
-# print the first entries of the vec_ent_param object
 head(vec_ent_param)
-```
-For example, to retrieve the parameters for *Anopheles albimanus*:
-```{r}
-vec_ent_param[vec_ent_param$species_name == "Anopheles albimanus", ]
+head(list_all_species(level = "complex"))
 ```
 
-The data object \code{vec_ent_param} includes estimated bionomics parameters 
-for individual Anopheles mosquito species, but also for complexes regrouping 
-several species. For example, "Gambiae complex" refers to the Gambiae complex, 
-while *Anopheles gambiae* refers to the mosquito species. The Gambiae complex 
-includes *Anopheles gambiae*, *Anopheles arabiensis*, *Anopheles melas*, 
-*Anopheles merus*, and other mosquitoes whose exact species was not identified 
-but belong to the complex. Therefore, it is expected that the bionomics 
-parameters will differ between the individual species and the 
-corresponding complex.
-For example, to retrieve the parameters for  the Gambiae complex:
-```{r}
-vec_ent_param[vec_ent_param$species_name == "Gambiae complex", ]
-```
-
-### Human and mosquito activity patterns
-The table `activity_patterns` contains mosquito biting patterns as well as 
-human sleeping activity information extracted from [@Sherrard-Smith15086] and
-[@briet2019]. Each entry has the following attributes:
-
-* `id`: entry ID
-* `species`: can be "Homo sapiens" when the entries reflect human activity, 
-or names of mosquito species (e.g., "Anopheles gambiae") for mosquito 
-biting patterns
-* `sampling`: can be one of the following:
-+ `IND`: for entries representing the proportion of humans indoors
-+ `BED`: for entries representing the proportion of humans in bed
-+ `HBI`: for entries representing the proportion of indoors human 
-biting
-+ `HBO`: for entries representing the proportion of outdoors human 
-biting
-+ `ABO`: for entries representing the proportion of outdoors 
-animal biting
-+ `HB`: for entries corresponding to the proportion of human biting
-* `country`: country where the measurements were taken
-* `site`: name of the geographical site where the measurements were taken
-* `hour`: hour of the day for which the sampling is reported, ranging from 4pm 
-until 8am, format: hh:mm_hh:mm (e.g., 16:00_17:00)
-* `value`: measurement value
-
-The object can be directly examined and its components
-retrieved for various purposes. For example, to retrieve all the human 
-activity patterns collected from Kenya:
-```{r}
-select_idx = activity_patterns$species == "Homo sapiens" &
-    activity_patterns$country == "Kenya"
-Kenya_human_rhythms = activity_patterns[select_idx,]
-head(Kenya_human_rhythms)
-```
-A pattern of interest can then be selected and displayed, for example:
-```{r, dpi=150, fig.cap="Example of human activity patterns in Rachuonyo, Kenya. The proportion of humans indoors (labeled IND) out of the total human population is displayed."}
-library(ggplot2)
-Rachuonyo_human_rhythms = Kenya_human_rhythms[which(Kenya_human_rhythms$id == 2),]
-labels = substr(unique(Rachuonyo_human_rhythms$hour), 1, 5)
-Rachuonyo_human_rhythms$hour = factor(labels, levels = labels )
-ggplot(Rachuonyo_human_rhythms, aes(x=hour, y=value, group=site)) +
-    theme_light() + theme_linedraw() + theme_bw(base_size = 5) +
-    theme(legend.position = "bottom") +
-    geom_line(size=0.5) + 
-    scale_x_discrete(name = "Time of the day (hh.mm)")+ 
-    guides(color = guide_legend(nrow = 2,byrow = TRUE)) +
-    labs(title = "Proportion of humans indoors in Rachuonyo, Kenya", fill="",
-         x="Time", y="Activity")
-```
-
-Another example extracting all the available biting behavior for 
-*Anopheles gambiae* in Kenya:
-```{r}
-select_idx = activity_patterns$species == "Anopheles gambiae" &
-    activity_patterns$country == "Kenya"
-Kenya_gambiae_biting = activity_patterns[select_idx,]
-head(Kenya_gambiae_biting)
-```
-
-### Intervention parameters 
-The `AnophelesModel` package includes parameterisations for estimating the 
-effects of various vector control interventions. These effects include
-reducing host availability, killing mosquitoes over time since spraying,
-insecticidal and deterrent effects as functions of insecticide content. 
-The interventions modeled in the package consist of different types 
-of long lasting insecticide treated nets (LLINs), 
-indoor residual spraying (IRS), and house screening. All the parameters for 
-calculating these effects are provided within the `interventions_param` 
-object which consists of three components, namely:
-
-* `interventions_param$interventions_summary`: an overview and general 
-information for all available intervention parameterisations; this includes 
-information about the active agent (insecticide) used, the 
-mosquito species for which the effects were assessed in the experimental trials, 
-the duration of the intervention and details about the method and references
-* `interventions_param$LLINs_params`: an object including parameterisations 
-for various types of LLINs
-* `interventions_param$IRS_params`: a table containing estimated insecticide 
-decay for various types of IRS
-
-The effects of LLINs are parameterized in terms of effectiveness in 
-reducing the availability of humans, and both pre- and post-prandial killing 
-of mosquitoes respectively. The effects are based on estimates from 
-experimental hut studies from [@randriamaherijaona2015]. The decay of these 
-effects over time, in terms of attrition, use, physical and chemical integrity 
-is parameterized through a series of logistic models described in [@briet2013], 
-[@briet2019], and [@briet2020] using the data of President Malaria Initiative 
-(PMI) net durability studies (7 countries, 8 net types, 23 combinations in all), 
-and also from [@morgan2015]. The object `interventions_param$LLINs_params` 
-contains all this information and is composed of three tables: 
-
-* `interventions_param$LLINs_params$model_coeff`: values for coefficients of 
-regression models estimating LLINs effects; these models have been defined in 
-[@briet2013], [@briet2019] and [@briet2020]
-* `interventions_param$LLINs_params$insecticide_c`: insecticide content for 
-various types of nets summarized in [@briet2020]
-* `interventions_param$LLINs_params$durability_estim`: information about the 
-durability of LLINs (holed area, survival) across time in different 
-geographical locations also summarized in [@briet2020].
-
-Similarly, for IRS, a table with time series of effects in reducing human 
-availability and killing of mosquitoes as well as parameters describing 
-decay of effects over time is provided in `interventions_param$IRS_params`. 
-
-The parameterization for House screening is based 
-on the estimates from [@kirby2009] and described in [@briet2019], assuming a 
-house entry reduction of 59%.
-
-The data objects for interventions described above are directly accessible upon 
-loading the `AnophelesModel` package. For example, for obtaining an overview
-of all LLINs interventions provided with the `AnophelesModel` package:
-
-```{r}
-print(interventions_param$interventions_summary[which(interventions_param$interventions_summary$Intervention == "LLINs"),])
-```
-
-### Functions querying the package database
-
-The package additionally contains helper functions for listing an overview 
-of the different data objects to help the user populate the input arguments of 
-the key functions in the general workflow (e.g., for the `AnophelesModel()` 
-function). These are:
-
-* `list_all_species()`: prints all the mosquito species for which bionomic 
-parameters are provided in the package database
-* `list_activity()`: prints all the available activity patterns 
-* `list_interventions()`: prints the available vector control interventions 
-* `list_intervention_models()`: prints the available intervention 
-parameterisation IDs
-* `get_net_types()`: prints the available net types and the countries where 
-the studies have been conducted 
-
-Furthermore, the package allows extracting more specific information about the 
-durability of different types of LLINs such as holed area, survival and decay. 
-These parameteres were estimated in the PMI net durability studies.
-
-For example, to retrieve the decay characteristics 
-for the DuraNet LLIN in Kenya:
-```{r}
-# load the necesary packages
-library(reshape)
-
-DuraNet = get_net_decay(net_type = "DuraNet", country = "Kenya", insecticide_type = "DuraNet", n_ips = 100, duration = 3)
-```
-Then, to plot these characteristics :
-```{r, fig.show='hold'}
-library(ggpubr)
-# Plot the survival
-ggplot(DuraNet, aes(x=time, y=survival)) + geom_point() +
-    theme_light() + theme_linedraw() + theme_bw() + ggtitle("Survival of the net")
-
-# Plot the log of the holed area
-ggplot(DuraNet, aes(x=time, y=logHoles)) + geom_point() +
-    theme_light() + theme_linedraw() + theme_bw() + ggtitle("Log holed area")
-
-# Plot the insecticide content
-ggplot(DuraNet, aes(x=time, y=insecticideContent)) + geom_point() +
-    theme_light() + theme_linedraw() + theme_bw() + ggtitle("Insecticide decay")
-```
+**Activity patterns** (`activity_patterns`): mosquito biting rhythms and human
+sleeping activity [@Sherrard-Smith15086; @briet2019]. Query with
+`list_activity()`.
 
 ## Estimating the impact of vector control interventions
 
-The mosquito bionomics, feeding cycle transitions, 
-activity patterns and intervention effects accessible from 
-the `AnophelesModel` database can be used to parameterise the model of 
-the mosquito feeding cycle
-and estimate the impact of interventions on the vectorial capacity.
+### Step 1: Define vector entomological parameters
 
-### Step 1: Defining entomological parameters
+Choose an existing taxon from the database. *An. gambiae s.s.* and *An.
+coluzzii* are merged in the data; "Anopheles gambiae" is also accepted for this
+species, with a warning:
+```{r}
+gambiae_vec_p = def_vector_params(mosquito_species = "Anopheles gambiae ss/coluzzii")
+```
 
-To define the mosquito specific entomological parameters in absence of 
-interventions, the user can either 
-select existing parameterisations from the `AnophelesModel` database, or 
-provide a set of custom values. For example, to choose an existing 
-parameterisation for *Anopheles nili*:
+A complex is selected with `level = "complex"` (e.g. the whole Gambiae
+complex). By default the human blood index `Chi` is the **indoor** HBI;
+`hbi = "outdoor"` or `hbi = "weighted"` (indoor and outdoor HBI weighted by
+endophagy) are alternatives:
+```{r, eval=FALSE}
+gambiae_complex = def_vector_params("Gambiae", level = "complex")
+gambiae_outdoor = def_vector_params("Anopheles gambiae ss/coluzzii", hbi = "outdoor")
+```
+
+A newer version of the bionomics table (same columns) can be used without
+reinstalling the package:
+`def_vector_params(..., bionomics_table = read_bionomics_table("file.csv"))`.
+
+Or supply a custom data frame with (a subset of) the column names of
+`vec_ent_param`. The model needs `M` (parous rate), `Chi` (human blood
+index, HBI), `A0` (sac rate), `zeta.3`, `td`, `tau` (resting duration, days)
+and `ts` (extrinsic incubation period, a whole number of days); a missing or
+out-of-range value is an error. `Chi` is used as supplied:
+```{r, eval=FALSE}
+custom_vec_table = data.frame(
+    species_name  = "My species",
+    M = 0.623, M.sd = 0.06,    # parous rate
+    Chi = 0.939,                # Human Blood Index (HBI)
+    A0 = 0.313, A0.sd = 0.03,  # sac rate
+    zeta.3 = 1, td = 0.33, tau = 1.1, ts = 10, to = 5,
+    endophily = 0.813, endophily.sd = 0.07,
+    endophagy = 0.813, endophagy.sd = 0.07
+)
+custom_vec_p = def_vector_params(vector_table = custom_vec_table)
+```
+
+### Step 2: Define host-specific parameters
+
+Host parameters are defined as follows:
+```{r}
+host_p = def_host_params()
+print(host_p)
+```
+
+A custom table (one human and one animal row, probabilities in [0, 1]) can
+be passed via `host_table`:
+```{r, eval=FALSE}
+custom_host_table = data.frame(
+    host = c("human", "animal"),
+    PBi = c(0.95, 0.70), PCi = c(0.90, 0.70),
+    PDi = c(0.90, 0.80), PEi = c(0.88, 0.80),
+    Kvi = c(0.52, 0.00)
+)
+custom_host_p = def_host_params(host_table = custom_host_table)
+```
+
+### Step 3: Define activity patterns and compute exposure
+
+Use the built-in defaults or select from the database by entry ID:
+```{r}
+# Built-in default (An. gambiae, Kenya)
+activity_gambiae = def_activity_patterns("default_Anopheles_gambiae")
+
+# From database by entry ID
+activity_arabiensis = def_activity_patterns(list(
+    HBI = 34, HBO = 165, humans_indoors = 4, humans_in_bed = 24
+))
+```
+
+Time-series vectors can also be supplied directly as a named list with elements
+`HBI`, `HBO`, `humans_indoors`, `humans_in_bed`.
+
+`calculate_exposure()` decomposes total human exposure into indoor/outdoor
+components. For example, `Exposure_Indoor_whileinbed` gives the fraction of bites received
+indoors while sleeping — the portion an ITN would protect against (for IRS,
+see below). Unlike in
+version 1, exposure does not modify the intervention efficacies: it
+reduces the **effective coverage** (`coverage × exposure`), passed via the
+`exposure` argument of `calculate_impact()` and `run_interventions()`:
+```{r}
+exposure = calculate_exposure(activity_cycles = activity_gambiae,
+                              vec_p           = gambiae_vec_p)
+print(exposure)
+```
+
+**Which mosquitoes does IRS reach?** Two choices are defensible, and the
+package offers both:
+
+- **mosquitoes resting indoors** (`indoor_resting`, the endophily): spraying
+  reaches the mosquitoes resting on the walls;
+- **mosquitoes biting indoors** (`Exposure_Indoor_total`): the share of bites
+  received indoors, where IRS is deployed.
+
+They agree only when the share of mosquitoes resting indoors equals the
+share of bites indoors. Neither is wrong in itself; the appropriate one
+depends on how the IRS efficacies were estimated. Use the same choice in the
+vectorial capacity calculation and in the OpenMalaria export:
+
+- here, pass `exposure = exposure$indoor_resting` or
+  `exposure = exposure$Exposure_Indoor_total` to `calculate_impact()` /
+  `run_interventions()`;
+- in the OpenMalaria export, `get_OM_ento_snippet(irs_exposure =
+  "indoor_resting")` (default) or `"indoor_biting"` (see "Export to
+  OpenMalaria").
+
+### Step 4: Build the model object
 
 ```{r}
-nili_ent_params = def_vector_params(mosquito_species = "Anopheles nili")
-head(nili_ent_params)
+model_p = build_model_obj(gambiae_vec_p, host_p)
+print(model_p$host_params$muvA)    # mosquito death rate while host-seeking
+print(model_p$host_params$alphai)  # per-individual-host availability rates
 ```
 
-To use a different parameterisation, first all the entomological parameter values need 
-to be provided in a data frame with the same column names 
-as the `vec_ent_param` object:
+
+### Step 5: Build an intervention object
+
+Efficacy parameters map directly to feeding-cycle probabilities:
+
+| Parameter | Mechanism | Model |
+|---|---|---|
+| `Deterrency` | Reduces host availability (`alphai`) for protected humans: deterred mosquitoes keep searching | Both |
+| `PrePrandial` | Kills mosquitoes after they find a protected human, before they feed: reduces the probability of biting and surviving (`PBi`) | Standard (3 hosts) |
+| `PostPrandial` | Kills mosquitoes after feeding: reduces the probability of surviving to find a resting place (`PCi`) | Both |
+| `KillingDuringHostSeekingAbsolute` | Adds a dummy host: mosquitoes killed while searching | Dummy-host (4 hosts) |
+
+In the feeding-cycle model, a mosquito that fails a stage after finding a
+host dies, so pre- and post-prandial effects are mortality.
+
+Any subset of the components can be given (omitted ones are 0). `Deterrency`,
+`PrePrandial` and `PostPrandial` are probabilities in [0, 1]. In the
+dummy-host model, `KillingDuringHostSeekingAbsolute` replaces `PrePrandial`
+(a non-zero `PrePrandial` with it is an error): mosquitoes are killed while
+searching for a host, through a fourth "dummy" host whose availability is
+`KillingDuringHostSeekingAbsolute`. As the name says, it is an **absolute
+rate** (per day, in the units of the host availabilities `alphai`), not a
+probability, and can exceed 1. By a provisional convention, the per
+hut-night rates of experimental hut fits are used as per-day rates.
+
+All components share an **attrition decay** (`halflife_attrition`,
+`shape_attrition`, `decay_attrition`) describing physical degradation over
+time. The decay function (`decay_attrition`) is one of those of OpenMalaria:
+`"weibull"`, `"exponential"`, `"hill"`, `"linear"`, `"step"`,
+`"smooth-compact"` and `"none"`. Its parameter `L` (`halflife_attrition`)
+is the half-life (value 0.5 at `t = L`) for Weibull, exponential and Hill,
+and the time at which the effect reaches zero for linear, step and
+smooth-compact. The shape parameter `kappa` (`shape_attrition`) is needed for
+Weibull, Hill and smooth-compact. All these decay functions start at 1 and
+decrease towards 0, so the efficacy never exceeds its initial value (the
+only exception is a negative `halflife_insecticide`, see below).
+
+```{r,echo=FALSE, fig.cap="Decay functions (L=365 days, kappa=2 where applicable)."}
+library(ggplot2)
+days = 0:(2*365)
+decay_df = rbind(
+    data.frame(day=days, value=decay_function(L=365,kappa=2,   datej=days,decay="weibull"),       shape="Weibull"),
+    data.frame(day=days, value=decay_function(L=365,kappa=NULL,datej=days,decay="exponential"),    shape="Exponential"),
+    data.frame(day=days, value=decay_function(L=365,kappa=2,   datej=days,decay="hill"),           shape="Hill"),
+    data.frame(day=days, value=decay_function(L=365,kappa=NULL,datej=days,decay="linear"),         shape="Linear"),
+    data.frame(day=days, value=decay_function(L=365,kappa=NULL,datej=days,decay="step"),           shape="Step"),
+    data.frame(day=days, value=decay_function(L=365,kappa=2,   datej=days,decay="smooth-compact"), shape="Smooth-compact")
+)
+ggplot(decay_df, aes(x=day, y=value, colour=shape)) +
+    geom_line() + theme_bw() +
+    labs(x="Day", y="Remaining efficacy", colour="Decay function")
+```
+
+**Built-in ITN parameterisations.** `list_ITN_params()` lists the nets and
+experimental hut trials (EHT) of the database [@champagne2025], each
+available for both model structures; the net type (`net_type`) and the `EHT`
+are the arguments of `get_ITN_params()`:
 ```{r}
-# Use own parameterisation
-species_name = "Anopheles example"
-M = 0.623
-M.sd = 0
-Chi = 0.939
-A0 = 0.313
-A0.sd = 0
-zeta.3 = 1
-td = 0.33
-tau = 3
-ts = 10
-to = 5
-endophily = 1
-endophily.sd = 0
-endophagy = 1
-endophagy.sd = 0
-custom_ent_params_table = as.data.frame(cbind.data.frame(species_name, M, M.sd, Chi,
-                                                         A0, A0.sd, zeta.3, td,
-                                                         tau, ts, to, endophily, endophily.sd, endophagy, endophagy.sd))
+head(list_ITN_params())
 ```
-Then, the data frame is provided to the function defining the vector parameters:
+
+**Standard model** — built-in parameterisation for Interceptor G2 from the
+Kibondo EHT, with Weibull attrition (half-life 3 years) and
+per-component **linear** insecticide decay, passed via `halflife_insecticide`
+(in years). Despite its name, this is the time at which the effect would
+reach zero, calibrated so that the efficacy at the aging time of the trial's
+washed arm (3 years, 2 for Sovegnon) equals the efficacy of nets washed 20
+times (a negative value, when washed nets perform better, makes
+the effect increase over time):
 ```{r}
-custom_ent_params = def_vector_params(mosquito_species = species_name, vector_table = custom_ent_params_table)
-head(custom_ent_params)
+itn_p = get_ITN_params("Interceptor G2", "Kibondo")
+
+my_interv = build_intervention(
+    efficacy             = itn_p$efficacy,
+    halflife_insecticide = itn_p$halflife_insecticide,
+    mode                 = itn_p$mode,
+    halflife_attrition =  3*365, shape_attrition = 2, decay_attrition = "weibull",
+    duration_years = 3, model_p = model_p, name = itn_p$name
+)
 ```
 
-### Step 2: Defining host-specific entomological parameters
-Objects for host-specific entomological parameters (e.g., biting of human 
-versus animal hosts, for details or other parameters see section 
-[Host-specific entomological parameters]) in absence of interventions 
-can be defined in a similar way as 
-for the mosquito bionomics. To choose the default parameterisation 
-from [@Chitnis2008]:
+With insecticide decay (the default `insecticide_decay = TRUE`), the object
+also contains, for each efficacy component, the single Weibull decay that best
+approximates attrition × insecticide decay (as used for OpenMalaria GVI
+parameterisations). The model itself uses the exact decay:
 ```{r}
-default_host_params = def_host_params()
-print(default_host_params)
+my_interv[[1]]$fitted_decay
 ```
 
-For using a different, custom parameterisation, first we need to build a 
-data frame with the same structure as `host_ent_params`:
+Set `insecticide_decay = FALSE` to ignore the insecticide decay and keep the
+unwashed efficacy throughout (only attrition decays):
+```{r, eval=FALSE}
+my_interv_nodecay = build_intervention(
+    efficacy = itn_p$efficacy, halflife_insecticide = itn_p$halflife_insecticide,
+    mode = itn_p$mode, insecticide_decay = FALSE,
+    halflife_attrition = 3*365, shape_attrition = 2, decay_attrition = "weibull",
+    duration_years = 3, model_p = model_p, name = itn_p$name
+)
+```
+
+Custom efficacy values can also be supplied directly:
+```{r, eval=FALSE}
+my_interv_custom = build_intervention(
+    efficacy = c(Deterrency = 0.50, PrePrandial = 0.60, PostPrandial = 0.70),
+    halflife_attrition = 3*365, shape_attrition = 2, decay_attrition = "weibull",
+    duration_years = 3, model_p = model_p, name = "Custom ITN"
+)
+```
+
+**Dummy-host model** — host-seeking killing replaces pre-prandial; deterrency
+and post-prandial killing remain. Use `mode = "dummy_host"` to load the
+corresponding parameters from the database. In the hut trial fits,
+host-seeking killing is estimated relative to the availability `alpha_0` of
+the trial's control arm (`KillingDuringHostSeekingRelative` in the
+database); since `alpha_0` varies widely between trials, `get_ITN_params()`
+multiplies it back by the control `alpha_0` of the same arm (unwashed or
+washed) to return the **absolute** value `KillingDuringHostSeekingAbsolute`,
+comparable across trials and used by the model (`rescale_hsk = FALSE`
+returns the relative value, e.g. to rescale it with another `alpha_0`; the
+model does not accept it):
 ```{r}
-species_name = "Anopheles example" 
-host = c("human", "animal") 
-PBi = c(0.87, 0.94)
-PCi = c(0.83, 0.84)
-PDi = c(0.947, 0.74)
-PEi = c(0.972, 0.84)
-Kvi = c(0.52, 0.314)
-custom_params_tab = cbind.data.frame(species_name, host, PBi, PCi, PDi, PEi, Kvi)
+itn_dh_p = get_ITN_params("Interceptor G2", "Kibondo", mode = "dummy_host")
+
+my_interv_dh = build_intervention(
+    efficacy             = itn_dh_p$efficacy,
+    halflife_insecticide = itn_dh_p$halflife_insecticide,
+    mode                 = itn_dh_p$mode,
+    halflife_attrition = 180, shape_attrition = 2, decay_attrition = "weibull",
+    duration_years = 3, model_p = model_p, name = itn_dh_p$name
+)
+# effects matrices now have 4 columns (protected humans, unprotected, animals, dummy host)
+ncol(my_interv_dh[[1]]$effects$alphai)
 ```
-Afterwards, we can provide this data frame to the relevant function for defining 
-the host parameters:
+
+**Per-component decay** — each efficacy component can decay independently via
+the `component_decay` argument (optional: when absent, a component stays at
+its initial value throughout and only the attrition decay applies):
 ```{r}
-custom_host_params = def_host_params(mosquito_species = species_name, 
-                                     vec_params = custom_ent_params, 
-                                     host_table = custom_params_tab)
-print(custom_host_params)
+my_interv_compdecay = build_intervention(
+    efficacy = c(Deterrency = 0.50, PrePrandial = 0.60, PostPrandial = 0.70),
+    halflife_attrition = 365, shape_attrition = 2, decay_attrition = "weibull",
+    duration_years = 3, model_p = model_p,
+    name = "ITN (per-component decay)",
+    component_decay = list(                           # optional per-component decay
+        Deterrency  = list(decay = "hill",   L = 90,  kappa = 3),   # fast
+        PrePrandial = list(decay = "linear", L = 730, kappa = NULL)  # slow
+    )
+)
 ```
 
-When defining custom values for these probabilities in absence of interventions, 
-users must ensure that the resulting feeding cycle dynamics is in agreement with the 
-mosquito bionomics parameters specified with `def_vec_params()`. This constraint is due to the 
-relationship derived in [@Chitnis2008] where $M$ is equivalent to the 
-probability $P_f$ that a mosquito survives an entire feeding cycle:
-$M = P_f = \frac{\sum_{i=1}^nP_{A^i}P_{B^i}P_{C^i}P_{D^i}P_{E^i}}{1-P_A}$
-where $P_A$ is the probability that the mosquito stays in the host seeking stage 
-(more details are provided in the paper supplement).
+### Step 6: Calculate impact
 
-This relationship is used to derive $P_{A^i}$ for human and animal hosts. 
-Precisely, for human hosts:
-$P_{A^1} = \frac{A_0M\xi\zeta_2P_{B^2}P_{C^2}}{P_{B^1}P_{C^1}(\xi P_{D^1}P_{E^1}+(1-\xi)P_{D^2}P_{E^2})\zeta_2P_{B^2}P_{C^2}}$
-and for animal hosts:
-$P_{A^1} = \frac{A_0M(1-\xi)}{(\xi P_{D^1}P_{E^1}+(1-\xi)P_{D^2}P_{E^2})\zeta_2P_{B^2}P_{C^2}}$
-
-If the user-entered values for $P_{B^i}, P_{C^i}, P_{D^i}$, and $P_{E^i}$ are too low, 
-a special case arises when there are no solutions for the probabilities $P_{A^i}$ 
-defined above and the package produces an error as in the example below:
+Pass the intervention objects to `calculate_impact()` with the deployment
+coverages. For an ITN, the protected share of exposure is the in-bed exposure
+from Step 3; the model then uses the effective coverage
+`coverage × exposure`, while results are reported against deployment coverage.
+Several interventions are evaluated in one call: combine them with `c()` (not
+`list()`, since each `build_intervention()` output is already a list). Here,
+two standard-model ITNs of Step 5 (dummy-host interventions can be mixed in
+the same call):
 ```{r}
-species_name = "Anopheles example" 
-host = c("human", "animal") 
-PBi = c(0.1, 0.11)
-PCi = c(0.1, 0.1)
-PDi = c(0.1, 0.1)
-PEi = c(0.1, 0.1)
-Kvi = c(0.12, 0.14)
+coverages = seq(0, 1, by = 0.1)
 
-custom_params_tab2 = cbind.data.frame(species_name, host, PBi, PCi, PDi, PEi, Kvi)
-tryCatch(
-    {
-        custom_host_params2 = def_host_params(mosquito_species = species_name, 
-                                             vec_params = custom_ent_params, 
-                                             host_table = custom_params_tab2)
-    }, error = function(cond) {
-        message("The package is expected to throw an error in this case.")
-        message("Here is the original error message:")
-        message(conditionMessage(cond))
-    },
-    finally = {
-        
-    })
+impacts = calculate_impact(
+    interventions_vec = c(my_interv, my_interv_compdecay),
+    coverage_vec      = coverages,
+    model_p           = model_p,
+    exposure          = exposure$Exposure_Indoor_whileinbed
+)
 ```
-Kvi should be set to 0 for animal hosts for Plasmodium falciparum. However, 
-this does not generally apply, e.g. for Plasmodium knowlesi. Since the package 
-is not exclusively focused on Plasmodium falciparum, we allow the user to 
-define this value as appropriate for their specific use case. We have added a 
-note to this effect in the documentation (section “Defining host-specific 
-entomological parameters”).
 
-### Step 3: Defining mosquito and human activity patterns
-To facilitate definition of human and mosquito activity patterns, the 
-`AnophelesModel` package comes with inbuilt default values for 
-_Anopheles gambiae_ in Kenya and _Anopheles albimanus_ in Haiti. 
-The user can choose other patterns from the package database (344 entries) by 
-using the entry ID of each time series (`id` column of object 
-`activity_patterns`). Furthermore, customized patterns can be defined by 
-directly providing the time series values. Here are some examples for 
-these different use cases:
-
-To use default activity patterns from Kenya (human activity measured in the 
-Rachuonyo and Rarieda districts):
+The result is a table with one row per intervention and coverage: the
+intervention's position and `name`, its parameters, then `coverage`,
+`exposure`, the average vectorial capacity `avg_vc` and its average reduction
+`avg_impact` over the duration of the intervention:
 ```{r}
-activity_p = def_activity_patterns(activity = "default_Anopheles_gambiae")
-print(activity_p)
+impacts[abs(impacts$coverage - 0.8) < 1e-9, c("name", "coverage", "avg_impact")]
 ```
 
-To select activity patterns from the database based on the entry IDs for 
-*Anopheles arabiensis* in Kenya, Ahero disctrict:
+`plot_impact()` draws one line per intervention, labelled with its `name`
+(give each intervention a distinct `name`, otherwise they share the label
+`"custom"`):
+```{r, dpi=150, fig.cap="Vectorial capacity reduction for two ITNs of Step 5."}
+plot_impact(impacts, title = "Anopheles gambiae ss/coluzzii")
+```
+
+With `keep_time = TRUE`, `calculate_impact()` also returns the vectorial
+capacity and its reduction on each day (`$time`), e.g. to follow the decay of
+the impact after deployment.
+
+### Step 7: Many scenarios and uncertainty with `run_interventions()`
+
+`run_interventions()` takes the interventions as a table instead of objects:
+each row of a data frame `param_sets` is one intervention, and all rows are
+evaluated at all coverages in one call. `calculate_impact()` is
+`run_interventions()` applied to the parameters stored in each intervention
+object, so both give the same results, in the same format, and
+`plot_impact()` draws both.
+
+- **Columns of `param_sets`:** the efficacies `deterrency`, `preprandial`,
+  `postprandial` (required) and optionally
+  `killing_during_host_seeking_absolute`; the
+  attrition decay `decay_attrition` (required), with `halflife_attrition`
+  (days) unless it is `"none"` and `shape_attrition` for Weibull, Hill and
+  smooth-compact; optional per-component decay columns (below). Any other
+  column (e.g. `name`) is carried to the output.
+- **Other arguments:** `coverage_vec`, `duration_years`, `exposure` (as in
+  `calculate_impact()`), and `insecticide_decay = FALSE` to ignore the
+  per-component decay columns.
+- **Output:** a `data.table` with one row per parameter set and coverage
+  (and draw): the input columns, then `coverage`, `exposure`, `avg_vc` and
+  `avg_impact`.
+
+#### Scenario sweep
+
 ```{r}
-activity_list = NULL
-activity_list$HBI = 34
-activity_list$HBO = 165
-activity_list$humans_indoors = 4
-activity_list$humans_in_bed = 24
-activity_p2 = def_activity_patterns(activity_list)
-print(activity_p2)
+param_sets = data.frame(
+    name         = c("Low efficacy", "Medium efficacy", "High efficacy"),
+    deterrency   = c(0.20, 0.4, 0.5),
+    preprandial  = c(0.25, 0.55, 0.80),
+    postprandial = c(0.20, 0.50, 0.75),
+    halflife_attrition = 180, shape_attrition = 2, decay_attrition = "weibull",
+    stringsAsFactors = FALSE
+)
+
+results = run_interventions(
+    param_sets   = param_sets,
+    model_p      = model_p,
+    coverage_vec = seq(0, 1, by = 0.2),
+    duration_years = 3
+)
+head(results)
 ```
 
-To use custom activity patterns by specifying the different time series, for
-example for *An. albimanus* in Haiti available from [@briet2019]:
+```{r, dpi=150, fig.cap="Vectorial capacity reduction for three efficacy scenarios."}
+plot_impact(results)
+```
+
+#### Dummy-host model
+
+The two model structures of Step 5 are mutually exclusive within a
+`param_sets` table. For the dummy-host model, add
+`killing_during_host_seeking_absolute` (an absolute rate, see Step 5) and set `preprandial` to 0 (the column stays
+required):
+
 ```{r}
-# Briet et al 2019, Table S5. Biting rhythm of An. albimanus in Haiti, Dame Marie
-HBI = c(0.22, 0.21, 0.22, 0.10, 0.13, 0.17, 0.08, 0.12, 0.03, 0.12, 0.17, 0.18, 0.25)
-HBO = c(0.25, 0.35, 0.37, 0.33, 0.36, 0.32, 0.13, 0.14, 0.09, 0.15, 0.36, 0.23, 0.25)
-# Human activity in Haiti from Briet et al 2019, Knutson et al. 2014
-humans_in_bed = c(5.628637, 14.084496, 28.558507, 47.761203, 67.502964, 83.202297, 92.736838, 96.734455, 96.637604, 92.983136, 85.264515, 73.021653, 57.079495)/100 
-humans_indoors = c(5.628637, 14.084496, 28.558507, 47.761203, 67.502964, 83.202297, 92.736838, 96.734455, 96.637604, 92.983136, 85.264515, 73.021653, 57.079495)/100 
-custom_params = as.data.frame(cbind(HBI, HBO, humans_indoors,humans_in_bed ))
-custom_activity_obj = def_activity_patterns(custom_params)
-print(custom_activity_obj)
+dummyhost_ps = data.frame(
+    name         = c("Dummy-host ITN", "Dummy-host ITN, HSK decay"),
+    deterrency   = 0.55,
+    preprandial  = 0,
+    postprandial = 0.24,
+    killing_during_host_seeking_absolute = 1.10,
+    halflife_attrition = 180, shape_attrition = 2, decay_attrition = "weibull",
+    # second row: Weibull insecticide decay of host-seeking killing (half-life 90 days)
+    decay_hsk = c(NA, "weibull"), L_hsk = c(NA, 90), kappa_hsk = c(NA, 2),
+    stringsAsFactors = FALSE
+)
+res_dh = run_interventions(dummyhost_ps, model_p, seq(0, 1, by = 0.2),
+                           duration_years = 3)
+res_dh[, c("name", "coverage", "avg_impact")]
 ```
 
-### Step 4: Initializing the entomological model
-Once the vector, host and activity parameters have been defined, the 
-entomological model can be initialized and calibrated accordingly.
-In this step, the death rate and the availability to mosquitoes 
-for each host type are estimated. For a description of how these two 
-parameters are estimated, see [@Chitnis2008].
+#### Per-component insecticide decay
 
-First, the sizes of the host and mosquito populations need to be defined:
+As with `halflife_insecticide` and `component_decay` in `build_intervention()`,
+each efficacy can decay on top of attrition, with optional columns per
+component (suffix `_det`, `_pre`, `_post`, `_hsk`):
+
+- `halflife_<suffix>`: linear decay, time to zero in years;
+- `decay_<suffix>`, `L_<suffix>` (days), `kappa_<suffix>`: any decay
+  function, overriding `halflife_<suffix>`.
+
+`NA` or an absent column means no insecticide decay for that component:
+
 ```{r}
-# Define size of the host and mosquito population 
-host_pop = 2000
-vec_pop = 10000
+# Three scenarios with identical initial efficacy but different component decays
+comp_decay_ps = data.frame(
+    name         = c("No comp. decay", "Fast deterrency", "Differential decay"),
+    deterrency   = 0.55,
+    preprandial  = 0.45,
+    postprandial = 0.40,
+    halflife_attrition = 365, shape_attrition = 2, decay_attrition = "weibull",
+    # Scenario 2: deterrency decays fast (Weibull, half-life 60 d, kappa 3)
+    # Scenario 3: deterrency fast (Weibull), pre-prandial slow (linear, 2 yr), post-prandial medium (linear, 1 yr)
+    decay_det  = c(NA,        "weibull", "weibull"),
+    L_det      = c(NA,         60,        60),
+    kappa_det  = c(NA,          3,         3),
+    decay_pre  = c(NA,        NA,        "linear"),
+    L_pre      = c(NA,        NA,         730),
+    kappa_pre  = c(NA,        NA,         NA),
+    decay_post = c(NA,        NA,        "linear"),
+    L_post     = c(NA,        NA,         365),
+    kappa_post = c(NA,        NA,         NA),
+    stringsAsFactors = FALSE
+)
+
+comp_results = run_interventions(
+    param_sets   = comp_decay_ps,
+    model_p      = model_p,
+    coverage_vec = seq(0, 1, by = 0.1),
+    duration_years = 3
+)
+head(comp_results[, c("name", "coverage", "avg_impact")])
 ```
 
-Then, to initialize the entomological model and build the model object:
+#### Parameter uncertainty
+
+Uncertainty is propagated with draws, supplied through up to four arguments.
+They are **zipped**: draw `d` uses entry `d` of every source supplied, so all
+must have the same number of draws. The output gains a `draw` column.
+
+| Argument | One draw is | Replaces |
+|---|---|---|
+| `vec_param_sets` | a row with the columns of `vec_ent_param` | the bionomics of `model_p` |
+| `interv_param_sets` | a row with the columns of `param_sets` | `param_sets` |
+| `coverage_sets` | a vector of coverages (list element) | `coverage_vec` |
+| `exposure_sets` | an exposure factor, e.g. from `calculate_exposure()` | `exposure` |
+
+**Vector bionomics.** The database stores posterior means and standard
+deviations (`M.sd`, `A0.sd`, `Chi.sd`, `tau.sd`, ...), but draws are not
+generated automatically. Here, 200 independent normal draws of the parous and
+sac rates of *An. gambiae ss/coluzzii*, truncated to (0, 1), which ignores
+correlations between parameters:
+```{r, dpi=150, fig.cap="Uncertainty band (median + 95% interval) across 200 draws of vector parameters."}
+set.seed(42)
+n_draws  = 200
+base_vec = vec_ent_param[vec_ent_param$species_name == "Anopheles gambiae ss/coluzzii" &
+                             vec_ent_param$level == "species", ]
+
+vec_draws = base_vec[rep(1, n_draws), ]
+vec_draws$M  = pmax(pmin(rnorm(n_draws, base_vec$M,  base_vec$M.sd),  0.999), 0.001)
+vec_draws$A0 = pmax(pmin(rnorm(n_draws, base_vec$A0, base_vec$A0.sd), 0.999), 0.001)
+
+single_scenario = data.frame(
+    name="Medium efficacy ITN", deterrency=0.45, preprandial=0.55,
+    postprandial=0.50, halflife_attrition=180, shape_attrition=2,
+    decay_attrition="weibull", stringsAsFactors=FALSE
+)
+coverage_grid = seq(0, 1, by=0.1)
+
+uncertainty_results = run_interventions(
+    param_sets=single_scenario, model_p=model_p, coverage_vec=coverage_grid,
+    vec_param_sets=vec_draws, duration_years=3
+)
+# The draw-specific bionomics are included in the output
+head(uncertainty_results)
+
+# With draws, plot_impact() shows the median and the 95% interval
+plot_impact(uncertainty_results, title = "200 draws of M and A0")
+```
+
+**Across taxa.** The same argument evaluates one intervention for many taxa:
+each row of `vec_ent_param` is then a "draw", identified in the output by
+`species_name` and `level`. Filter on `level` (complexes and the genus have
+their own rows; a species alone in its complex is listed once, as a
+species). A taxon whose bionomics are inconsistent with the
+host parameters stops the run with an error:
+```{r, eval=FALSE}
+all_species = vec_ent_param[vec_ent_param$level == "species", ]
+res_species = run_interventions(single_scenario, model_p, coverage_vec = 0.8,
+                                vec_param_sets = all_species, duration_years = 3)
+```
+
+**Intervention parameters.** Each row of `interv_param_sets` replaces
+`param_sets` for its draw:
 ```{r}
-model_params = build_model_obj(def_vector_params(), def_host_params(), custom_activity_obj, host_pop)
-# Print the calculated mosquito death rate
-print(model_params$host_params$muvA)
-# Print the estimated availability to mosquitoes for each host type
-print(model_params$host_params$alphai)
+set.seed(7)
+n_draws_interv = 50
+interv_draws = data.frame(
+    name         = "ITN",
+    deterrency   = pmin(pmax(rnorm(n_draws_interv, 0.45, 0.08), 0), 1),
+    preprandial  = pmin(pmax(rnorm(n_draws_interv, 0.55, 0.10), 0), 1),
+    postprandial = pmin(pmax(rnorm(n_draws_interv, 0.50, 0.09), 0), 1),
+    halflife_attrition = 180, shape_attrition = 2, decay_attrition = "weibull"
+)
+
+interv_unc_results = run_interventions(
+    param_sets=single_scenario, model_p=model_p, coverage_vec=coverage_grid,
+    interv_param_sets=interv_draws, duration_years=3
+)
+nrow(interv_unc_results)   # 11 coverages x 50 draws
 ```
 
-### Step 5: Defining interventions effects
-In the `AnophelesModel` package, the interventions and their characteristics 
-are specified through a list of intervention objects. A detailed description of
-how the intervention objects are specified can be obtained by using the command 
-`?def_interventions_effects`. To facilitate definition of these objects, 
-the package contains a list of intervention object examples 
-for each intervention type included in the `intervention_obj_examples` list. 
-
-Several intervention parameterizations available in the package are derived 
-from locations where mosquitoes presented insecticide resistance, therefore 
-resistance is accounted for in the effects. This information is included in the 
-`interventions_param$interventions_summary` object (column `Resistance`).
-
-The `intervention_obj_examples` list contains three examples of interventions :
-LLIN, IRS and House screening, respectively: 
+**Several sources together**, here 30 draws of both bionomics and
+intervention parameters:
 ```{r}
-print(intervention_obj_examples)
+n_draws_joint = 30
+joint_results = run_interventions(
+    param_sets=single_scenario, model_p=model_p, coverage_vec=coverage_grid,
+    vec_param_sets    = vec_draws[seq_len(n_draws_joint), ],
+    interv_param_sets = interv_draws[seq_len(n_draws_joint), ],
+    duration_years=3
+)
+nrow(joint_results)        # 11 coverages x 30 draws
 ```
-Except for the house screening where only the `id` and `description` attributes 
-are required, to use the IRS and LLIN interventions included in the package, 
-the user needs to 
-provide the parameterisation ID (e.g., LLINs01, IRS01). A list of all package
-intervention parameterisations and their IDs can be obtained with the 
-`list_intervention_models()` command.
-The examples from `intervention_obj_examples` can be adapted to the user's 
-needs to pick other available parameterisations and intervention 
-characteristics available within the package. For example, to select a 
-different IRS parameterisation, we can modify the `parameterisation` attribute 
-of the IRS example:
+
+### Step 8: Combining two interventions
+
+`calculate_combined_impact()` evaluates two interventions deployed together
+(e.g. ITN and IRS), given the coverage of each and the share of people
+covered by both (`cov_combination`, by default the product of the two
+coverages, i.e. independent deployment).
+For people covered by both, the effects combine multiplicatively, and
+host-seeking killing of dummy-host interventions adds up. The interventions
+are evaluated over the shorter of their two durations. There is no
+`exposure` argument, because the exposures of two interventions overlap
+(e.g. bites in bed are also indoor bites): pass exposure-adjusted coverages
+if needed.
 ```{r}
-new_IRS = intervention_obj_examples$IRS_example
-new_IRS$description = "Actellic CS IRS"
-new_IRS$parameterisation = "IRS03"
+interv_ITN = build_intervention(
+    efficacy = c(Deterrency = 0.5, PrePrandial = 0.6, PostPrandial = 0.7),
+    halflife_attrition = 180, shape_attrition = 2, decay_attrition = "weibull",
+    duration_years = 1, model_p = model_p, name = "ITN"
+)
+interv_IRS = build_intervention(
+    efficacy = c(Deterrency = 0.0, PrePrandial = 0.3, PostPrandial = 0.8),
+    halflife_attrition = 180, shape_attrition = 2, decay_attrition = "weibull",
+    duration_years = 1, model_p = model_p, name = "IRS"
+)
+combined_impact = calculate_combined_impact(
+    combination_name  = "ITN + IRS",
+    intervention1     = interv_ITN[[1]], intervention2 = interv_IRS[[1]],
+    cov_intervention1 = 0.8,            cov_intervention2 = 0.8,
+    model_p = model_p
+)
+cat("Combined VC reduction:", round(combined_impact * 100, 1), "%\n")
 ```
-then we can concatenate the new intervention object to the list with 
-intervention examples:
+
+## Export to OpenMalaria
+
+This section can be read on its own: it only uses the objects it creates.
+
+OpenMalaria scenarios (schema 44 by default; dummy-host nets need schema 46
+or later, see below) are written with
+[openMalariaUtilities](https://github.com/SwissTPH/r-openMalariaUtilities),
+which builds a scenario as an R list (`baseList`) and writes the XML file.
+This package does not write scenarios: it fills in the entomology and the
+vector control interventions of a `baseList`; the rest of the scenario
+(demography, health system, monitoring, ...) and the XML file are produced
+with openMalariaUtilities, as usual. The steps are:
+
+1. `get_OM_ento_snippet()`: mosquito populations and their parameters;
+2. `define_OM_entomology()`: writes them into the `baseList`;
+3. `om_vector_control()`: specifies an ITN or IRS intervention;
+4. `define_OM_vector_control()` and `deploy_OM_vector_control()`: write its
+   definition and its deployment.
+
+openMalariaUtilities is not on CRAN and is only a suggested dependency:
+`get_OM_ento_snippet()`, `om_vector_control()`, `om_scenario_values()`
+and `get_OM_xml()` (XML text, see the end of this section) work without it,
+but `define_OM_entomology()` and `define_OM_vector_control()` require it.
+Install it from GitHub:
+```{r, eval=FALSE}
+remotes::install_github("SwissTPH/r-openMalariaUtilities")
+```
+
+### Entomology
+
+**Mosquito populations.** `get_OM_ento_snippet()` gives the parameters of
+each species, from the bionomics database. With activity patterns, each
+species is split into three populations by the interventions that reach
+them: `_indoor1` (reached by ITNs and IRS), `_indoor2` (by only one of the
+two) and `_outdoor` (by neither). ITNs reach the mosquitoes biting in bed;
+IRS reaches those resting indoors (default) or, with
+`irs_exposure = "indoor_biting"`, those biting indoors. In the latter case
+the split follows directly from the bites: `_indoor1` is the share of bites
+in bed, `_indoor2` the share of bites indoors outside bed; with resting
+indoors, the overlap of the two groups is assumed to be the largest
+possible. The populations share all parameters except the human blood index
+(indoor HBI for the indoor populations, outdoor HBI for the outdoor one). A
+population with a share of 0 (e.g. `_indoor2` when the two groups are the
+same size) is not written. Without activity patterns, each species is a
+single population that ITNs and IRS reach entirely, outdoor bites included;
+the vector control export then gives a warning.
+
+**Contribution of each population to the EIR.** The `annualEIR` of each
+population is its relative contribution to the EIR: the share of its species
+× its share within the species, summing to 1 over all populations.
+OpenMalaria rescales them to the total EIR, given separately in the
+`scaledAnnualEIR` attribute of `<entomology>` (a number or a placeholder such
+as `"@EIR@"`). The share of a species is its relative abundance weighted by
+its sporozoite rate, computed by `eir_shares()` (both are setting-specific;
+the values below are illustrative). The contributions are either:
+
+- **fixed:** pass the species shares as `species_shares`, and the
+  contributions are written as numbers;
+- **placeholders:** leave out `species_shares`; each population then has a
+  placeholder `@contrib_<population>@`, and `om_ento_values()` gives their
+  values for one or several species compositions (one row each), e.g. to
+  loop scenarios over species mixes.
+
+Fixed contributions:
 ```{r}
-new_intervention_list = c(intervention_obj_examples, list(new_IRS = new_IRS))
-```
+library(AnophelesModel)
 
-Once the intervention parameterisations have been defined, 
-the user needs to specify the intervention deployment coverages and a number of 
-time points. The duration of each intervention will be evenly split across the 
-time points and the intervention effects will be calculated at each time point.
+spz = c("Anopheles gambiae ss/coluzzii" = 0.114, "Anopheles funestus" = 0.235)
+mix = eir_shares(c("Anopheles gambiae ss/coluzzii" = 0.7, "Anopheles funestus" = 0.3), spz)
+mix
+
+activity = def_activity_patterns("default_Anopheles_gambiae")
+om_ento = get_OM_ento_snippet(names(mix), activity = activity, species_shares = mix)
+om_ento$shares
+```
+`shares` gives, per population, its share within the species (`share`), the
+share of its species (`species_share`), its share of the EIR (`eir_share`),
+whether ITNs (`in_bed`) or IRS (`indoor_resting`) reach it, and the
+host-seeking death rate `muvA`.
+
+Placeholder contributions, and their values for two compositions (the
+columns `contrib_<population>` fill the placeholders of the same name):
 ```{r}
-list_interv = new_intervention_list
-coverages = c(seq(0, 1, by = 0.1))
-n_ip = 100
-# Calculate the intervention effects:
-intervention_vec = def_interventions_effects(list_interv, model_params, n_ip)
+om_ento_ph = get_OM_ento_snippet(names(mix), activity = activity)
+om_ento_ph$seasonalityParameters[[1]]$annualEIR
+om_ento_values(om_ento_ph, rbind(mix = mix, equal = c(0.5, 0.5)))
 ```
 
-The effects of the interventions are adjusted according to indoor and outdoor 
-human exposure to mosquitoes. The user can calculate the human exposure 
-parameters using the following function:
-``` {r}
-in_out_exp = get_in_out_exp(activity_cycles = custom_activity_obj, vec_p = custom_ent_params)
-print(in_out_exp)
+**Writing the entomology.** `define_OM_entomology()` writes the entomology
+into the `baseList`, with the total EIR in `scaledAnnualEIR` (here a
+placeholder) and the seasonality, which gives the shape of the EIR over the
+year (OpenMalaria rescales it to the annual EIR). The `baseList` also keeps
+the entomology, so that the interventions use the same mosquito populations
+and parameters. The seasonality is either fixed numbers, or placeholders
+(default `@m1@`, ..., `@m12@`, filled per scenario by columns `m1`, ...,
+`m12`), which need a recent openMalariaUtilities (older versions reject them
+with R >= 4.3):
+```{r, eval=FALSE}
+# baseList: an openMalariaUtilities scenario
+baseList = define_OM_entomology(baseList, om_ento,
+                                seasonality = c(2, 3, 5, 8, 6, 3, 1, 1, 1, 1, 1, 2),
+                                scaledAnnualEIR = "@EIR@")
+# or with the seasonality per scenario (columns m1..m12)
+baseList = define_OM_entomology(baseList, om_ento, scaledAnnualEIR = "@EIR@")
 ```
 
-### Step 6: Calculating intervention impact on vectorial capacity
-Once all the intervention effects have been defined, their impact on the 
-vectorial capacity can be estimated (using equation 20 from [@Chitnis2008]) :
-```{r, dpi=150, fig.cap="Output figure with the impact on the vectorial capacity for different species"}
-impacts = calculate_impact(intervention_vec, coverages, model_params,
-                           vec_pop, n_ip)
-```
-The resulting vectorial capacity is calculated and aggregated across the 
-previously-specified time points which are uniformly-distributed across the 
-duration of an 
-intervention. To display the average vectorial capacity for various coverages:
-```{r, dpi=150, fig.cap="Impact of interventions on vectorial capacity."}
-p = plot_impact_species(impacts, "VC_red")
-plot(p)
-```
+### Vector control
 
-The variability in the entomological parameters for each mosquito species can 
-be accounted for when calculating the impact of interventions on the vectorial 
-capacity. To do so, the standard deviation values of the entomological 
-parameters (namely parameters `M.sd`, `A0.sd`, `endophily.sd` and `endophagy.sd` 
-in the `vec_ent_param` object) 
-are used to create a confidence interval defined as the mean value 
-+/- two standard deviations. Using latin hypercube sampling [@stein1987], 
-a set of samples are uniformly drawn from the 
-multi-dimensional parameter space defined by the confidence intervals. Then, 
-the average vectorial capacity is computed for each of these samples and the 
-resulting confidence interval for the vectorial capacity is represented by the 
-mean value +/- two standard deviations. This sampling-based approach is 
-included in the `calculate_impact_var()` function to 
-estimate the confidence interval for the reported mean vectorial capacity. 
-In the example below, in the interest of execution time, only 10 samples have 
-been used to estimate the confidence intervals of the vectorial capacity:
-```{r, dpi=150, echo=FALSE, message=FALSE, warning=FALSE, results='hide', fig.cap="Impact of interventions on vectorial capacity including the variability in the entomological parameters specific to the mosquito species."}
-impact_gambiae = calculate_impact_var(mosquito_species = "Anopheles gambiae",
-                                      activity_patterns = "default_Anopheles_gambiae",
-                                      interventions = intervention_obj_examples,
-                                      n_sample_points = 10,
-                                      plot_result = FALSE)
-plot_impact_var("Anopheles gambiae", impact_gambiae)
-```
-
-## Generating vector parameterisations for OpenMalaria
-The package `AnophelesModel` can be used to create XML snippets containing
-parameterisations for the entomology and generic vector control interventions 
-(GVI) components of OpenMalaria experiments. 
-These snippets can then be incorporated in the base 
-XML files describing the setup for OpenMalaria individual-based simulations.
-There are two main categories of XML snippets that can be generated with the 
-package:
-
-* `<mosq>` and `<nonHumanHosts>` snippets containing entomological parameters
-* `<GVI>` snippets with parameters describing the effects of interventions
-
-For example, to generate the `<mosq>` and `<nonHumanHosts>` snippets 
-for *Anopheles nili*:
+**Specifying an intervention.** `om_vector_control()` takes the efficacies
+of an intervention and its decays (attrition, and optionally insecticide
+decay), with no model or duration: the export builds the intervention with
+the entomology of the scenario, over the right period. It takes a built-in
+parameterisation from `get_ITN_params()` (see `list_ITN_params()` for the
+available nets and trials), or custom efficacies:
 ```{r}
-entomology_xml = get_OM_ento_snippet(nili_ent_params, default_host_params)
-print(entomology_xml)
+# Built-in: Interceptor G2, Kibondo hut trial, standard model
+ig2 = om_vector_control(get_ITN_params("Interceptor G2", "Kibondo", verbose = FALSE),
+                        halflife_attrition = 2 * 365, shape_attrition = 2)
+# Custom
+custom = om_vector_control(c(Deterrency = 0.4, PrePrandial = 0.5, PostPrandial = 0.3),
+                           halflife_attrition = 2 * 365, shape_attrition = 2,
+                           name = "Custom ITN")
 ```
 
-To generate the `<GVI>` snippets with deterrency, pre- and post-prandial effects
-of interventions, a set of 7 decay functions are fitted to the time series with 
-intervention effects calculated previously with `def_interventions_effects()` 
-and the best fit is chosen. The package also produces visualizations of the 
-different decay fits. For a detailed description of the fitted decay functions, 
-check the [description in the OpenMalaria wiki](https://github.com/SwissTPH/openmalaria/wiki/ModelDecayFunctions).
-```{r, dpi=150}
-
-GVI_snippets = get_OM_GVI_snippet("Anopheles example", impacts$interventions_vec$LLINs_example,
-                                  100, plot_f = TRUE)
+**Campaign schedules.** `om_campaigns()` builds the `schedule` of
+campaigns: dates (regular, with `from`, `to` and `every`, or given) and
+coverages (numbers or placeholders such as `"@cov2021@"`, one per year with
+`by_year = TRUE`):
+```{r}
+om_campaigns(dates = c("2021-01-01", "2024-01-01"), coverage = c(0.8, 0.6))
+om_campaigns("2015-01-25", "2018-01-25", every = "1 year",
+             coverage = "@histITNcov@", by_year = TRUE)
 ```
 
-## Combinations of interventions
-The `AnophelesModel` package provides functionality to combine two interventions 
-available in the package database, using the function `calculate_combined_impact_var()`.
-To include a combination of LLIN and IRS interventions in the example shown above:
-
-```{r, dpi=600, echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.keep='all', fig.cap="Impact of a combination of LLIN and IRS on vectorial capacity including the variability in the entomological parameters specific to the mosquito species."}
-impact_gambiae = calculate_impact_var(mosquito_species = "Anopheles gambiae",
-                                      activity_patterns = "default_Anopheles_gambiae",
-                                      interventions = intervention_obj_examples,
-                                      n_sample_points = 10,
-                                      plot_result = FALSE)
-impact_gambiae_combined = calculate_combined_impact_var(mosquito_species = "Anopheles gambiae",
-                                      activity_patterns = "default_Anopheles_gambiae",
-                                      interventions = intervention_obj_examples,
-                                      n_sample_points = 10)
-impact_all = rbind.data.frame(impact_gambiae, impact_gambiae_combined)
-impact_all$intervention_impact = impact_all$intervention_impact*100
-impact_all$intervention_impact = round(impact_all$intervention_impact, digits = 3)
-# impact_all[which(impact_all$intervention_impact < 0 ), "intervention_impact"] = 0
-
-intervention_colors = intervention_colors_fill =
-    c("#D81B60", "#1E88E5", "#D4A92A", "#004D40", "#de2d26",
-      "#74c476", "#bdbdbd", "#d7b5d8")
-
-p = ggplot(impact_all, aes(x=intervention_coverage, y=intervention_impact,
-                          group = intervention_name,
-                          col = intervention_name,
-                          fill = intervention_name)) +
-    theme_light() + theme_linedraw() + theme_bw(base_size=10) +
-    ylim(c(0, 100)) + theme(legend.position = "bottom", legend.direction = "vertical") +
-    stat_summary(fun.data = mean_sdl, fun.args = list(mult = 2),
-                 geom = "ribbon", alpha = 0.5, colour = NA) +
-    stat_summary(fun = mean, geom = "line", size = 0.5) +
-    scale_color_manual("Interventions", values = intervention_colors) +
-    scale_fill_manual("Interventions", values = intervention_colors) +
-    guides(col="none") +
-    guides(linetype = guide_legend(nrow = 2, byrow = TRUE)) +
-    guides(fill = guide_legend(nrow = 3, byrow = TRUE)) +
-    labs(title = "",
-         x="Coverage", y="Mean reduction in\nvectorial capacity",
-         fill = "")
-p
-
+**Define and deploy.** `define_OM_vector_control()` writes the definition of
+the intervention and `deploy_OM_vector_control()` its deployment, with the
+same `name` and a schedule:
+```{r, eval=FALSE}
+baseList = define_OM_vector_control(baseList, ig2, intervention_type = "ITN", name = "IG2")
+schedule = om_campaigns(dates = c("2021-01-01", "2024-01-01"), coverage = c(0.8, 0.6))
+baseList = deploy_OM_vector_control(baseList, "IG2", schedule)
 ```
 
+- **Effects.** Deterrency, pre-prandial and post-prandial killing become an
+  OpenMalaria generic vector intervention (GVI). Each effect keeps its own
+  decay; when attrition and insecticide decay cannot be expressed as a single
+  OpenMalaria decay, a Weibull is fitted to their product, over 3 years for
+  ITNs and 1 year for IRS (`fit_years` in `om_vector_control()`). When all
+  decays are identical, the effects are written as a single component.
+- **Exposure.** The effects act on the mosquito populations exposed in bed
+  (ITN) or resting indoors (IRS), see `shares` above (all bites without
+  activity patterns, with a warning).
+- **Same people.** The deployment holds all the components of the
+  intervention, so that all effects reach the same people.
+
+Deployments restricted to age groups, and continuous deployment (e.g. EPI),
+are described in [Age-specific deployments](#age-specific-deployments) below.
+
+**What has been checked in OpenMalaria.** The export was run in
+OpenMalaria through openMalariaUtilities and its entomological outputs
+checked (each effect on its own parameter, in the populations it should
+reach, decays, campaigns):
+
+- OpenMalaria 44: standard ITNs deployed by campaigns (also refresh on
+  redeployment and baseline EIR);
+- OpenMalaria 49: standard ITNs (same effects as in 44), dummy-host nets
+  (below), a list of nets with placeholder decays (identical to the nets
+  defined separately), IRS (both IRS exposure definitions), age-restricted,
+  cumulative and continuous deployments.
+
+The plain-text route (`get_OM_xml()`) writes the same XML as the
+openMalariaUtilities route. Sub-population deployments have not been run in
+OpenMalaria.
+
+**Dummy-host nets.** The GVI has deterrency and post-prandial killing only.
+Host-seeking killing, which the GVI cannot represent, is written as it is in
+the model, a dummy host on which every mosquito that finds it dies: for each
+campaign, an OpenMalaria non-human host (`<name>_dummy_<k>`, added at the
+campaign date), whose availability relative to an adult human is the
+coverage × `KillingDuringHostSeekingAbsolute` / human availability, and
+decays as the GVI effects do: attrition × insecticide decay of host-seeking killing, exact
+when it is a single OpenMalaria decay, otherwise the fitted Weibull (one
+modification with an increasing decay, none if it does not decay). As for the GVI, whose effects are
+refreshed (not stacked) in people who receive a net again, each campaign
+replaces the nets of its recipients: earlier dummy hosts are reduced by the
+coverage of every later campaign. In OpenMalaria 49, timing, coverage,
+replacement, populations reached and lifespan behave as designed, and the
+decay of the dummy hosts follows the written decay within 0.3% of the
+initial effect.
+
+The relative availability of an added host is scaled by OpenMalaria by the
+availability of an average **adult**, the person sleeping in the
+experimental hut where host-seeking killing was measured. Relative to the
+average human of the population (the human of this package's model),
+host-seeking killing is therefore stronger in OpenMalaria than in the
+package, by the ratio of adult to mean human availability (1.35 in the
+scenario checked, with a Tanzanian demography). This choice may be
+revisited.
+
+Increasing decays need **OpenMalaria schema 46 or later** (checked with 49): set
+`OMVersion = 49L` in the `baseList` (or `schema = 49` in `get_OM_xml()`);
+from schema 49, the entomology is written without `propInfected` /
+`propInfectious`, which 49 removed. Standard nets work with both 44 and 49.
+
+The dummy hosts are written by `deploy_OM_vector_control()`, with the
+schedule. A dummy-host intervention is deployed **once**, with the whole
+schedule, and cannot be restricted to a sub-population, by age, or be
+cumulative. The hosts last until `end_date` if given (e.g. in
+`om_campaigns()`), otherwise 100 years:
+```{r, eval=FALSE}
+ig2_dh = om_vector_control(get_ITN_params("Interceptor G2", "Kibondo",
+                                          mode = "dummy_host", verbose = FALSE),
+                           halflife_attrition = 2 * 365, shape_attrition = 2)
+# baseList with OMVersion = 49L, set before define_OM_entomology()
+baseList = define_OM_vector_control(baseList, ig2_dh, name = "IG2_dh")
+schedule_dh = om_campaigns(dates = c("2021-01-01", "2024-01-01"), coverage = c(0.8, 0.6),
+                           end_date = "2027-01-01")
+baseList = deploy_OM_vector_control(baseList, "IG2_dh", schedule_dh)
+```
+
+**Several nets.** There are two cases:
+
+- **Different nets in the same scenario** (e.g. historical nets until
+  2018, then new nets): define and deploy each as its own intervention, with
+  its own name and schedule.
+- **Alternative nets across scenarios** (e.g. to compare net types or trial
+  parameterisations): a named list of interventions (same model structure)
+  defines **one** intervention, deployed under the list's `name`; in each
+  scenario, one net of the list is used.
+
+**Placeholders only where something varies.** The XML has numbers wherever
+the scenarios cannot differ, and placeholders elsewhere:
+
+- **efficacies:** placeholders with several nets;
+- **decays:** with `decay = "placeholder"` in `define_OM_vector_control()`
+  (e.g. when the attrition varies between scenarios), otherwise the nets'
+  decays (which must then be the same). Each effect keeps its decay function
+  when all the nets share it (e.g. a `step` for historical nets that last one
+  year), and is otherwise a Weibull;
+- **dummy hosts** (dummy-host nets): availabilities as placeholders unless
+  the net and the coverages are fixed; their decay (that of host-seeking
+  killing, `@<name>_hsk_L@` / `_k@`) as the other decays.
+
+Here the built-in and the custom net as alternatives, with placeholder
+coverages and decays:
+```{r}
+nets = list(IG2 = ig2, custom = custom)
+schedule_ph = om_campaigns("2021-01-01", "2024-01-01", every = "3 years",
+                           coverage = "@cov@", by_year = TRUE)
+```
+```{r, eval=FALSE}
+baseList = define_OM_vector_control(baseList, nets, name = "ITN", decay = "placeholder")
+baseList = deploy_OM_vector_control(baseList, "ITN", schedule_ph)
+```
+
+**Filling the scenario table.** The scenario table is yours (built e.g.
+with `expand.grid()`, with your own coverages). `om_scenario_values()` adds
+to it, row by row, the values of the placeholders that were written: the
+efficacies of the net named in column `net`, the decays and, for dummy-host
+nets, the availabilities of the dummy hosts (from the coverage columns, named
+like the placeholders of the schedule). The source is the `baseList` (after
+define and deploy) or the result of `get_OM_xml()`, which keep what was
+written, so the values cannot disagree with the XML.
+
+The decays differ between effects through the insecticide decay of each
+effect (from the trial parameterisation), while the attrition is the same
+for all effects. So by default `halflife` and `kappa` name one **attrition**
+column each (in years, `decay_unit = "days"` otherwise), and each effect's
+decay is this attrition combined with its insecticide decay (the dummy
+hosts take the attrition as it is, their insecticide decay being separate;
+`combine = FALSE` writes final decays given per effect instead):
+```{r}
+# Without openMalariaUtilities, the same definition and deployment as text
+xml = get_OM_xml(om_ento, nets, schedule_ph, name = "ITN", decay = "placeholder",
+                 entomology = FALSE)
+scens = expand.grid(net = c("IG2", "custom"), attrition = c(2, 3),
+                    cov2021 = c(0.5, 0.8), cov2024 = 0.6, seed = 1:2)
+scens = om_scenario_values(scens, xml, net = "net", halflife = "attrition")
+head(scens)
+```
+
+**Lower-level functions.** `define_OM_vector_control()` is built on
+`get_OM_GVI_snippet()`, which returns the GVI as the input list of
+openMalariaUtilities' `defineVectorControl()`, and `add_OM_GVI()`, which
+writes it into a `baseList`. They are useful to write the deployment
+yourself, e.g. with openMalariaUtilities' `deployIT()`; in that case, deploy
+all components of an intervention together.
+```{r}
+om_gvi = get_OM_GVI_snippet(ig2, om_ento, intervention_type = "ITN")
+om_gvi[[1]]$deterrency$decay   # L in years
+```
+
+### Without openMalariaUtilities (XML text)
+
+`get_OM_xml()` writes the same entomology and interventions as XML text, to
+paste into an existing scenario:
+
+- `entomology`: the `<vector>` element (one `<anopheles>` per mosquito
+  population, with its contribution as `annualEIR` and the seasonality
+  placeholders `"@m1@"`, ..., `"@m12@"`), inside `<entomology>`, to which
+  you add the total EIR as `scaledAnnualEIR="@EIR@"` (or a number);
+- `define` (the components) and `deploy` (the deployment): inside
+  `<interventions><human>`, the components before all deployments;
+- `add_hosts` and `modify_hosts`, for dummy-host interventions (with
+  `schema = 49`): the dummy hosts, inside `<interventions><addNonHumanHosts>`,
+  and their decays, inside `<interventions><nonHumanHostsModifications>`.
+
+`schema` (default 44) is the OpenMalaria schema version of the scenario.
+
+Printing the result shows each snippet with a comment saying where it goes;
+`writeLines(unlist(xml), "file.xml")` saves them. `get_OM_xml(om_ento)` gives
+the entomology only; for several interventions, call it once per
+intervention with `entomology = FALSE` after the first.
+```{r}
+schedule = om_campaigns("2021-01-01", "2024-01-01", every = "3 years",
+                        coverage = "@cov@", by_year = TRUE)
+xml = get_OM_xml(om_ento, ig2, schedule, name = "IG2")
+cat(xml$deploy)
+```
+
+### Age-specific deployments
+
+Nets can be deployed to age groups in two ways:
+
+- **campaigns restricted to an age group:** at given dates, people of an age
+  range receive the net (e.g. under-fives);
+- **continuous deployment:** people receive the net when they reach a target
+  age (e.g. infants at 3 months through EPI), while the deployment is active.
+
+Both take the same arguments in `deploy_OM_vector_control()`
+(openMalariaUtilities) and `get_OM_xml()` (text). They apply to standard
+interventions (dummy-host interventions are deployed to the whole
+population).
+
+**Campaigns for an age group.** `minAge` and `maxAge` (in years, numbers or
+placeholders) restrict every campaign of the schedule to that age range; the
+coverage is then the coverage within the age group. Give **both or
+neither**: a single limit is an error, to avoid a deployment that silently
+reaches all ages. Here the IG2 net to under-fives, in 2021 and 2024:
+```{r, eval=FALSE}
+baseList = define_OM_vector_control(baseList, ig2, name = "IG2")
+schedule_u5 = om_campaigns(dates = c("2021-01-01", "2024-01-01"),
+                           coverage = "@covU5@", by_year = TRUE)
+baseList = deploy_OM_vector_control(baseList, "IG2", schedule_u5, minAge = 0, maxAge = 5)
+```
+The same deployment as text:
+```{r}
+schedule_u5 = om_campaigns(dates = c("2021-01-01", "2024-01-01"),
+                           coverage = "@covU5@", by_year = TRUE)
+xml_u5 = get_OM_xml(om_ento, ig2, schedule_u5, name = "IG2",
+                    minAge = 0, maxAge = 5, entomology = FALSE)
+cat(xml_u5$deploy)
+```
+For several age groups, deploy the net once per group, each with its own
+schedule and coverage placeholders (in text: the `define` snippet once, the
+`deploy` snippet of each group). The age ranges should not overlap,
+otherwise people in both ranges receive a net from each deployment.
+
+**Continuous deployment.** `om_continuous()` gives the target ages, the
+coverage at each age (numbers or placeholders) and, optionally, the dates
+between which the deployment is active (by default, from the start of the
+intervention period, without end). It is used as the `schedule`; campaign
+options (`minAge`, `maxAge`, `cumulative`, `end_date`) do not apply, but
+`subpop` does. Here nets to infants at 3 months (EPI), from 2021:
+```{r, eval=FALSE}
+baseList = deploy_OM_vector_control(baseList, "IG2",
+    om_continuous(age = 0.25, coverage = "@covEPI@", begin = "2021-01-01"))
+```
+The same deployment as text:
+```{r}
+cont = om_continuous(age = 0.25, coverage = "@covEPI@", begin = "2021-01-01")
+xml_cont = get_OM_xml(om_ento, ig2, cont, name = "IG2", entomology = FALSE)
+cat(xml_cont$deploy)
+```
+
+**Continuous and campaigns together.** A net distributed both routinely and
+by mass campaigns is deployed twice under the same name, once with each
+schedule (two deployments of the same components); in text, call
+`get_OM_xml()` once per schedule and paste the `define` snippet of one call
+only.
 
 ## References
-
-

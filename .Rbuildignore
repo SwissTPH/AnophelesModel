@@ -1,0 +1,16 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^doc$
+^Meta$
+^docs$
+^LICENSE$
+^_pkgdown\.yml$
+^data-raw$
+^CLAUDE\.md$
+^TestGVI$
+^extdata$
+^\.claude$
+^\.RData$
+^.*\.Rapp\.history$
+^vignettes/[^/]*\.htm$
+^vignettes/[^/]*_files$
